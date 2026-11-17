@@ -33,6 +33,7 @@ const normalizeErrorMessage = (error, fallback) =>
 const readFiltersFromSearch = (searchParams) => ({
   q: searchParams.get("q") || DEFAULT_PRODUCTS_2026_FILTERS.q,
   categoryId: searchParams.get("categoryId") || DEFAULT_PRODUCTS_2026_FILTERS.categoryId,
+  productType: searchParams.get("productType") || DEFAULT_PRODUCTS_2026_FILTERS.productType,
   published: searchParams.get("published") || DEFAULT_PRODUCTS_2026_FILTERS.published,
   stock: searchParams.get("stock") || DEFAULT_PRODUCTS_2026_FILTERS.stock,
   sort: searchParams.get("sort") || DEFAULT_PRODUCTS_2026_FILTERS.sort,

@@ -713,6 +713,9 @@ export default function AdminOrderDetail2026View({
                   const qty = Number(item.qty || item.quantity || 1);
                   const price = Number(item.price || item.priceSnapshot || 0);
                   const lineTotal = Number(item.lineTotal || item.totalPrice || price * qty);
+                  const itemProductType = String(item.productTypeSnapshot || item.productType || "physical").trim().toLowerCase();
+                  const isItemService = itemProductType === "service" || item.isService;
+                  const isItemDigital = itemProductType === "digital" || item.isDigital;
 
                   return (
                     <article key={item.id || idx} className="tpsodp2026-item-row">
@@ -730,10 +733,20 @@ export default function AdminOrderDetail2026View({
                         <h3 className="tpsodp2026-item-row__name">{name}</h3>
                         <div className="tpsodp2026-item-row__submeta">
                           <span className="tpsodp2026-item-row__variant">{variant}</span>
-                          <span className="tpsodp2026-item-row__weight">
-                            <Scale size={11} />
-                            1 kg / unit
-                          </span>
+                          {isItemService ? (
+                            <span className="tpsodp2026-item-row__weight" style={{ color: "#ea580c", fontWeight: "700" }}>
+                              🛠️ Layanan Jasa (Bebas Beban Paket)
+                            </span>
+                          ) : isItemDigital ? (
+                            <span className="tpsodp2026-item-row__weight" style={{ color: "#9333ea", fontWeight: "700" }}>
+                              ⚡ Produk Digital (Bebas Beban Paket)
+                            </span>
+                          ) : (
+                            <span className="tpsodp2026-item-row__weight">
+                              <Scale size={11} />
+                              1 kg / unit
+                            </span>
+                          )}
                         </div>
                         <div className="tpsodp2026-item-row__pricing">
                           <span className="tpsodp2026-item-row__qty">
@@ -795,7 +808,12 @@ export default function AdminOrderDetail2026View({
                 <div className="tpsodp2026-field tpsodp2026-field--full">
                   <label className="tpsodp2026-field__label">{t.trackingNo}</label>
                   <div className="tpsodp2026-tracking-display">
-                    <span>{trackingNumber || t.noTracking}</span>
+                    <span>
+                      {trackingNumber ||
+                        (order?.isNonPhysicalOrder || primaryGroup?.isNonPhysicalSuborder
+                          ? (isIndo ? "⚡ Bebas Resi Fisik (Digital / Layanan)" : "⚡ No physical tracking required (Digital / Service)")
+                          : t.noTracking)}
+                    </span>
                     {trackingNumber ? (
                       <button
                         type="button"

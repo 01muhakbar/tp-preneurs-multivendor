@@ -8,6 +8,7 @@ export const FALLBACK_PRODUCT_IMAGE = "/demo/placeholder-product.svg";
 export const DEFAULT_PRODUCTS_2026_FILTERS = {
   q: "",
   categoryId: "all",
+  productType: "all",
   published: "all",
   stock: "all",
   sort: "date_added",
@@ -149,6 +150,15 @@ export const normalizeAdminProduct2026 = (product) => {
     ...(Array.isArray(product?.imagePaths) ? product.imagePaths : []),
   ].filter(Boolean);
 
+  const productType = String(
+    product?.productType ||
+    product?.seo?.productType ||
+    (product?.isDigital ? "digital" : product?.isService ? "service" : "physical")
+  ).toLowerCase();
+  const isPhysical = productType === "physical";
+  const isDigital = productType === "digital" || Boolean(product?.isDigital);
+  const isService = productType === "service" || Boolean(product?.isService);
+
   return {
     id,
     name: product?.name || product?.title || `Product #${id}`,
@@ -162,6 +172,12 @@ export const normalizeAdminProduct2026 = (product) => {
     published,
     statusCode,
     statusLabel,
+    productType,
+    isPhysical,
+    isDigital,
+    isService,
+    serviceDeliveryType: product?.serviceDeliveryType || null,
+    serviceDuration: product?.serviceDuration || null,
     sellerSubmission,
     sellerSubmissionStatus: sellerSubmission.status,
     canApproveReview: isSubmittedForReview,
@@ -205,6 +221,7 @@ export const buildAdminProducts2026Params = ({ filters, page, limit = PRODUCT_LI
     limit,
     q: filters.q || undefined,
     categoryIds: filters.categoryId !== "all" ? filters.categoryId : undefined,
+    productType: filters.productType && filters.productType !== "all" ? filters.productType : undefined,
     published: filters.published === "review_queue" ? undefined : published,
     sellerSubmissionStatus: filters.published === "review_queue" ? "review_queue" : undefined,
     inventoryStatus: filters.stock !== "all" ? filters.stock : undefined,

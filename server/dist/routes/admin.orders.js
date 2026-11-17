@@ -781,6 +781,7 @@ const orderDetailInclude = [
                     "id",
                     "productNameSnapshot",
                     "skuSnapshot",
+                    "productTypeSnapshot",
                     "variantKey",
                     "variantLabel",
                     "variantSelections",
@@ -973,23 +974,36 @@ const toOrderDetailPayload = (orderItem, paymentCode = null) => {
                     paidAt: getAttr(latestPayment, "paidAt") || null,
                 }
                 : null,
-            items: (Array.isArray(suborder?.items) ? suborder.items : []).map((item) => ({
-                id: Number(getAttr(item, "id") || 0) || null,
-                productId: Number(getAttr(item, "productId") || 0) || null,
-                productName: String(getAttr(item, "productNameSnapshot") ||
-                    getAttr(item?.product, "name") ||
-                    `Product #${getAttr(item, "productId")}`),
-                slug: String(getAttr(item?.product, "slug") || "").trim() || null,
-                qty: Number(getAttr(item, "qty") || 0),
-                price: Number(getAttr(item, "priceSnapshot") || 0),
-                lineTotal: Number(getAttr(item, "totalPrice") || 0),
-                image: String(getAttr(item, "imageSnapshot") || "").trim() || null,
-                variantKey: String(getAttr(item, "variantKey") || "").trim() || null,
-                variantLabel: String(getAttr(item, "variantLabel") || "").trim() || null,
-                variantSelections: normalizeVariantSelectionsSnapshot(getAttr(item, "variantSelections")),
-                sku: String(getAttr(item, "skuSnapshot") || "").trim() || null,
-                barcode: String(getAttr(item, "barcodeSnapshot") || "").trim() || null,
-            })),
+            isNonPhysicalSuborder: (Array.isArray(suborder?.items) ? suborder.items : []).length > 0 &&
+                (Array.isArray(suborder?.items) ? suborder.items : []).every((item) => {
+                    const type = String(getAttr(item, "productTypeSnapshot") || "physical").trim().toLowerCase();
+                    return type === "digital" || type === "service";
+                }),
+            items: (Array.isArray(suborder?.items) ? suborder.items : []).map((item) => {
+                const itemProductType = String(getAttr(item, "productTypeSnapshot") || "physical").trim().toLowerCase();
+                return {
+                    id: Number(getAttr(item, "id") || 0) || null,
+                    productId: Number(getAttr(item, "productId") || 0) || null,
+                    productName: String(getAttr(item, "productNameSnapshot") ||
+                        getAttr(item?.product, "name") ||
+                        `Product #${getAttr(item, "productId")}`),
+                    slug: String(getAttr(item?.product, "slug") || "").trim() || null,
+                    qty: Number(getAttr(item, "qty") || 0),
+                    price: Number(getAttr(item, "priceSnapshot") || 0),
+                    lineTotal: Number(getAttr(item, "totalPrice") || 0),
+                    image: String(getAttr(item, "imageSnapshot") || "").trim() || null,
+                    variantKey: String(getAttr(item, "variantKey") || "").trim() || null,
+                    variantLabel: String(getAttr(item, "variantLabel") || "").trim() || null,
+                    variantSelections: normalizeVariantSelectionsSnapshot(getAttr(item, "variantSelections")),
+                    sku: String(getAttr(item, "skuSnapshot") || "").trim() || null,
+                    barcode: String(getAttr(item, "barcodeSnapshot") || "").trim() || null,
+                    productType: itemProductType,
+                    productTypeSnapshot: getAttr(item, "productTypeSnapshot") || null,
+                    isPhysical: itemProductType === "physical",
+                    isDigital: itemProductType === "digital",
+                    isService: itemProductType === "service",
+                };
+            }),
         };
     });
     const splitSnapshotItems = groups.flatMap((group) => (Array.isArray(group?.items) ? group.items : []).map((item) => ({
@@ -1008,6 +1022,11 @@ const toOrderDetailPayload = (orderItem, paymentCode = null) => {
         sku: item.sku,
         barcode: item.barcode,
         image: item.image,
+        productType: item.productType,
+        productTypeSnapshot: item.productTypeSnapshot,
+        isPhysical: item.isPhysical,
+        isDigital: item.isDigital,
+        isService: item.isService,
         product: item.productId
             ? {
                 id: item.productId,
@@ -1045,6 +1064,7 @@ const toOrderDetailPayload = (orderItem, paymentCode = null) => {
         paymentStatusMeta: buildPaymentStatusMeta(String(getAttr(orderItem, "paymentStatus") || "").toUpperCase().trim() || "UNPAID"),
         withdrawalEligibility: withdrawalEligibilitySummary,
         withdrawalEligibilitySummary,
+        isNonPhysicalOrder: items.length > 0 && items.every((item) => item.isDigital || item.isService),
         totalAmount,
         subtotal,
         subtotalAmount: subtotal,

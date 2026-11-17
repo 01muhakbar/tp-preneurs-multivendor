@@ -102,6 +102,35 @@ const getSortOptions = (t) => [
   { value: "price_desc", label: t("products.Price High to Low") },
 ];
 
+const getProductTypeOptions = (t) => [
+  { value: "all", label: t("products.All Types") || "Semua Tipe" },
+  { value: "physical", label: "📦 " + (t("products.Physical") || "Fisik") },
+  { value: "digital", label: "⚡ " + (t("products.Digital") || "Digital") },
+  { value: "service", label: "🛠️ " + (t("products.Service") || "Layanan / Jasa") },
+];
+
+function ProductTypeBadge({ product }) {
+  if (product?.isService || product?.productType === "service") {
+    return (
+      <span className="ap26-type-badge ap26-type-badge--service" title="Produk Layanan / Jasa">
+        🛠️ Layanan{product?.serviceDeliveryType ? ` · ${product.serviceDeliveryType === "online" ? "Online" : "On-Site"}` : ""}
+      </span>
+    );
+  }
+  if (product?.isDigital || product?.productType === "digital") {
+    return (
+      <span className="ap26-type-badge ap26-type-badge--digital" title="Produk Digital Berkas">
+        ⚡ Digital
+      </span>
+    );
+  }
+  return (
+    <span className="ap26-type-badge ap26-type-badge--physical" title="Produk Fisik">
+      📦 Fisik
+    </span>
+  );
+}
+
 function IconButton({ children, label, className = "", ...props }) {
   return (
     <button
@@ -577,6 +606,12 @@ export default function AdminProducts2026View({
           options={[{ value: "all", label: t("products.All") }, ...categories.map((category) => ({ value: category.id, label: category.name }))]}
         />
         <FieldSelect
+          label={t("products.Type") || "Tipe"}
+          value={filters.productType || "all"}
+          onChange={(value) => onFilterChange({ productType: value })}
+          options={getProductTypeOptions(t)}
+        />
+        <FieldSelect
           label={t("products.Status")}
           value={filters.published}
           onChange={(value) => onFilterChange({ published: value })}
@@ -678,6 +713,7 @@ export default function AdminProducts2026View({
                     <strong>{product.name}</strong>
                     <span className="ap26-grid-sku">{t("products.SKU")}: {product.sku}</span>
                     <span className="ap26-grid-category">{product.category}</span>
+                    <ProductTypeBadge product={product} />
                     
                     <div className="ap26-grid-prices">
                       <span className="ap26-grid-price">{product.priceLabel}</span>
@@ -764,6 +800,7 @@ export default function AdminProducts2026View({
                           <div>
                             <strong>{product.name}</strong>
                             <span>{t("products.SKU")}: {product.sku}</span>
+                            <ProductTypeBadge product={product} />
                           </div>
                         </div>
                       </td>

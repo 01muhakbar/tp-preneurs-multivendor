@@ -1028,7 +1028,42 @@ const buildProductsWhere = (query, options = {}) => {
     const publishedFilter = toBooleanOrUndefined(asSingle(query.published));
     const inventoryStatusFilter = normalizeAdminInventoryFilter(asSingle(query.inventoryStatus) ?? asSingle(query.status));
     const sort = normalizeAdminProductSort(asSingle(query.sort));
+    const productType = String(asSingle(query.productType) ?? "").trim().toLowerCase();
     const andConditions = [];
+    if (productType === "digital") {
+        andConditions.push({
+            [Op.or]: [
+                sequelize.literal("COALESCE(JSON_UNQUOTE(JSON_EXTRACT(Product.seo, '$.productType')), '') = 'digital'"),
+                sequelize.literal("COALESCE(JSON_UNQUOTE(JSON_EXTRACT(Product.seo, '$.isDigital')), '') IN ('true', '1')"),
+                sequelize.literal("Product.seo LIKE '%\"productType\":\"digital\"%'"),
+                sequelize.literal("Product.seo LIKE '%\"isDigital\":true%'"),
+            ],
+        });
+    }
+    else if (productType === "service") {
+        andConditions.push({
+            [Op.or]: [
+                sequelize.literal("COALESCE(JSON_UNQUOTE(JSON_EXTRACT(Product.seo, '$.productType')), '') = 'service'"),
+                sequelize.literal("COALESCE(JSON_UNQUOTE(JSON_EXTRACT(Product.seo, '$.isService')), '') IN ('true', '1')"),
+                sequelize.literal("Product.seo LIKE '%\"productType\":\"service\"%'"),
+                sequelize.literal("Product.seo LIKE '%\"isService\":true%'"),
+            ],
+        });
+    }
+    else if (productType === "physical") {
+        andConditions.push({
+            [Op.or]: [
+                sequelize.literal("COALESCE(JSON_UNQUOTE(JSON_EXTRACT(Product.seo, '$.productType')), '') = 'physical'"),
+                {
+                    [Op.and]: [
+                        sequelize.literal("COALESCE(JSON_UNQUOTE(JSON_EXTRACT(Product.seo, '$.productType')), '') NOT IN ('digital', 'service')"),
+                        sequelize.literal("COALESCE(JSON_UNQUOTE(JSON_EXTRACT(Product.seo, '$.isDigital')), '') NOT IN ('true', '1')"),
+                        sequelize.literal("COALESCE(JSON_UNQUOTE(JSON_EXTRACT(Product.seo, '$.isService')), '') NOT IN ('true', '1')"),
+                    ],
+                },
+            ],
+        });
+    }
     if (q) {
         andConditions.push({
             [Op.or]: [
@@ -1367,7 +1402,12 @@ const toAdminProductListItem = (product, storeOperationalReadiness = null) => {
         stock: plain?.stock ?? 0,
         weight: plain?.weight ?? null,
         productType: productTypeMetadata.productType,
+        isPhysical: productTypeMetadata.isPhysical,
         isDigital: productTypeMetadata.isDigital,
+        isService: productTypeMetadata.isService,
+        isWeightless: productTypeMetadata.isWeightless,
+        serviceDeliveryType: productTypeMetadata.serviceDeliveryType,
+        serviceDuration: productTypeMetadata.serviceDuration,
         notes: plain?.notes ?? null,
         length: plain?.length ?? null,
         width: plain?.width ?? null,
@@ -1429,8 +1469,16 @@ const toAdminProductDetail = (product, storeOperationalReadiness = null) => {
         stock: plain?.stock ?? 0,
         weight: plain?.weight ?? null,
         productType: productTypeMetadata.productType,
+        isPhysical: productTypeMetadata.isPhysical,
         isDigital: productTypeMetadata.isDigital,
+        isService: productTypeMetadata.isService,
+        isWeightless: productTypeMetadata.isWeightless,
         digitalAssetUrl: productTypeMetadata.digitalAssetUrl,
+        digitalInstructions: productTypeMetadata.digitalInstructions,
+        serviceDeliveryType: productTypeMetadata.serviceDeliveryType,
+        serviceDuration: productTypeMetadata.serviceDuration,
+        serviceInstructions: productTypeMetadata.serviceInstructions,
+        serviceContactWhatsapp: productTypeMetadata.serviceContactWhatsapp,
         notes: plain?.notes ?? null,
         length: plain?.length ?? null,
         width: plain?.width ?? null,
@@ -1853,6 +1901,7 @@ router.get("/", async (req, res, next) => {
                     "promoImagePath",
                     "imagePaths",
                     "tags",
+                    "seo",
                     "createdAt",
                     "updatedAt",
                     [
@@ -1923,6 +1972,7 @@ router.get("/export", async (req, res, next) => {
                 "promoImagePath",
                 "imagePaths",
                 "tags",
+                "seo",
                 "createdAt",
                 "updatedAt",
             ],

@@ -5,6 +5,7 @@ import {
   ArrowRight,
   BadgeCheck,
   Boxes,
+  Briefcase,
   CalendarDays,
   ChevronDown,
   ChevronLeft,
@@ -12,6 +13,7 @@ import {
   CircleDollarSign,
   Clock3,
   Copy,
+  Download,
   ExternalLink,
   Eye,
   FileText,
@@ -23,10 +25,12 @@ import {
   Pencil,
   RefreshCw,
   RotateCcw,
+  Scale,
   ShieldCheck,
   Store,
   Tag,
   Trash2,
+  Truck,
   UserRound,
   X,
 } from "lucide-react";
@@ -239,7 +243,22 @@ function Hero({ product }) {
         <div className="apd26-product-heading">
           <div>
             <h2>{product.name}</h2>
-            <p>SKU: <strong>{product.sku}</strong></p>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginTop: "4px" }}>
+              <p style={{ margin: 0 }}>SKU: <strong>{product.sku}</strong></p>
+              {product.isService ? (
+                <span className="apd26-badge apd26-badge--warning" style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "11px", fontWeight: "700" }}>
+                  🛠️ Layanan / Jasa{product.serviceDeliveryType ? ` (${product.serviceDeliveryType === "online" ? "Online" : "On-Site"})` : ""}
+                </span>
+              ) : product.isDigital ? (
+                <span className="apd26-badge" style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "11px", fontWeight: "700", background: "rgba(168,85,247,0.15)", color: "#9333ea", border: "1px solid rgba(168,85,247,0.3)" }}>
+                  ⚡ Produk Digital
+                </span>
+              ) : (
+                <span className="apd26-badge apd26-badge--neutral" style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "11px", fontWeight: "700" }}>
+                  📦 Produk Fisik
+                </span>
+              )}
+            </div>
           </div>
           <span className={`apd26-badge ${product.published ? "apd26-badge--success" : "apd26-badge--neutral"}`}>
             {product.published ? t("productDetail.Published") : t("productDetail.Draft")}
@@ -384,15 +403,116 @@ function TimelineCard({ product }) {
 
 function ProductInfoCard({ product }) {
   const { t } = useTranslation("admin");
+  const productTypeLabel = product.isService
+    ? `Layanan / Jasa (${product.serviceDeliveryType === "onsite" ? "On-Site" : "Online"})`
+    : product.isDigital
+      ? "Berkas Digital"
+      : "Produk Fisik";
+
   return (
     <section className="apd26-card apd26-product-info">
       <CardTitle icon={Info}>{t("productDetail.Product Info")}</CardTitle>
       <dl className="apd26-detail-list">
-        <div><dt>{t("productDetail.Product Type")}</dt><dd>{product.productType}</dd></div>
+        <div><dt>{t("productDetail.Product Type")}</dt><dd><strong>{productTypeLabel}</strong></dd></div>
         <div><dt>{t("productDetail.Created By")}</dt><dd>{product.createdBy}<small>{formatDate(product.createdAt)}</small></dd></div>
         <div><dt>{t("productDetail.Last Updated By")}</dt><dd>{product.updatedBy}<small>{formatDate(product.updatedAt)}</small></dd></div>
         <div><dt>{t("productDetail.Product ID")}</dt><dd>#{product.code}</dd></div>
         <div><dt>{t("productDetail.Store Scope")}</dt><dd>{product.storeName}</dd></div>
+      </dl>
+    </section>
+  );
+}
+
+function ProductGovernanceSection({ product }) {
+  if (product.isService) {
+    return (
+      <section className="apd26-card">
+        <CardTitle icon={Briefcase}>Informasi Layanan & Jasa (Audit Moderasi)</CardTitle>
+        <div style={{ display: "flex", flexDirection: "column", gap: "14px", marginTop: "14px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "12px" }}>
+            <div style={{ padding: "12px", borderRadius: "8px", background: "rgba(249, 115, 22, 0.08)", border: "1px solid rgba(249, 115, 22, 0.2)" }}>
+              <span style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", color: "#ea580c" }}>Mode Pelaksanaan</span>
+              <p style={{ margin: "4px 0 0", fontSize: "14px", fontWeight: "700" }}>
+                {product.serviceDeliveryType === "onsite" ? "📍 On-Site (Hadir di Lokasi)" : "🌐 Online / Remote (Jarak Jauh)"}
+              </p>
+            </div>
+            <div style={{ padding: "12px", borderRadius: "8px", background: "var(--apd26-surface-soft, rgba(0,0,0,0.03))", border: "1px solid var(--apd26-border, #e2e8f0)" }}>
+              <span style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", color: "var(--apd26-muted, #64748b)" }}>Estimasi Durasi</span>
+              <p style={{ margin: "4px 0 0", fontSize: "14px", fontWeight: "700" }}>
+                {product.serviceDuration || "Sesuai kesepakatan"}
+              </p>
+            </div>
+            <div style={{ padding: "12px", borderRadius: "8px", background: "rgba(34, 197, 94, 0.08)", border: "1px solid rgba(34, 197, 94, 0.2)" }}>
+              <span style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", color: "#16a34a" }}>WhatsApp Hotline Toko</span>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "4px" }}>
+                <p style={{ margin: 0, fontSize: "14px", fontWeight: "700" }}>{product.serviceContactWhatsapp || "Belum dicantumkan"}</p>
+                {product.serviceContactWhatsapp ? (
+                  <a
+                    href={`https://wa.me/${product.serviceContactWhatsapp.replace(/\D/g, "")}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="apd26-button"
+                    style={{ fontSize: "11px", padding: "3px 8px", background: "#22c55e", color: "#fff", textDecoration: "none", borderRadius: "4px", fontWeight: "700" }}
+                  >
+                    Chat WA <ExternalLink size={11} style={{ display: "inline", marginLeft: "2px" }} />
+                  </a>
+                ) : null}
+              </div>
+            </div>
+          </div>
+          <div>
+            <span style={{ fontSize: "12px", fontWeight: "700", color: "var(--apd26-muted, #64748b)" }}>Instruksi Brief untuk Pembeli:</span>
+            <div style={{ marginTop: "6px", padding: "12px", borderRadius: "8px", background: "var(--apd26-surface-soft, rgba(0,0,0,0.03))", border: "1px solid var(--apd26-border, #e2e8f0)", fontSize: "13px", lineHeight: "1.5", whiteSpace: "pre-line" }}>
+              {product.serviceInstructions || "Tidak ada instruksi khusus yang dicantumkan penjual."}
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (product.isDigital) {
+    return (
+      <section className="apd26-card">
+        <CardTitle icon={Download}>Informasi Berkas Digital (Audit Moderasi)</CardTitle>
+        <div style={{ display: "flex", flexDirection: "column", gap: "14px", marginTop: "14px" }}>
+          <div style={{ padding: "12px", borderRadius: "8px", background: "rgba(168, 85, 247, 0.08)", border: "1px solid rgba(168, 85, 247, 0.2)" }}>
+            <span style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", color: "#9333ea" }}>Tautan Unduhan Aset Cloud</span>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "6px", flexWrap: "wrap" }}>
+              <span style={{ fontSize: "13px", wordBreak: "break-all", fontFamily: "monospace", flex: "1 1 200px" }}>
+                {product.digitalAssetUrl || "Belum ada link unduhan yang diinput"}
+              </span>
+              {product.digitalAssetUrl ? (
+                <a
+                  href={product.digitalAssetUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="apd26-button apd26-button--primary"
+                  style={{ fontSize: "12px", padding: "5px 12px", textDecoration: "none" }}
+                >
+                  <ExternalLink size={13} style={{ marginRight: "4px" }} /> Buka & Periksa Berkas Cloud
+                </a>
+              ) : null}
+            </div>
+          </div>
+          <div>
+            <span style={{ fontSize: "12px", fontWeight: "700", color: "var(--apd26-muted, #64748b)" }}>Petunjuk Akses & Lisensi:</span>
+            <div style={{ marginTop: "6px", padding: "12px", borderRadius: "8px", background: "var(--apd26-surface-soft, rgba(0,0,0,0.03))", border: "1px solid var(--apd26-border, #e2e8f0)", fontSize: "13px", lineHeight: "1.5", whiteSpace: "pre-line" }}>
+              {product.digitalInstructions || "Tidak ada petunjuk khusus."}
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="apd26-card">
+      <CardTitle icon={Truck}>Informasi Logistik & Pengiriman Fisik</CardTitle>
+      <dl className="apd26-detail-list">
+        <div><dt>Berat Paket</dt><dd>{product.weight ? `${product.weight} kg` : "—"}</dd></div>
+        <div><dt>Dimensi (P × L × T)</dt><dd>{product.length || product.width || product.height ? `${product.length || 0} × ${product.width || 0} × ${product.height || 0} cm` : "—"}</dd></div>
+        <div><dt>Bebas Ongkir</dt><dd>Sesuai tarif kurir ekspedisi</dd></div>
       </dl>
     </section>
   );
@@ -469,6 +589,7 @@ export default function AdminProductDetail2026View({
         <TimelineCard product={product} />
         <ProductInfoCard product={product} />
       </div>
+      <ProductGovernanceSection product={product} />
       <InsightsCard product={product} />
 
       {!permissions.canUpdate ? <p className="apd26-permission-note"><BadgeCheck size={16} /> {t("productDetail.You have read-only catalog access. Product mutations require PRODUCTS_UPDATE permission.")}</p> : null}

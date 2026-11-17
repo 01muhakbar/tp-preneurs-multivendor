@@ -215,6 +215,14 @@ export const normalizeAdminProductDetail2026 = (payload) => {
   const visibilityCode = asText(raw?.visibility?.stateCode || raw?.storefrontVisibilityState).toUpperCase();
   const variants = normalizeVariants(raw, images[0]);
   const isVariable = variants.length > 1 || Boolean(raw?.variations?.hasVariants);
+  const canonicalProductType = String(
+    raw?.productType ||
+    raw?.seo?.productType ||
+    (raw?.isDigital ? "digital" : raw?.isService ? "service" : "physical")
+  ).toLowerCase();
+  const isPhysical = canonicalProductType === "physical";
+  const isDigital = canonicalProductType === "digital" || Boolean(raw?.isDigital);
+  const isService = canonicalProductType === "service" || Boolean(raw?.isService);
 
   return {
     raw,
@@ -241,6 +249,20 @@ export const normalizeAdminProductDetail2026 = (payload) => {
     featured: Boolean(raw?.featured ?? raw?.isFeatured),
     digital: Boolean(raw?.digital ?? raw?.isDigital),
     productType: asText(raw?.productType || raw?.type, isVariable ? "Variable Product" : "Simple Product"),
+    canonicalProductType,
+    isPhysical,
+    isDigital,
+    isService,
+    weight: raw?.weight ?? null,
+    length: raw?.length ?? null,
+    width: raw?.width ?? null,
+    height: raw?.height ?? null,
+    digitalAssetUrl: asText(raw?.digitalAssetUrl || raw?.seo?.digitalAssetUrl),
+    digitalInstructions: asText(raw?.digitalInstructions || raw?.seo?.digitalInstructions),
+    serviceDeliveryType: asText(raw?.serviceDeliveryType || raw?.seo?.serviceDeliveryType, "online").toLowerCase(),
+    serviceDuration: asText(raw?.serviceDuration || raw?.seo?.serviceDuration),
+    serviceInstructions: asText(raw?.serviceInstructions || raw?.seo?.serviceInstructions),
+    serviceContactWhatsapp: asText(raw?.serviceContactWhatsapp || raw?.seo?.serviceContactWhatsapp),
     images,
     categories,
     category: categories[0]?.name || "Uncategorized",
