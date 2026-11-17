@@ -31,6 +31,9 @@ const normalizeItem = (item, group = null) => {
     lineTotal,
     stock: firstDefined(item?.stock, null),
     subtitle: firstDefined(item?.variantLabel, item?.variantName, item?.category?.name, null),
+    weight: firstDefined(item?.weight, item?.raw?.weight, 1000),
+    lineWeight: firstDefined(item?.lineWeight, item?.raw?.lineWeight, 1000),
+    productType: firstDefined(item?.productType, item?.raw?.productType, "physical"),
   };
 };
 
@@ -52,6 +55,12 @@ const normalizeGroup = (group, index) => ({
   shipping: firstDefined(group?.shippingAmount, group?.shipping, null),
   total: firstDefined(group?.totalAmount, group?.total, null),
   couponState: firstDefined(group?.couponState, group?.coupon, null),
+  courierCode: firstDefined(group?.courierCode, "JNE"),
+  courierService: firstDefined(group?.courierService, "REG"),
+  totalPackageWeightKg: firstDefined(group?.totalPackageWeightKg, 1),
+  totalPackageWeightGrams: firstDefined(group?.totalPackageWeightGrams, 1000),
+  availableShippingRates: asArray(group?.availableShippingRates),
+  defaultShippingOption: firstDefined(group?.defaultShippingOption, null),
   items: asArray(group?.items).map((item) => normalizeItem(item, group)),
 });
 

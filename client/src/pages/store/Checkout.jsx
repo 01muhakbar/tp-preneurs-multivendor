@@ -1432,6 +1432,7 @@ export default function CheckoutPage() {
     return initial;
   });
   const [sellerNotes, setSellerNotes] = useState({});
+  const [selectedStoreShipping, setSelectedStoreShipping] = useState({});
   const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [paymentRedirectUrl, setPaymentRedirectUrl] = useState("");
@@ -1793,15 +1794,114 @@ export default function CheckoutPage() {
   }, [checkoutPreviewGroups, groupCouponStates, appliedStoreCoupons]);
 
   const appliedGroupCoupons = allAppliedStoreCoupons;
+
+  // Initialize and synchronize shipping options per store group
+  useEffect(() => {
+    if (!Array.isArray(checkoutPreviewDisplayGroups) || checkoutPreviewDisplayGroups.length === 0) return;
+    setSelectedStoreShipping((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      checkoutPreviewDisplayGroups.forEach((group) => {
+        const storeKey = String(group.storeId);
+        if (!next[storeKey]) {
+          const defaultRate =
+            group.defaultShippingOption ||
+            (Array.isArray(group.availableShippingRates) && group.availableShippingRates[0]) ||
+            null;
+          const weightKg = Number(group.totalPackageWeightKg || 1);
+          if (defaultRate) {
+            next[storeKey] = {
+              storeId: Number(group.storeId),
+              courierCode: defaultRate.courierCode || "JNE",
+              courierName: defaultRate.courierName || "JNE Express",
+              courierService: defaultRate.serviceCode || "REG",
+              serviceName: defaultRate.serviceName || "Reguler (REG)",
+              shippingFee: Number(defaultRate.shippingFee ?? 10000),
+              totalWeight: weightKg,
+              estimate: defaultRate.estimate || "2 - 3 Hari",
+              estimateEn: defaultRate.estimateEn || "2 - 3 Business Days",
+            };
+            changed = true;
+          } else {
+            next[storeKey] = {
+              storeId: Number(group.storeId),
+              courierCode: "JNE",
+              courierName: "JNE Express",
+              courierService: "REG",
+              serviceName: "Reguler (REG)",
+              shippingFee: 10000 * Math.max(1, Math.ceil(weightKg)),
+              totalWeight: weightKg,
+              estimate: "2 - 3 Hari",
+              estimateEn: "2 - 3 Business Days",
+            };
+            changed = true;
+          }
+        }
+      });
+      return changed ? next : prev;
+    });
+  }, [checkoutPreviewDisplayGroups]);
+
+  const handleSelectStoreShipping = useCallback((storeId, shippingOption) => {
+    const storeKey = String(storeId);
+    setSelectedStoreShipping((prev) => ({
+      ...prev,
+      [storeKey]: {
+        storeId: Number(storeId),
+        courierCode: shippingOption.courierCode || "JNE",
+        courierName: shippingOption.courierName || "JNE Express",
+        courierService: shippingOption.serviceCode || shippingOption.courierService || "REG",
+        serviceName: shippingOption.serviceName || "Reguler (REG)",
+        shippingFee: Number(shippingOption.shippingFee || 0),
+        totalWeight: Number(shippingOption.weightKg || shippingOption.totalWeight || 1),
+        estimate: shippingOption.estimate || "2 - 3 Hari",
+        estimateEn: shippingOption.estimateEn || "2 - 3 Business Days",
+      },
+    }));
+  }, []);
+
   const previewSubtotalValue = Number(checkoutPreviewSummary?.subtotalAmount);
   const previewShippingValue = Number(checkoutPreviewSummary?.shippingAmount);
   const previewGrandTotalValue = Number(checkoutPreviewSummary?.grandTotal);
   const subtotalValue = Number.isFinite(previewSubtotalValue)
     ? previewSubtotalValue
     : localCartSubtotalValue || Number(subtotal || 0);
-  const shippingCost = Number.isFinite(previewShippingValue)
-    ? previewShippingValue
-    : fallbackShippingCost;
+
+  const calculatedShippingCost = useMemo(() => {
+    if (!Array.isArray(checkoutPreviewDisplayGroups) || checkoutPreviewDisplayGroups.length === 0) {
+      return Number.isFinite(previewShippingValue) ? previewShippingValue : fallbackShippingCost;
+    }
+    return checkoutPreviewDisplayGroups.reduce((sum, group) => {
+      const storeKey = String(group.storeId);
+      const selected = selectedStoreShipping[storeKey];
+      if (selected && typeof selected.shippingFee === "number") {
+        return sum + selected.shippingFee;
+      }
+      if (typeof group.shippingAmount === "number") {
+        return sum + group.shippingAmount;
+      }
+      return sum + Number(group.defaultShippingOption?.shippingFee ?? 10000);
+    }, 0);
+  }, [checkoutPreviewDisplayGroups, selectedStoreShipping, previewShippingValue, fallbackShippingCost]);
+
+  const shippingCost = calculatedShippingCost;
+
+  const displayGroupsWithShipping = useMemo(() => {
+    return (checkoutPreviewDisplayGroups || []).map((group) => {
+      const storeKey = String(group.storeId);
+      const selected = selectedStoreShipping[storeKey];
+      const groupShippingFee =
+        selected && typeof selected.shippingFee === "number"
+          ? selected.shippingFee
+          : Number(group.shippingAmount || group.defaultShippingOption?.shippingFee || 10000);
+      return {
+        ...group,
+        shippingAmount: groupShippingFee,
+        selectedShippingOption: selected || group.defaultShippingOption || null,
+        totalAmount: Number(group.subtotalAmount || 0) + groupShippingFee,
+      };
+    });
+  }, [checkoutPreviewDisplayGroups, selectedStoreShipping]);
 
   const effectivePlatformDiscount = useMemo(() => {
     if (!appliedPlatformCoupon) return Number(totalPlatformDiscount || discount || 0);
@@ -2770,6 +2870,21 @@ export default function CheckoutPage() {
         .map(([sId, note]) => `[Toko ${sId}]: ${note.trim()}`)
         .join("; ");
 
+      const groupShipping = checkoutPreviewDisplayGroups.map((group) => {
+        const storeKey = String(group.storeId);
+        const selected = selectedStoreShipping[storeKey];
+        return {
+          storeId: Number(group.storeId),
+          courierCode: selected?.courierCode || group.courierCode || "JNE",
+          courierService: selected?.courierService || group.courierService || "REG",
+          shippingFee:
+            typeof selected?.shippingFee === "number"
+              ? selected.shippingFee
+              : Number(group.shippingAmount || 10000),
+          totalWeight: Number(selected?.totalWeight || group.totalPackageWeightKg || 1),
+        };
+      });
+
       const submitPayload = {
         customer: {
           ...parsedCustomer.data,
@@ -2783,6 +2898,7 @@ export default function CheckoutPage() {
                 couponCode: String(entry.couponCode),
               }))
             : undefined,
+        groupShipping,
         useDefaultShipping,
         shippingDetails: useDefaultShipping ? undefined : shippingDetailsPayload,
         paymentMethod: paymentOptionId === "duitku" ? "DUITKU" : "QRIS",
@@ -2801,6 +2917,11 @@ export default function CheckoutPage() {
         couponCode: submitPayload.couponCode || null,
         groupCoupons: Array.isArray(submitPayload.groupCoupons)
           ? [...submitPayload.groupCoupons].sort(
+              (left, right) => Number(left.storeId) - Number(right.storeId)
+            )
+          : [],
+        groupShipping: Array.isArray(submitPayload.groupShipping)
+          ? [...submitPayload.groupShipping].sort(
               (left, right) => Number(left.storeId) - Number(right.storeId)
             )
           : [],
@@ -2924,7 +3045,7 @@ export default function CheckoutPage() {
   const checkout2026ViewModel = createCheckout2026ViewModel({
     preview: {
       ...checkoutPreviewData,
-      groups: checkoutPreviewDisplayGroups,
+      groups: displayGroupsWithShipping,
       summary: {
         ...(checkoutPreviewData?.summary || {}),
         ...(checkoutPreviewSummary || {}),
@@ -3054,6 +3175,8 @@ export default function CheckoutPage() {
         appliedStoreCoupons={appliedStoreCoupons}
         onApplyStoreCoupon={handleApplyStoreCouponModal}
         onRemoveStoreCoupon={handleRemoveStoreCouponModal}
+        selectedStoreShipping={selectedStoreShipping}
+        onSelectStoreShipping={handleSelectStoreShipping}
         onFieldChange={(field, value) => {
           if (field === "firstName") setFirstName(value);
           if (field === "lastName") setLastName(value);

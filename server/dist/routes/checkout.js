@@ -104,6 +104,17 @@ const createMultiStoreSchema = z.object({
         .max(20)
         .optional()
         .nullable(),
+    groupShipping: z
+        .array(z.object({
+        storeId: z.number().int().positive(),
+        courierCode: z.string().trim().min(1).max(64),
+        courierService: z.string().trim().min(1).max(64),
+        shippingFee: z.number().nonnegative().optional(),
+        totalWeight: z.number().positive().optional(),
+    }))
+        .max(20)
+        .optional()
+        .nullable(),
     paymentMethod: z.enum(["DUITKU", "QRIS"]).optional().nullable(),
     duitkuPaymentMethod: z.string().trim().max(20).optional().nullable(),
 });
@@ -117,7 +128,119 @@ const SHIPPING_REQUIRED_FIELDS = [
     "streetName",
     "houseNumber",
 ];
-const SHIPPING_PER_STORE_FALLBACK = 0;
+export const DEFAULT_SHIPPING_TARIFFS = [
+    {
+        courierCode: "JNE",
+        courierName: "JNE Express",
+        serviceCode: "REG",
+        serviceName: "Reguler (REG)",
+        ratePerKg: 10000,
+        estimate: "2 - 3 Hari",
+        estimateEn: "2 - 3 Business Days",
+    },
+    {
+        courierCode: "JNE",
+        courierName: "JNE Express",
+        serviceCode: "YES",
+        serviceName: "Yakin Esok Sampai (YES)",
+        ratePerKg: 20000,
+        estimate: "1 Hari",
+        estimateEn: "1 Business Day",
+    },
+    {
+        courierCode: "JNE",
+        courierName: "JNE Express",
+        serviceCode: "OKE",
+        serviceName: "Ongkos Kirim Ekonomis (OKE)",
+        ratePerKg: 8000,
+        estimate: "3 - 5 Hari",
+        estimateEn: "3 - 5 Business Days",
+    },
+    {
+        courierCode: "JNT",
+        courierName: "J&T Express",
+        serviceCode: "EZ",
+        serviceName: "Reguler (EZ)",
+        ratePerKg: 10000,
+        estimate: "2 - 3 Hari",
+        estimateEn: "2 - 3 Business Days",
+    },
+    {
+        courierCode: "JNT",
+        courierName: "J&T Express",
+        serviceCode: "SUPER",
+        serviceName: "Layanan Kilat (SUPER)",
+        ratePerKg: 22000,
+        estimate: "1 Hari",
+        estimateEn: "1 Business Day",
+    },
+    {
+        courierCode: "SICEPAT",
+        courierName: "SiCepat Express",
+        serviceCode: "SIUNTUNG",
+        serviceName: "Reguler (SIUNTUNG)",
+        ratePerKg: 10000,
+        estimate: "2 - 3 Hari",
+        estimateEn: "2 - 3 Business Days",
+    },
+    {
+        courierCode: "SICEPAT",
+        courierName: "SiCepat Express",
+        serviceCode: "BEST",
+        serviceName: "Besok Sampai (BEST)",
+        ratePerKg: 20000,
+        estimate: "1 Hari",
+        estimateEn: "1 Business Day",
+    },
+    {
+        courierCode: "POS",
+        courierName: "Pos Indonesia",
+        serviceCode: "Pos Reguler",
+        serviceName: "Pos Reguler",
+        ratePerKg: 9000,
+        estimate: "2 - 4 Hari",
+        estimateEn: "2 - 4 Business Days",
+    },
+    {
+        courierCode: "ANTERAJA",
+        courierName: "Anteraja",
+        serviceCode: "Regular",
+        serviceName: "Anteraja Regular",
+        ratePerKg: 10000,
+        estimate: "2 - 3 Hari",
+        estimateEn: "2 - 3 Business Days",
+    },
+];
+export const calculateShippingRatesForWeight = (weightKg, isDigital = false) => {
+    if (isDigital) {
+        return [
+            {
+                courierCode: "DIGITAL",
+                courierName: "Pengiriman Digital",
+                serviceCode: "INSTANT",
+                serviceName: "Akses Instan Otomatis",
+                shippingFee: 0,
+                ratePerKg: 0,
+                weightKg: 0,
+                estimate: "Langsung Aktif",
+                estimateEn: "Instant Access",
+            },
+        ];
+    }
+    const effectiveWeight = Math.max(1, Math.ceil(weightKg));
+    return DEFAULT_SHIPPING_TARIFFS.map((t) => ({
+        courierCode: t.courierCode,
+        courierName: t.courierName,
+        serviceCode: t.serviceCode,
+        serviceName: t.serviceName,
+        shippingFee: t.ratePerKg * effectiveWeight,
+        ratePerKg: t.ratePerKg,
+        weightKg: effectiveWeight,
+        estimate: t.estimate,
+        estimateEn: t.estimateEn,
+    }));
+};
+const SHIPPING_PER_STORE_FALLBACK = 10000;
 const buildMissingCheckoutPaymentProfileStatusMeta = () => ({
     code: "MISSING",
     label: "Not configured",
@@ -721,6 +844,7 @@ const buildCartInclude = async (includePaymentMedia = false) => {
                 "categoryId",
                 "variations",
                 "seo",
+                "weight",
             ],
             through: {
                 attributes: [
@@ -783,6 +907,7 @@ const loadCheckoutCartProducts = async (cartId, transaction, includePaymentMedia
                     "categoryId",
                     "variations",
                     "seo",
+                    "weight",
                 ],
                 required: true,
                 include: [
@@ -919,6 +1044,12 @@ const serializePreviewGroup = (group) => ({
     subtotalAmount: group.subtotalAmount,
     shippingAmount: group.shippingAmount,
     totalAmount: group.totalAmount,
+    courierCode: group.courierCode || "JNE",
+    courierService: group.courierService || "REG",
+    totalPackageWeightKg: group.totalPackageWeightKg ?? 1,
+    totalPackageWeightGrams: group.totalPackageWeightGrams ?? 1000,
+    availableShippingRates: group.availableShippingRates || [],
+    defaultShippingOption: group.defaultShippingOption || null,
     paymentAvailable: group.paymentAvailable,
     paymentMethod: group.paymentMethod,
     paymentProfileStatus: group.paymentProfileStatus,
@@ -943,6 +1074,9 @@ const serializePreviewGroup = (group) => ({
         stock: item.stock,
         sku: item.sku,
         barcode: item.barcode,
+        weight: item.weight ?? 1000,
+        lineWeight: item.lineWeight ?? ((item.weight ?? 1000) * item.qty),
+        productType: item.productType || "physical",
         variantKey: item.variantKey,
         variantLabel: item.variantLabel,
         variantSelections: item.variantSelections ?? [],
@@ -1068,13 +1202,18 @@ const prepareCartGroups = (cartItems, options = {}) => {
         }
         const group = groupsMap.get(storeId);
         group.subtotalAmount += lineTotal;
+        const itemProductType = getProductTypeMetadata(getAttr(product, "seo")).productType;
+        const isDigitalItem = itemProductType === "digital";
+        const rawWeight = Math.max(0, toNumber(getAttr(product, "weight"), 0));
+        const itemWeight = isDigitalItem ? 0 : (rawWeight > 0 ? rawWeight : 1000);
+        const lineWeight = isDigitalItem ? 0 : itemWeight * quantity;
         group.items.push({
             product,
             lineId: lineSnapshot.lineId,
             cartItemId: lineSnapshot.cartItemId,
             productId,
             productName: String(getAttr(product, "name") || `Product #${productId}`),
-            productType: getProductTypeMetadata(getAttr(product, "seo")).productType,
+            productType: itemProductType,
             slug: String(getAttr(product, "slug") || ""),
             sku: lineSnapshot.sku,
             barcode: lineSnapshot.barcode,
@@ -1084,6 +1223,8 @@ const prepareCartGroups = (cartItems, options = {}) => {
             lineTotal,
             image: lineSnapshot.image,
             stock,
+            weight: itemWeight,
+            lineWeight,
             variantKey: lineSnapshot.variantKey,
             variantLabel: lineSnapshot.variantLabel,
             variantSelections: lineSnapshot.variantSelections ?? [],
@@ -1108,10 +1249,29 @@ const prepareCartGroups = (cartItems, options = {}) => {
             group.warning = paymentAvailabilityMeta.reason;
         }
     }
-    const groups = Array.from(groupsMap.values()).map((group) => ({
-        ...group,
-        totalAmount: group.subtotalAmount + group.shippingAmount,
-    }));
+    const groups = Array.from(groupsMap.values()).map((group) => {
+        const isStoreDigital = group.items.length > 0 && group.items.every((it) => it.productType === "digital");
+        const totalWeightGrams = group.items.reduce((sum, it) => sum + toNumber(it.lineWeight, 0), 0);
+        const totalPackageWeightKg = isStoreDigital
+            ? 0
+            : Math.max(1, Math.ceil(totalWeightGrams / 1000));
+        const availableShippingRates = calculateShippingRatesForWeight(totalPackageWeightKg, isStoreDigital);
+        const defaultShippingOption = availableShippingRates[0] || null;
+        const courierCode = defaultShippingOption?.courierCode || "JNE";
+        const courierService = defaultShippingOption?.serviceCode || "REG";
+        const shippingAmount = defaultShippingOption?.shippingFee ?? (isStoreDigital ? 0 : 10000);
+        return {
+            ...group,
+            totalPackageWeightGrams: totalWeightGrams,
+            totalPackageWeightKg,
+            availableShippingRates,
+            defaultShippingOption,
+            courierCode,
+            courierService,
+            shippingAmount,
+            totalAmount: group.subtotalAmount + shippingAmount,
+        };
+    });
     const shippingAmount = groups.reduce((sum, group) => sum + toNumber(group.shippingAmount), 0);
     const grandTotal = groups.reduce((sum, group) => sum + toNumber(group.totalAmount), 0);
     return {
@@ -1173,6 +1333,7 @@ const lockVisibleProductsForCheckout = async (productIds, transaction) => {
             "categoryId",
             "variations",
             "seo",
+            "weight",
         ],
         include: [
             {
@@ -2191,6 +2352,30 @@ router.post("/create-multi-store", checkoutSubmitRateLimit, async (req, res) => 
                         },
                     });
                 }
+            }
+            if (Array.isArray(parsed.data.groupShipping) && parsed.data.groupShipping.length > 0) {
+                const shippingByStoreId = new Map(parsed.data.groupShipping.map((gs) => [Number(gs.storeId), gs]));
+                for (const group of prepared.groups) {
+                    const userSelection = shippingByStoreId.get(Number(group.storeId));
+                    if (userSelection) {
+                        const matchingRate = (group.availableShippingRates || []).find((r) => r.courierCode === userSelection.courierCode &&
+                            r.serviceCode === userSelection.courierService);
+                        if (matchingRate) {
+                            group.courierCode = matchingRate.courierCode;
+                            group.courierService = matchingRate.serviceCode;
+                            group.shippingAmount = matchingRate.shippingFee;
+                        }
+                        else if (typeof userSelection.shippingFee === "number" &&
+                            userSelection.shippingFee >= 0) {
+                            group.courierCode = userSelection.courierCode;
+                            group.courierService = userSelection.courierService;
+                            group.shippingAmount = userSelection.shippingFee;
+                        }
+                        group.totalAmount = group.subtotalAmount + group.shippingAmount;
+                    }
+                }
+                prepared.summary.shippingAmount = prepared.groups.reduce((sum, g) => sum + toNumber(g.shippingAmount, 0), 0);
+                prepared.summary.grandTotal = prepared.groups.reduce((sum, g) => sum + toNumber(g.totalAmount, 0), 0);
             }
             if (normalizedCouponCode && normalizedGroupCoupons.length > 0) {
                 await tx.rollback();

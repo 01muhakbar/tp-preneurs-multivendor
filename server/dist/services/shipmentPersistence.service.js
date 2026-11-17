@@ -6,10 +6,13 @@ const toNumber = (value, fallback = 0) => {
 };
 const getAttr = (row, key) => row?.getDataValue?.(key) ?? row?.get?.(key) ?? row?.dataValues?.[key];
 const buildShippingRateSnapshot = (group) => ({
-    source: "CHECKOUT_MVP_FALLBACK",
-    courierCode: null,
-    courierService: null,
+    source: "CHECKOUT_AUTO_RATE",
+    courierCode: group.courierCode || "JNE",
+    courierService: group.courierService || "REG",
     amount: Math.max(0, toNumber(group.shippingAmount, 0)),
+    totalWeight: group.totalPackageWeightKg || 1,
+    weight: group.totalPackageWeightKg || 1,
+    weightUnit: "kg",
     storeId: toNumber(group.storeId, 0) || null,
     storeName: String(group.storeName || "").trim() || null,
     storeSlug: String(group.storeSlug || "").trim() || null,
@@ -47,8 +50,8 @@ export const createCheckoutShipmentForSuborder = async (input) => {
         storeId,
         sellerUserId,
         status: "WAITING_PAYMENT",
-        courierCode: null,
-        courierService: null,
+        courierCode: input.group.courierCode || "JNE",
+        courierService: input.group.courierService || "REG",
         trackingNumber: null,
         estimatedDelivery: null,
         shippingFee: Math.max(0, toNumber(getAttr(input.suborder, "shippingAmount") ?? input.group.shippingAmount, 0)),

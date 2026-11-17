@@ -21,6 +21,7 @@ import {
   X,
 } from "lucide-react";
 import CheckoutAddressModal from "./CheckoutAddressModal.jsx";
+import CheckoutShippingModal from "./CheckoutShippingModal.jsx";
 import StoreCartVoucherModal from "../cart2026/StoreCartVoucherModal.jsx";
 import StoreCartPlatformVoucherModal from "../cart2026/StoreCartPlatformVoucherModal.jsx";
 import CheckoutPaymentRedirectScreen from "./CheckoutPaymentRedirectScreen.jsx";
@@ -64,6 +65,8 @@ export default function Checkout2026View({
   appliedStoreCoupons = {},
   onApplyStoreCoupon,
   onRemoveStoreCoupon,
+  selectedStoreShipping = {},
+  onSelectStoreShipping,
   onSubmit,
   onBackToCart,
 }) {
@@ -83,6 +86,7 @@ export default function Checkout2026View({
   // Modals state
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [voucherModalStore, setVoucherModalStore] = useState(null);
+  const [shippingModalStore, setShippingModalStore] = useState(null);
   const [isPlatformVoucherModalOpen, setIsPlatformVoucherModalOpen] = useState(false);
 
   // Safe normalized props
@@ -110,6 +114,9 @@ export default function Checkout2026View({
         platformVoucher: "Voucher Diskon Platform",
         usePlatformVoucher: "Gunakan / masukkan kode",
         shippingOption: "Opsi Pengiriman",
+        change: "Ubah",
+        packageWeight: "Berat Paket",
+        shippingAuto: "Otomatis per kg",
         regularShipping: "Reguler",
         shippingEstimate: "Estimasi 2 - 3 Hari Kerja",
         onTimeGuarantee: "Garansi Tepat Waktu · Diproses langsung oleh penjual",
@@ -155,6 +162,9 @@ export default function Checkout2026View({
         platformVoucher: "Platform Discount Voucher",
         usePlatformVoucher: "Use / enter promo code",
         shippingOption: "Shipping Option",
+        change: "Change",
+        packageWeight: "Package Weight",
+        shippingAuto: "Auto per kg",
         regularShipping: "Standard Delivery",
         shippingEstimate: "Est. 2 - 3 Business Days",
         onTimeGuarantee: "On-Time Guarantee · Processed directly by seller",
@@ -457,6 +467,22 @@ export default function Checkout2026View({
             }
 
             const currentSellerNote = safeSellerNotes[storeKey] || "";
+            const currentShippingSelection =
+              selectedStoreShipping?.[storeKey] ||
+              group.defaultShippingOption || {
+                courierCode: group.courierCode || "JNE",
+                courierName: group.courierCode ? `${group.courierCode} Express` : "JNE Express",
+                serviceCode: group.courierService || "REG",
+                serviceName: group.courierService ? `Reguler (${group.courierService})` : "Reguler (REG)",
+                shippingFee: Number(group.shipping ?? 10000),
+                estimate: "2 - 3 Hari",
+                estimateEn: "2 - 3 Business Days",
+              };
+            const packageWeight = Number(group.totalPackageWeightKg || currentShippingSelection?.totalWeight || 1);
+            const totalWeightGrams = Number(group.totalPackageWeightGrams || (packageWeight * 1000));
+            const groupShippingFee = Number(
+              currentShippingSelection?.shippingFee ?? group.shipping ?? 10000
+            );
 
             return (
               <article key={storeKey} className="co26-shopee-store-card">
@@ -572,25 +598,56 @@ export default function Checkout2026View({
                     <span className="text-xs font-bold text-slate-300">
                       {T.shippingOption}
                     </span>
-                    <span className="text-xs text-slate-400">{T.regularShipping}</span>
+                    <button
+                      type="button"
+                      onClick={() => setShippingModalStore(group)}
+                      className="text-xs font-bold text-[#fe6f05] hover:underline flex items-center gap-1 transition"
+                    >
+                      <span>{T.change}</span>
+                      <ChevronRight size={14} />
+                    </button>
                   </div>
 
-                  <div className="co26-shopee-shipping-box">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Truck className="w-4 h-4 text-emerald-400 shrink-0" />
-                        <div>
-                          <strong className="text-xs sm:text-sm text-slate-100 font-bold block">
-                            {T.regularShipping} ({T.shippingEstimate})
-                          </strong>
-                          <span className="text-[11px] text-slate-400 block mt-0.5">
-                            {T.onTimeGuarantee}
-                          </span>
+                  <div
+                    className="co26-shopee-shipping-box cursor-pointer hover:border-[#fe6f05]/50 transition"
+                    onClick={() => setShippingModalStore(group)}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-start gap-2.5 min-w-0">
+                        <Truck className="w-4 h-4 text-[#fe6f05] shrink-0 mt-0.5" />
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#034c85]/40 text-blue-200 border border-[#034c85]">
+                              {currentShippingSelection?.courierName || currentShippingSelection?.courierCode || "JNE"}
+                            </span>
+                            <strong className="text-xs sm:text-sm text-slate-100 font-bold truncate">
+                              {currentShippingSelection?.serviceName || currentShippingSelection?.serviceCode || "Reguler (REG)"}
+                            </strong>
+                          </div>
+                          <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-400 flex-wrap">
+                            <span>
+                              {isIndo
+                                ? (currentShippingSelection?.estimate ? `Estimasi: ${currentShippingSelection.estimate}` : T.shippingEstimate)
+                                : (currentShippingSelection?.estimateEn ? `Est: ${currentShippingSelection.estimateEn}` : T.shippingEstimate)}
+                            </span>
+                            <span>•</span>
+                            <span className="text-slate-300 font-medium">
+                              ⚖ {packageWeight} kg
+                            </span>
+                          </div>
                         </div>
                       </div>
-                      <span className="text-xs sm:text-sm font-bold text-slate-100 shrink-0 ml-2">
-                        {group.shipping ? formatMoney(group.shipping) : T.freeShipping}
-                      </span>
+
+                      <div className="text-right shrink-0">
+                        <span className="text-xs sm:text-sm font-bold text-slate-100 block">
+                          {groupShippingFee > 0 ? formatMoney(groupShippingFee) : T.freeShipping}
+                        </span>
+                        <span className="text-[10px] text-slate-400 block">
+                          {T.shippingAuto}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -603,7 +660,7 @@ export default function Checkout2026View({
                       : `Total ${groupItems.length} Produk:`}
                   </span>
                   <strong className="text-sm font-bold text-[#fe6f05]">
-                    {formatMoney(Math.max(0, groupSubtotal + (Number(group.shipping) || 0) - storeDiscountAmount))}
+                    {formatMoney(Math.max(0, groupSubtotal + groupShippingFee - storeDiscountAmount))}
                   </strong>
                 </div>
               </article>
@@ -902,6 +959,27 @@ export default function Checkout2026View({
         isIndo={isIndo}
         formatMoney={formatMoney}
       />
+
+      {/* Shipping Option Modal */}
+      {shippingModalStore && (
+        <CheckoutShippingModal
+          isOpen={Boolean(shippingModalStore)}
+          onClose={() => setShippingModalStore(null)}
+          store={shippingModalStore}
+          selectedShippingOption={
+            selectedStoreShipping?.[String(shippingModalStore?.storeId)] ||
+            shippingModalStore?.defaultShippingOption
+          }
+          availableShippingRates={shippingModalStore?.availableShippingRates}
+          packageWeightKg={shippingModalStore?.totalPackageWeightKg}
+          totalWeightGrams={shippingModalStore?.totalPackageWeightGrams}
+          onSelectShipping={(chosen) => {
+            onSelectStoreShipping?.(shippingModalStore?.storeId, chosen);
+          }}
+          isIndo={isIndo}
+          formatMoney={formatMoney}
+        />
+      )}
     </main>
   );
 }

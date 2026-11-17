@@ -2830,83 +2830,76 @@ router.post(
       }
 
       const currentStatus = String((order as any).status || "").toLowerCase().trim();
-      if (currentStatus === "delivered" || currentStatus === "completed" || currentStatus === "complete") {
-        if (currentStatus === "completed" || currentStatus === "complete") {
-          return res.json({
-            success: true,
-            message: "Pesanan sudah berstatus diterima.",
-            data: { orderId, status: "delivered" },
-            message: "Pesanan sudah berstatus selesai dikonfirmasi.",
-            data: { orderId, status: "completed" },
-          });
-        }
-
-        if (currentStatus === "cancelled") {
-          return res.status(409).json({
-            success: false,
-            message: "Pesanan yang dibatalkan tidak dapat dikonfirmasi diterima.",
-          });
-        }
-
-        // 1. Update Order status to delivered
-        // 1. Update Order status to completed
-        await order.update({
-          status: "delivered",
-          status: "completed",
-        });
-
-        // 2. Update all active Suborders to DELIVERED
-        await Suborder.update(
-          {
-            fulfillmentStatus: "DELIVERED",
-          },
-          {
-            where: {
-              orderId,
-              fulfillmentStatus: { [Op.ne]: "CANCELLED" },
-            },
-          }
-        );
-
-        // 3. Update all active Shipments to DELIVERED
-        await Shipment.update(
-          {
-            status: "DELIVERED",
-          },
-          {
-            where: {
-              orderId,
-              status: { [Op.ne]: "CANCELLED" },
-            },
-          }
-        );
-
-        // 4. Record tracking event if shipment exists
-        const shipments = await Shipment.findAll({ where: { orderId } });
-        for (const sh of shipments) {
-          await TrackingEvent.create({
-            shipmentId: sh.id,
-            eventType: "DELIVERED",
-            eventLabel: "Pesanan Diterima",
-            eventDescription: "Pesanan telah dikonfirmasi diterima oleh pembeli.",
-            eventLabel: "Pesanan Diterima oleh Pembeli",
-            eventDescription: "Pembeli telah mengonfirmasi bahwa pesanan telah diterima dengan baik. Transaksi selesai dan dana penjualan diteruskan ke Saldo Toko penjual.",
-            source: "CLIENT",
-            occurredAt: new Date(),
-          }).catch(() => { });
-        }
-
+      if (currentStatus === "completed" || currentStatus === "complete") {
         return res.json({
           success: true,
-          message: "Konfirmasi penerimaan pesanan berhasil. Terima kasih!",
-          message: "Konfirmasi penerimaan pesanan berhasil. Terima kasih! Dana penjualan telah diteruskan ke toko penjual.",
-          data: {
-            orderId,
-            status: "delivered",
-            status: "completed",
-            fulfillmentStatus: "DELIVERED",
-          },
+          message: "Pesanan sudah berstatus selesai dikonfirmasi.",
+          data: { orderId, status: "completed" },
         });
+      }
+
+      if (currentStatus === "cancelled") {
+        return res.status(409).json({
+          success: false,
+          message: "Pesanan yang dibatalkan tidak dapat dikonfirmasi diterima.",
+        });
+      }
+
+      // 1. Update Order status to completed
+      await order.update({
+        status: "completed",
+      });
+
+      // 2. Update all active Suborders to DELIVERED
+      await Suborder.update(
+        {
+          fulfillmentStatus: "DELIVERED",
+        },
+        {
+          where: {
+            orderId,
+            fulfillmentStatus: { [Op.ne]: "CANCELLED" },
+          },
+        }
+      );
+
+      // 3. Update all active Shipments to DELIVERED
+      await Shipment.update(
+        {
+          status: "DELIVERED",
+        },
+        {
+          where: {
+            orderId,
+            status: { [Op.ne]: "CANCELLED" },
+          },
+        }
+      );
+
+      // 4. Record tracking event if shipment exists
+      const shipments = await Shipment.findAll({ where: { orderId } });
+      for (const sh of shipments) {
+        await TrackingEvent.create({
+          shipmentId: sh.id,
+          eventType: "DELIVERED",
+          eventLabel: "Pesanan Diterima oleh Pembeli",
+          eventDescription:
+            "Pembeli telah mengonfirmasi bahwa pesanan telah diterima dengan baik. Transaksi selesai dan dana penjualan diteruskan ke Saldo Toko penjual.",
+          source: "CLIENT",
+          occurredAt: new Date(),
+        }).catch(() => {});
+      }
+
+      return res.json({
+        success: true,
+        message:
+          "Konfirmasi penerimaan pesanan berhasil. Terima kasih! Dana penjualan telah diteruskan ke toko penjual.",
+        data: {
+          orderId,
+          status: "completed",
+          fulfillmentStatus: "DELIVERED",
+        },
+      });
       } catch (error: any) {
         console.error("[store/orders/my/:id/confirm-receipt] error", error);
         return res.status(500).json({
