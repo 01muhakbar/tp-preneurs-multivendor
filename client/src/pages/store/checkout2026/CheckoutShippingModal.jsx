@@ -577,19 +577,18 @@ export default function CheckoutShippingModal({
 
             {/* Tolerance badge */}
             <span
-              className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${
-                billedWeightInfo.isWithinTolerance
+              className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${billedWeightInfo.isWithinTolerance
                   ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
                   : "bg-amber-500/15 text-amber-300 border-amber-500/30"
-              }`}
+                }`}
             >
               {isIndo
                 ? billedWeightInfo.isWithinTolerance
                   ? "Toleransi: ≤250g (Hemat)"
                   : "Toleransi: >250g (Bulat +1kg)"
                 : billedWeightInfo.isWithinTolerance
-                ? "Tolerance: ≤250g applied"
-                : "Excess >250g rounded up"}
+                  ? "Tolerance: ≤250g applied"
+                  : "Excess >250g rounded up"}
             </span>
 
             {/* Zone badge */}
@@ -616,17 +615,15 @@ export default function CheckoutShippingModal({
                 key={cat.key}
                 type="button"
                 onClick={() => setActiveCategory(cat.key)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition flex items-center gap-1.5 ${
-                  isActive
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition flex items-center gap-1.5 ${isActive
                     ? "bg-[#fe6f05] text-white shadow-sm shadow-[#fe6f05]/30"
                     : "bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white"
-                }`}
+                  }`}
               >
                 <span>{cat.label}</span>
                 <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                    isActive ? "bg-black/25 text-white" : "bg-slate-700 text-slate-400"
-                  }`}
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full ${isActive ? "bg-black/25 text-white" : "bg-slate-700 text-slate-400"
+                    }`}
                 >
                   {count}
                 </span>
@@ -657,20 +654,18 @@ export default function CheckoutShippingModal({
                   role="button"
                   tabIndex={0}
                   onClick={() => setTempSelectedKey(key)}
-                  className={`p-3 rounded-xl border transition cursor-pointer flex items-center justify-between gap-3 ${
-                    isSelected
+                  className={`p-3 rounded-xl border transition cursor-pointer flex items-center justify-between gap-3 ${isSelected
                       ? "bg-[#034c85]/20 border-[#fe6f05] shadow-sm shadow-[#fe6f05]/15"
                       : "bg-slate-800/50 border-slate-700/60 hover:bg-slate-800 hover:border-slate-600"
-                  }`}
+                    }`}
                 >
                   {/* Left side: Radio + Details */}
                   <div className="flex items-start gap-3 min-w-0">
                     <div
-                      className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 mt-0.5 transition ${
-                        isSelected
+                      className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 mt-0.5 transition ${isSelected
                           ? "border-[#fe6f05] bg-[#fe6f05] text-white"
                           : "border-slate-500 bg-transparent"
-                      }`}
+                        }`}
                     >
                       {isSelected && <Check size={12} strokeWidth={3} />}
                     </div>
