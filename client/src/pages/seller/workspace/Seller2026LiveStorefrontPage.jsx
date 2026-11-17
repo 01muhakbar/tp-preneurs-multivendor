@@ -32,6 +32,7 @@ import { useSellerWorkspaceRoute } from "../../../utils/sellerWorkspaceRoute.js"
 import { getCityOptions, getDistrictOptions, getProvinceOptions } from "../../../utils/idRegions.ts";
 import OneClickGpsButton from "../../../components/common/OneClickGpsButton.jsx";
 import AddressAutocompleteSearch from "../../../components/common/AddressAutocompleteSearch.jsx";
+import StoreShippingCourierSettings from "./StoreShippingCourierSettings.jsx";
 import { getSeller2026PagePermissions } from "./seller2026PagePermissions.js";
 import "../../../features/sellerWorkspace2026/SellerWorkspace2026.css";
 
@@ -340,6 +341,17 @@ export default function Seller2026LiveStorefrontPage() {
   const handleSave = async (event) => {
     event.preventDefault();
     setNotice(null);
+
+    if (form.shippingEnabled && Array.isArray(form.enabledCouriers) && form.enabledCouriers.length === 0) {
+      setNotice({
+        type: "error",
+        text: isId
+          ? "Pilih minimal 1 ekspedisi pengiriman untuk toko Anda."
+          : "Please select at least 1 courier service for your store.",
+      });
+      return;
+    }
+
     try {
       await profileQuery.saveProfile({
         description: emptyToNull(form.description),
@@ -410,6 +422,14 @@ export default function Seller2026LiveStorefrontPage() {
             form.originLongitude != null && !isNaN(Number(form.originLongitude))
               ? Number(form.originLongitude)
               : null,
+          enabledCouriers:
+            Array.isArray(form.enabledCouriers) && form.enabledCouriers.length > 0
+              ? form.enabledCouriers
+              : ["GRAB", "JNT", "JNE", "SICEPAT", "POS"],
+          enabledCategories:
+            Array.isArray(form.enabledCategories) && form.enabledCategories.length > 0
+              ? form.enabledCategories
+              : ["instant", "regular", "express", "economy", "cargo"],
         },
       });
       await refetchSellerContext?.();
@@ -833,6 +853,16 @@ export default function Seller2026LiveStorefrontPage() {
               <Field required={form.shippingEnabled} label={isId ? "Negara Asal" : "Origin Country"} value={form.originCountry} onChange={setValue("originCountry")} />
               <Field label={isId ? "Catatan Penjemputan" : "Pickup Notes"} multiline rows={2} value={form.pickupNotes} onChange={setValue("pickupNotes")} />
             </div>
+
+            {form.shippingEnabled && (
+              <StoreShippingCourierSettings
+                enabledCouriers={form.enabledCouriers}
+                enabledCategories={form.enabledCategories}
+                onChangeCouriers={(next) => setForm((c) => ({ ...c, enabledCouriers: next }))}
+                onChangeCategories={(next) => setForm((c) => ({ ...c, enabledCategories: next }))}
+                isIndo={isId}
+              />
+            )}
           </section>
         </form>
       ) : (
@@ -906,6 +936,21 @@ export default function Seller2026LiveStorefrontPage() {
                       </dd>
                     </div>
                   )}
+                  <div>
+                    <dt>{isId ? "Ekspedisi Aktif" : "Active Couriers"}</dt>
+                    <dd>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {(data.shipping.enabledCouriers || ["GRAB", "JNT", "JNE", "SICEPAT", "POS"]).map((code) => (
+                          <span
+                            key={code}
+                            className="px-1.5 py-0.5 text-[10px] font-mono font-bold rounded bg-slate-800 text-[#fe6f05] border border-[#fe6f05]/30"
+                          >
+                            {code}
+                          </span>
+                        ))}
+                      </div>
+                    </dd>
+                  </div>
                 </dl>
                 <Link to={workspaceRoutes.shippingSetup()}>{isId ? "Lihat detail pengiriman" : "View shipping details"} <ChevronRight size={16} /></Link>
               </section>

@@ -113,6 +113,12 @@ export function createSeller2026StoreProfileForm(profile: any) {
       shipping.originLongitude != null && !isNaN(Number(shipping.originLongitude))
         ? Number(shipping.originLongitude)
         : null,
+    enabledCouriers: Array.isArray(shipping.enabledCouriers) && shipping.enabledCouriers.length > 0
+      ? shipping.enabledCouriers.map(String)
+      : ["GRAB", "JNT", "JNE", "SICEPAT", "POS"],
+    enabledCategories: Array.isArray(shipping.enabledCategories) && shipping.enabledCategories.length > 0
+      ? shipping.enabledCategories.map(String)
+      : ["instant", "regular", "express", "economy", "cargo"],
   };
 }
 
@@ -226,6 +232,16 @@ export function adaptSeller2026StoreProfile({
       ready: shippingReady,
       status: asText(source.shippingSetupStatus?.label, shippingReady ? "Ready" : "Needs info"),
       address: asText(source.shippingSetupSummary?.originAddressLine),
+      enabledCouriers:
+        Array.isArray((asObject(source.shippingSetup) as any).enabledCouriers) &&
+        (asObject(source.shippingSetup) as any).enabledCouriers.length > 0
+          ? (asObject(source.shippingSetup) as any).enabledCouriers.map(String)
+          : ["GRAB", "JNT", "JNE", "SICEPAT", "POS"],
+      enabledCategories:
+        Array.isArray((asObject(source.shippingSetup) as any).enabledCategories) &&
+        (asObject(source.shippingSetup) as any).enabledCategories.length > 0
+          ? (asObject(source.shippingSetup) as any).enabledCategories.map(String)
+          : ["instant", "regular", "express", "economy", "cargo"],
     },
     governance: {
       canEdit: Boolean(source.governance?.canEdit),

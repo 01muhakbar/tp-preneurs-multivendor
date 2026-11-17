@@ -63,6 +63,42 @@ export const SELLER_SHIPPING_SETUP_REQUIRED_FIELDS = [
   { key: "originCountry", label: SHIPPING_SETUP_FIELD_LABELS.originCountry },
 ] as const;
 
+export const ALL_COURIER_CODES = [
+  "GRAB",
+  "JNT",
+  "JNE",
+  "SICEPAT",
+  "POS",
+  "ANTERAJA",
+  "LION",
+  "WAHANA",
+  "NINJA",
+] as const;
+
+export const DEFAULT_ENABLED_COURIERS = [
+  "GRAB",
+  "JNT",
+  "JNE",
+  "SICEPAT",
+  "POS",
+];
+
+export const ALL_SERVICE_CATEGORIES = [
+  "instant",
+  "regular",
+  "express",
+  "economy",
+  "cargo",
+] as const;
+
+export const DEFAULT_ENABLED_CATEGORIES = [
+  "instant",
+  "regular",
+  "express",
+  "economy",
+  "cargo",
+];
+
 export const sellerShippingSetupPatchSchema = z
   .object({
     shippingEnabled: z.boolean().optional(),
@@ -78,6 +114,8 @@ export const sellerShippingSetupPatchSchema = z
     pickupNotes: nullableStringField(500),
     originLatitude: z.number().nullable().optional(),
     originLongitude: z.number().nullable().optional(),
+    enabledCouriers: z.array(z.string()).optional(),
+    enabledCategories: z.array(z.string()).optional(),
   })
   .strict();
 
@@ -152,6 +190,12 @@ const normalizeStoredShippingSetup = (value: unknown) => {
       source.originLongitude != null && !isNaN(Number(source.originLongitude))
         ? Number(source.originLongitude)
         : null,
+    enabledCouriers: Array.isArray(source.enabledCouriers)
+      ? source.enabledCouriers.map((c) => String(c).trim().toUpperCase()).filter(Boolean)
+      : undefined,
+    enabledCategories: Array.isArray(source.enabledCategories)
+      ? source.enabledCategories.map((c) => String(c).trim().toLowerCase()).filter(Boolean)
+      : undefined,
   };
 };
 
@@ -233,6 +277,16 @@ export const buildStoreShippingSetupReadiness = (store: any) => {
   );
   const effectivePickupNotes = pickEffectiveText(storedSetup.pickupNotes, null);
 
+  const effectiveCouriers =
+    Array.isArray(storedSetup.enabledCouriers) && storedSetup.enabledCouriers.length > 0
+      ? storedSetup.enabledCouriers
+      : DEFAULT_ENABLED_COURIERS;
+
+  const effectiveCategories =
+    Array.isArray(storedSetup.enabledCategories) && storedSetup.enabledCategories.length > 0
+      ? storedSetup.enabledCategories
+      : DEFAULT_ENABLED_CATEGORIES;
+
   const effectiveValues = {
     shippingEnabled,
     explicitShippingEnabled:
@@ -247,6 +301,10 @@ export const buildStoreShippingSetupReadiness = (store: any) => {
     originPostalCode: effectivePostalCode.value,
     originCountry: effectiveCountry.value,
     pickupNotes: effectivePickupNotes.value,
+    originLatitude: storedSetup.originLatitude ?? null,
+    originLongitude: storedSetup.originLongitude ?? null,
+    enabledCouriers: effectiveCouriers,
+    enabledCategories: effectiveCategories,
   };
 
   const fallbackFields = [
@@ -360,6 +418,10 @@ export const buildStoreShippingSetupReadiness = (store: any) => {
       originPhone: effectiveValues.originPhone,
       originAddressLine: originAddressLine || null,
       pickupNotes: effectiveValues.pickupNotes,
+      originLatitude: effectiveValues.originLatitude,
+      originLongitude: effectiveValues.originLongitude,
+      enabledCouriers: effectiveCouriers,
+      enabledCategories: effectiveCategories,
       usesStoreProfileFallback: fallbackFields.length > 0,
       fallbackFields,
     },

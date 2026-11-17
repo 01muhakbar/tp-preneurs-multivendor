@@ -31,6 +31,8 @@ export type Seller2026StoreProfileUpdatePayload = {
     pickupNotes?: string | null;
     originLatitude?: number | null;
     originLongitude?: number | null;
+    enabledCouriers?: string[];
+    enabledCategories?: string[];
   };
 };
 
@@ -66,6 +68,10 @@ const allowedShippingFields = new Set([
   "originPostalCode",
   "originCountry",
   "pickupNotes",
+  "originLatitude",
+  "originLongitude",
+  "enabledCouriers",
+  "enabledCategories",
 ]);
 
 const compactRecord = (value: Record<string, unknown>, allowed: Set<string>) =>
