@@ -26,6 +26,22 @@ export const DEFAULT_SYSTEM_SETTINGS = {
     smtpPassword: "",
     smtpFromEmail: "",
     smtpFromName: "TP PRENEURS",
+    // Master Shipping Governance (Fase 3)
+    shippingMasterCouriers: JSON.stringify([
+        "JNE", "JNT", "SICEPAT", "POS", "GRAB", "ANTERAJA", "LION", "WAHANA", "NINJA"
+    ]),
+    shippingMandatoryCouriers: JSON.stringify(["JNE", "JNT"]),
+    shippingMasterCategories: JSON.stringify([
+        "instant", "regular", "express", "economy", "cargo"
+    ]),
+    shippingZone1Multiplier: "1.0",
+    shippingZone2Multiplier: "1.0",
+    shippingZone3Multiplier: "1.0",
+    shippingGrabBaseFare: "15000",
+    shippingGrabPerKmRate: "3000",
+    shippingMaxInstantDistanceKm: "40",
+    shippingPlatformHandlingFee: "0",
+    shippingMaintenanceNotices: JSON.stringify({}),
 };
 const SENSITIVE_SYSTEM_SETTING_KEYS = new Set(["smtpPassword"]);
 const toStringValue = (value) => {
@@ -135,5 +151,74 @@ export const resolveEmailRuntimeSettings = async () => {
         pass,
         fromEmail,
         fromName,
+    };
+};
+export const resolvePlatformShippingGovernance = async (transaction) => {
+    const settings = await ensureDefaultSystemSettings(transaction);
+    let enabledCouriers = [
+        "JNE", "JNT", "SICEPAT", "POS", "GRAB", "ANTERAJA", "LION", "WAHANA", "NINJA"
+    ];
+    try {
+        const parsed = JSON.parse(settings.shippingMasterCouriers || "[]");
+        if (Array.isArray(parsed) && parsed.length > 0) {
+            enabledCouriers = parsed.map((c) => String(c).trim().toUpperCase());
+        }
+    }
+    catch {
+        // fallback default
+    }
+    let mandatoryCouriers = ["JNE", "JNT"];
+    try {
+        const parsed = JSON.parse(settings.shippingMandatoryCouriers || "[]");
+        if (Array.isArray(parsed) && parsed.length > 0) {
+            mandatoryCouriers = parsed.map((c) => String(c).trim().toUpperCase());
+        }
+    }
+    catch {
+        // fallback default
+    }
+    let enabledCategories = ["instant", "regular", "express", "economy", "cargo"];
+    try {
+        const parsed = JSON.parse(settings.shippingMasterCategories || "[]");
+        if (Array.isArray(parsed) && parsed.length > 0) {
+            enabledCategories = parsed.map((c) => String(c).trim().toLowerCase());
+        }
+    }
+    catch {
+        // fallback default
+    }
+    const zone1Multiplier = Math.max(0.1, Number(settings.shippingZone1Multiplier || "1.0") || 1.0);
+    const zone2Multiplier = Math.max(0.1, Number(settings.shippingZone2Multiplier || "1.0") || 1.0);
+    const zone3Multiplier = Math.max(0.1, Number(settings.shippingZone3Multiplier || "1.0") || 1.0);
+    const grabBaseFare = Math.max(0, Number(settings.shippingGrabBaseFare || "15000") || 15000);
+    const grabPerKmRate = Math.max(0, Number(settings.shippingGrabPerKmRate || "3000") || 3000);
+    const maxInstantDistanceKm = Math.max(1, Number(settings.shippingMaxInstantDistanceKm || "40") || 40);
+    const platformHandlingFee = Math.max(0, Number(settings.shippingPlatformHandlingFee || "0") || 0);
+    let maintenanceNotices = {};
+    try {
+        const parsed = JSON.parse(settings.shippingMaintenanceNotices || "{}");
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+            maintenanceNotices = parsed;
+        }
+    }
+    catch {
+        // fallback empty
+    }
+    return {
+        enabledCouriers,
+        mandatoryCouriers,
+        enabledCategories,
+        zoneMultipliers: {
+            zone1: zone1Multiplier,
+            zone2: zone2Multiplier,
+            zone3: zone3Multiplier,
+        },
+        grabPricing: {
+            baseFare: grabBaseFare,
+            perKmRate: grabPerKmRate,
+            maxDistanceKm: maxInstantDistanceKm,
+        },
+        platformHandlingFee,
+        maintenanceNotices,
     };
 };

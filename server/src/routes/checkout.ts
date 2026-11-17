@@ -105,6 +105,10 @@ import {
   checkoutPreviewRateLimit,
   checkoutSubmitRateLimit,
 } from "../middleware/rateLimit.js";
+import {
+  resolvePlatformShippingGovernance,
+  PlatformShippingGovernance,
+} from "../services/systemSettings.js";
 
 const router = Router();
 
@@ -1742,6 +1746,7 @@ const prepareCartGroups = (
       latitude?: number | null;
       longitude?: number | null;
     };
+    platformGovernance?: PlatformShippingGovernance | null;
   } = {}
 ) => {
   const groupsMap = new Map<number, any>();
@@ -1949,16 +1954,32 @@ const prepareCartGroups = (
           : (storeRaw as any)?.lng ?? (storeRaw as any)?.longitude ?? null,
     };
     const zoneInfo = determineShippingZone(storeOrigin, options.destination);
+    const gov = options.platformGovernance;
+    let zoneMultiplier = zoneInfo.multiplier;
+    if (gov?.zoneMultipliers) {
+      if (zoneInfo.zone === "ZONA_1") zoneMultiplier *= gov.zoneMultipliers.zone1;
+      else if (zoneInfo.zone === "ZONA_2") zoneMultiplier *= gov.zoneMultipliers.zone2;
+      else if (zoneInfo.zone === "ZONA_3") zoneMultiplier *= gov.zoneMultipliers.zone3;
+    }
+
     const availableShippingRates = calculateStandaloneShippingRates({
       billedWeightKg: totalPackageWeightKg,
       zone: zoneInfo.zone,
-      zoneMultiplier: zoneInfo.multiplier,
+      zoneMultiplier,
       cargoMultiplier: zoneInfo.cargoMultiplier,
       isDigital: isStoreDigital,
       origin: storeOrigin,
       destination: options.destination,
       allowedCouriers: shippingSetup?.enabledCouriers,
       allowedCategories: shippingSetup?.enabledCategories,
+      platformCouriers: gov?.enabledCouriers,
+      platformMandatoryCouriers: gov?.mandatoryCouriers,
+      platformCategories: gov?.enabledCategories,
+      platformHandlingFee: gov?.platformHandlingFee,
+      maintenanceNotices: gov?.maintenanceNotices,
+      grabBaseFare: gov?.grabPricing?.baseFare,
+      grabPerKmRate: gov?.grabPricing?.perKmRate,
+      maxInstantDistanceKm: gov?.grabPricing?.maxDistanceKm,
     });
     const defaultShippingOption = availableShippingRates[0] || null;
     const courierCode = defaultShippingOption?.courierCode || "JNE";
@@ -2876,6 +2897,7 @@ router.post("/preview", checkoutPreviewRateLimit, async (req, res) => {
 
     const dbSettings = await getPersistedStoreSettings();
     const isDuitkuEnabled = Boolean(dbSettings?.payments?.duitkuEnabled);
+    const platformGovernance = await resolvePlatformShippingGovernance();
     const destination = parsed.data.destination || {
       city: parsed.data.city || null,
       province: parsed.data.province || null,
@@ -2885,7 +2907,7 @@ router.post("/preview", checkoutPreviewRateLimit, async (req, res) => {
     };
     const prepared = prepareCartGroups(
       await attachStoreSnapshotsToProducts(cartItems),
-      { isDuitkuEnabled, destination }
+      { isDuitkuEnabled, destination, platformGovernance }
     );
     return res.json({
       success: true,
@@ -3105,6 +3127,7 @@ router.post("/create-multi-store", checkoutSubmitRateLimit, async (req, res) => 
         })
         .filter(Boolean);
 
+      const platformGovernance = await resolvePlatformShippingGovernance(tx);
       const prepared = prepareCartGroups(
         await attachStoreSnapshotsToProducts(lockedCartItems, tx),
         {
@@ -3114,6 +3137,7 @@ router.post("/create-multi-store", checkoutSubmitRateLimit, async (req, res) => 
             province: shippingDetails?.province || null,
             district: shippingDetails?.district || null,
           },
+          platformGovernance,
         }
       );
       if (missingLockedItems.length > 0) {

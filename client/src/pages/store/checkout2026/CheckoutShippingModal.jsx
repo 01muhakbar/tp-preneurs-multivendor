@@ -767,6 +767,13 @@ export default function CheckoutShippingModal({
                           </>
                         ) : null}
                       </div>
+
+                      {opt.maintenanceNotice && (
+                        <div className="mt-1.5 text-[11px] text-amber-300 bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-lg flex items-center gap-1.5">
+                          <span className="shrink-0 text-amber-400 font-bold">⚠️</span>
+                          <span className="leading-tight">{opt.maintenanceNotice}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
 

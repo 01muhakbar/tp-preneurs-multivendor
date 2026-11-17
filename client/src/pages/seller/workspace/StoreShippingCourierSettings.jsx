@@ -140,11 +140,19 @@ export default function StoreShippingCourierSettings({
   onChangeCouriers,
   onChangeCategories,
   isIndo = true,
+  platformCouriers,
+  platformMandatoryCouriers = ["JNE", "JNT"],
 }) {
   const selectedCouriers = Array.isArray(enabledCouriers) ? enabledCouriers : [];
   const selectedCategories = Array.isArray(enabledCategories) ? enabledCategories : [];
 
   const handleToggleCourier = (code) => {
+    if (Array.isArray(platformCouriers) && platformCouriers.length > 0 && !platformCouriers.includes(code)) {
+      return;
+    }
+    if (Array.isArray(platformMandatoryCouriers) && platformMandatoryCouriers.includes(code) && selectedCouriers.includes(code)) {
+      return;
+    }
     const isSelected = selectedCouriers.includes(code);
     let next;
     if (isSelected) {
@@ -318,41 +326,71 @@ export default function StoreShippingCourierSettings({
         </label>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
           {COURIER_DEFINITIONS.map((courier) => {
-            const isChecked = selectedCouriers.includes(courier.code);
+            const isMandatory =
+              Array.isArray(platformMandatoryCouriers) &&
+              platformMandatoryCouriers.includes(courier.code);
+            const isPlatformDisabled =
+              Array.isArray(platformCouriers) &&
+              platformCouriers.length > 0 &&
+              !platformCouriers.includes(courier.code);
+            const isChecked = selectedCouriers.includes(courier.code) || isMandatory;
+
             return (
               <div
                 key={courier.code}
                 onClick={() => handleToggleCourier(courier.code)}
-                className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all select-none ${
-                  isChecked
-                    ? "border-[#fe6f05]/60 bg-gradient-to-r from-slate-900 to-slate-850/90 shadow-md ring-1 ring-[#fe6f05]/30"
-                    : "border-slate-800 bg-slate-950/40 text-slate-500 opacity-65 hover:opacity-90 hover:border-slate-700"
+                className={`flex items-start gap-3 p-3 rounded-xl border transition-all select-none ${
+                  isPlatformDisabled
+                    ? "border-slate-800/60 bg-slate-950/20 text-slate-600 opacity-40 cursor-not-allowed"
+                    : isChecked
+                    ? "border-[#fe6f05]/60 bg-gradient-to-r from-slate-900 to-slate-850/90 shadow-md ring-1 ring-[#fe6f05]/30 cursor-pointer"
+                    : "border-slate-800 bg-slate-950/40 text-slate-500 opacity-65 hover:opacity-90 hover:border-slate-700 cursor-pointer"
                 }`}
               >
                 <div
                   className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition ${
-                    isChecked
-                      ? "border-[#fe6f05] bg-[#fe6f05] text-white"
+                    isPlatformDisabled
+                      ? "border-slate-800 bg-slate-950"
+                      : isChecked
+                      ? isMandatory
+                        ? "border-amber-500 bg-amber-500 text-slate-950"
+                        : "border-[#fe6f05] bg-[#fe6f05] text-white"
                       : "border-slate-700 bg-slate-900"
                   }`}
                 >
-                  {isChecked && <Check size={13} strokeWidth={3} />}
+                  {isChecked && !isPlatformDisabled && <Check size={13} strokeWidth={3} />}
                 </div>
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-1">
                     <span
                       className={`text-xs font-bold truncate ${
-                        isChecked ? "text-slate-100" : "text-slate-400"
+                        isPlatformDisabled
+                          ? "text-slate-600 line-through"
+                          : isChecked
+                          ? "text-slate-100"
+                          : "text-slate-400"
                       }`}
                     >
                       {courier.name}
                     </span>
-                    <span
-                      className={`text-[9px] font-mono px-1.5 py-0.2 rounded border ${courier.badgeColor}`}
-                    >
-                      {courier.code}
-                    </span>
+                    <div className="flex items-center gap-1">
+                      {isMandatory && (
+                        <span className="text-[9px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/30 px-1.5 py-0.2 rounded">
+                          ★ Wajib
+                        </span>
+                      )}
+                      {isPlatformDisabled && (
+                        <span className="text-[9px] text-slate-500 bg-slate-800 border border-slate-700 px-1 py-0.2 rounded">
+                          Nonaktif
+                        </span>
+                      )}
+                      <span
+                        className={`text-[9px] font-mono px-1.5 py-0.2 rounded border ${courier.badgeColor}`}
+                      >
+                        {courier.code}
+                      </span>
+                    </div>
                   </div>
                   <p className="text-[11px] text-slate-400 line-clamp-1 mt-0.5">
                     {courier.desc}

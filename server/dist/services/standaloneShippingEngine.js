@@ -638,13 +638,14 @@ export const resolveCoordinates = (loc) => {
  * Calculates Instant / Same Day shipping rates (GrabExpress) for local distance (Zone III Sulsel)
  */
 export const getInstantShippingRates = (params) => {
-    const { distanceKm, weightKg, zone = "ZONA_1", maxDimensions } = params;
-    if (!distanceKm || distanceKm <= 0 || distanceKm > 40)
+    const { distanceKm, weightKg, zone = "ZONA_1", maxDimensions, baseFare, perKmRate } = params;
+    const maxDistance = params.maxDistanceKm && params.maxDistanceKm > 0 ? params.maxDistanceKm : 40;
+    if (!distanceKm || distanceKm <= 0 || distanceKm > maxDistance)
         return [];
     const rates = [];
     const maxDim = Math.max(Number(maxDimensions?.length) || 0, Number(maxDimensions?.width) || 0, Number(maxDimensions?.height) || 0);
     // 1. GrabExpress Same Day (Syarat: Berat <= 7 kg, Dimensi <= 40x40x20 cm, Jarak <= 40 km)
-    if (weightKg <= 7 && (maxDim === 0 || maxDim <= 40)) {
+    if (weightKg <= 7 && (maxDim === 0 || maxDim <= 40) && distanceKm <= maxDistance) {
         let fee = 15000;
         if (distanceKm > 5 && distanceKm <= 10)
             fee = 18000;
@@ -675,16 +676,24 @@ export const getInstantShippingRates = (params) => {
         });
     }
     // 2. GrabExpress Instant Bike (Syarat: Berat <= 15 kg, Dimensi <= 50x50x50 cm, Jarak <= 35 km)
-    if (weightKg <= 15 && (maxDim === 0 || maxDim <= 50) && distanceKm <= 35) {
-        let fee = 14000;
-        if (distanceKm > 5 && distanceKm <= 10)
-            fee = 22000;
-        else if (distanceKm > 10 && distanceKm <= 15)
-            fee = 32000;
-        else if (distanceKm > 15 && distanceKm <= 25)
-            fee = 50000;
-        else if (distanceKm > 25 && distanceKm <= 35)
-            fee = 80000;
+    const maxBikeDist = Math.min(35, maxDistance);
+    if (weightKg <= 15 && (maxDim === 0 || maxDim <= 50) && distanceKm <= maxBikeDist) {
+        const minBikeFare = baseFare && baseFare > 0 ? baseFare : 14000;
+        const perKm = perKmRate && perKmRate > 0 ? perKmRate : 3000;
+        let fee = minBikeFare;
+        if (baseFare || perKmRate) {
+            fee = Math.max(minBikeFare, Math.round((minBikeFare + Math.max(0, distanceKm - 4) * perKm) / 500) * 500);
+        }
+        else {
+            if (distanceKm > 5 && distanceKm <= 10)
+                fee = 22000;
+            else if (distanceKm > 10 && distanceKm <= 15)
+                fee = 32000;
+            else if (distanceKm > 15 && distanceKm <= 25)
+                fee = 50000;
+            else if (distanceKm > 25 && distanceKm <= 35)
+                fee = 80000;
+        }
         rates.push({
             courierCode: "GRAB",
             courierName: "GrabExpress",
@@ -706,7 +715,7 @@ export const getInstantShippingRates = (params) => {
         });
     }
     // 3. GrabExpress Instant Car (Syarat: Berat 15.1 - 150 kg ATAU muatan besar / jarak <= 40 km)
-    if (weightKg > 15 || maxDim > 50 || distanceKm <= 40) {
+    if ((weightKg > 15 || maxDim > 50 || distanceKm <= maxDistance) && distanceKm <= maxDistance) {
         let fee = 40000;
         if (distanceKm > 5 && distanceKm <= 10)
             fee = 55000;
@@ -774,13 +783,17 @@ export const calculateStandaloneShippingRates = (params) => {
             resolvedDistanceKm = calculateHaversineRoadDistance(originCoords.lat, originCoords.lng, destCoords.lat, destCoords.lng);
         }
     }
-    // 2. Generate GrabExpress Instant / Same Day rates if within 40 km
-    const instantRates = resolvedDistanceKm > 0 && resolvedDistanceKm <= 40
+    const maxInstantDist = params.maxInstantDistanceKm && params.maxInstantDistanceKm > 0 ? params.maxInstantDistanceKm : 40;
+    // 2. Generate GrabExpress Instant / Same Day rates if within max distance
+    const instantRates = resolvedDistanceKm > 0 && resolvedDistanceKm <= maxInstantDist
         ? getInstantShippingRates({
             distanceKm: resolvedDistanceKm,
             weightKg: effectiveWeight,
             zone,
             maxDimensions,
+            baseFare: params.grabBaseFare,
+            perKmRate: params.grabPerKmRate,
+            maxDistanceKm: maxInstantDist,
         })
         : [];
     // 3. Generate standard expedition rates (JNE, J&T, SiCepat, Pos, Lion, SAPX, Anteraja)
@@ -812,7 +825,62 @@ export const calculateStandaloneShippingRates = (params) => {
             distanceKm: resolvedDistanceKm > 0 ? resolvedDistanceKm : undefined,
         };
     });
-    return [...instantRates, ...regularRates];
+    let rates = [...instantRates, ...regularRates];
+    const allowedCouriers = params.allowedCouriers;
+    const allowedCategories = params.allowedCategories;
+    const platformCouriers = params.platformCouriers;
+    const platformMandatoryCouriers = params.platformMandatoryCouriers;
+    const platformCategories = params.platformCategories;
+    // 1. Platform Master Courier Filter (Admin Level)
+    if (Array.isArray(platformCouriers) && platformCouriers.length > 0) {
+        const adminSet = new Set(platformCouriers.map((c) => String(c).trim().toUpperCase()));
+        rates = rates.filter((r) => adminSet.has(r.courierCode.toUpperCase()));
+    }
+    // 2. Seller Courier Filter with Platform Mandatory Fallback Guarantee
+    if (Array.isArray(allowedCouriers) && allowedCouriers.length > 0) {
+        const sellerSet = new Set(allowedCouriers.map((c) => String(c).trim().toUpperCase()));
+        const mandatorySet = new Set(Array.isArray(platformMandatoryCouriers) && platformMandatoryCouriers.length > 0
+            ? platformMandatoryCouriers.map((c) => String(c).trim().toUpperCase())
+            : ["JNE", "JNT"]);
+        rates = rates.filter((r) => sellerSet.has(r.courierCode.toUpperCase()) || mandatorySet.has(r.courierCode.toUpperCase()));
+    }
+    // 3. Category Filter (Intersection of Admin & Seller Categories)
+    let effectiveCategories = allowedCategories;
+    if (Array.isArray(platformCategories) && platformCategories.length > 0) {
+        const adminCatSet = new Set(platformCategories.map((c) => String(c).trim().toLowerCase()));
+        if (Array.isArray(effectiveCategories) && effectiveCategories.length > 0) {
+            effectiveCategories = effectiveCategories.filter((c) => adminCatSet.has(String(c).trim().toLowerCase()));
+        }
+        else {
+            effectiveCategories = platformCategories;
+        }
+    }
+    if (Array.isArray(effectiveCategories) && effectiveCategories.length > 0) {
+        const categorySet = new Set(effectiveCategories.map((c) => String(c).trim().toLowerCase()));
+        rates = rates.filter((r) => categorySet.has(r.category.toLowerCase()));
+    }
+    // 4. Attach Platform Handling Fee (if configured > 0)
+    const handlingFee = Math.max(0, Number(params.platformHandlingFee) || 0);
+    if (handlingFee > 0) {
+        rates = rates.map((r) => ({
+            ...r,
+            shippingFee: r.shippingFee + handlingFee,
+        }));
+    }
+    // 5. Attach Maintenance Notices (if configured by Admin)
+    const notices = params.maintenanceNotices;
+    if (notices && typeof notices === "object") {
+        rates = rates.map((r) => {
+            const notice = notices[r.courierCode.toUpperCase()] || notices[r.courierCode];
+            return notice ? { ...r, maintenanceNotice: String(notice) } : r;
+        });
+    }
+    // Safety fallback: if filters produced empty results (e.g. store set incompatible courier or distance > 40km for instant),
+    // fallback to standard regular couriers (JNE / J&T) so checkout is never blocked
+    if (rates.length === 0 && regularRates.length > 0) {
+        rates = regularRates.filter((r) => r.courierCode === "JNE" || r.courierCode === "JNT");
+    }
+    return rates;
 };
 /**
  * Builds direct 1-click official courier tracking URL for an AWB tracking number

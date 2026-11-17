@@ -33,6 +33,7 @@ import { appendAuditNote, fingerprintAuditValue, getRequestTraceId, logOperation
 import { applyRuntimeVariationSanitizerToProduct } from "../services/attributeVariationRuntimeValidation.js";
 import { calculateBilledWeight, calculateVolumetricWeight, determineShippingZone, calculateStandaloneShippingRates, } from "../services/standaloneShippingEngine.js";
 import { checkoutPreviewRateLimit, checkoutSubmitRateLimit, } from "../middleware/rateLimit.js";
+import { resolvePlatformShippingGovernance, } from "../services/systemSettings.js";
 const router = Router();
 const previewRequestSchema = z.object({
     cartId: z.number().int().positive().optional(),
@@ -1339,9 +1340,12 @@ const serializePreviewGroup = (group) => ({
     storeId: group.storeId,
     storeName: group.storeName,
     storeSlug: group.storeSlug,
-    city: group.store?.city || "Kota Makassar",
-    province: group.store?.province || "Sulawesi Selatan",
-    district: group.store?.district || "Rappocini",
+    city: group.storeOrigin?.city || group.store?.city || "Kota Makassar",
+    province: group.storeOrigin?.province || group.store?.province || "Sulawesi Selatan",
+    district: group.storeOrigin?.district || group.store?.district || "Rappocini",
+    lat: group.storeOrigin?.lat ?? group.store?.lat ?? group.store?.latitude ?? null,
+    lng: group.storeOrigin?.lng ?? group.store?.lng ?? group.store?.longitude ?? null,
+    shippingSetup: group.shippingSetup || group.store?.shippingSetup || null,
     subtotalAmount: group.subtotalAmount,
     shippingAmount: group.shippingAmount,
     totalAmount: group.totalAmount,
@@ -1562,22 +1566,60 @@ const prepareCartGroups = (cartItems, options = {}) => {
         }, 0);
         const weightCalc = calculateBilledWeight(totalPhysicalWeightGrams, totalVolumetricWeightKg);
         const totalPackageWeightKg = isStoreDigital ? 0 : weightCalc.billedWeightKg;
+        const storeRaw = group.store;
+        const rawSetup = storeRaw?.shippingSetup ?? storeRaw?.get?.("shippingSetup") ?? {};
+        let shippingSetup = {};
+        if (typeof rawSetup === "string") {
+            try {
+                shippingSetup = JSON.parse(rawSetup || "{}");
+            }
+            catch {
+                shippingSetup = {};
+            }
+        }
+        else if (rawSetup && typeof rawSetup === "object") {
+            shippingSetup = rawSetup;
+        }
         const storeOrigin = {
-            city: group.store?.city || "Kota Makassar",
-            province: group.store?.province || "Sulawesi Selatan",
-            district: group.store?.district || "Rappocini",
-            lat: group.store?.lat ?? group.store?.latitude ?? null,
-            lng: group.store?.lng ?? group.store?.longitude ?? null,
+            city: shippingSetup?.originCity || storeRaw?.city || "Kota Makassar",
+            province: shippingSetup?.originProvince || storeRaw?.province || "Sulawesi Selatan",
+            district: shippingSetup?.originDistrict || storeRaw?.district || "Rappocini",
+            lat: shippingSetup?.originLatitude != null && !isNaN(Number(shippingSetup.originLatitude))
+                ? Number(shippingSetup.originLatitude)
+                : storeRaw?.lat ?? storeRaw?.latitude ?? null,
+            lng: shippingSetup?.originLongitude != null && !isNaN(Number(shippingSetup.originLongitude))
+                ? Number(shippingSetup.originLongitude)
+                : storeRaw?.lng ?? storeRaw?.longitude ?? null,
         };
         const zoneInfo = determineShippingZone(storeOrigin, options.destination);
+        const gov = options.platformGovernance;
+        let zoneMultiplier = zoneInfo.multiplier;
+        if (gov?.zoneMultipliers) {
+            if (zoneInfo.zone === "ZONA_1")
+                zoneMultiplier *= gov.zoneMultipliers.zone1;
+            else if (zoneInfo.zone === "ZONA_2")
+                zoneMultiplier *= gov.zoneMultipliers.zone2;
+            else if (zoneInfo.zone === "ZONA_3")
+                zoneMultiplier *= gov.zoneMultipliers.zone3;
+        }
         const availableShippingRates = calculateStandaloneShippingRates({
             billedWeightKg: totalPackageWeightKg,
             zone: zoneInfo.zone,
-            zoneMultiplier: zoneInfo.multiplier,
+            zoneMultiplier,
             cargoMultiplier: zoneInfo.cargoMultiplier,
             isDigital: isStoreDigital,
             origin: storeOrigin,
             destination: options.destination,
+            allowedCouriers: shippingSetup?.enabledCouriers,
+            allowedCategories: shippingSetup?.enabledCategories,
+            platformCouriers: gov?.enabledCouriers,
+            platformMandatoryCouriers: gov?.mandatoryCouriers,
+            platformCategories: gov?.enabledCategories,
+            platformHandlingFee: gov?.platformHandlingFee,
+            maintenanceNotices: gov?.maintenanceNotices,
+            grabBaseFare: gov?.grabPricing?.baseFare,
+            grabPerKmRate: gov?.grabPricing?.perKmRate,
+            maxInstantDistanceKm: gov?.grabPricing?.maxDistanceKm,
         });
         const defaultShippingOption = availableShippingRates[0] || null;
         const courierCode = defaultShippingOption?.courierCode || "JNE";
@@ -1585,6 +1627,8 @@ const prepareCartGroups = (cartItems, options = {}) => {
         const shippingAmount = defaultShippingOption?.shippingFee ?? (isStoreDigital ? 0 : 10000);
         return {
             ...group,
+            storeOrigin,
+            shippingSetup,
             totalPackageWeightGrams: totalPhysicalWeightGrams,
             totalPackageWeightKg,
             weightCalculation: weightCalc,
@@ -2423,6 +2467,7 @@ router.post("/preview", checkoutPreviewRateLimit, async (req, res) => {
         }
         const dbSettings = await getPersistedStoreSettings();
         const isDuitkuEnabled = Boolean(dbSettings?.payments?.duitkuEnabled);
+        const platformGovernance = await resolvePlatformShippingGovernance();
         const destination = parsed.data.destination || {
             city: parsed.data.city || null,
             province: parsed.data.province || null,
@@ -2430,7 +2475,7 @@ router.post("/preview", checkoutPreviewRateLimit, async (req, res) => {
             lat: parsed.data.lat ?? parsed.data.latitude ?? null,
             lng: parsed.data.lng ?? parsed.data.longitude ?? null,
         };
-        const prepared = prepareCartGroups(await attachStoreSnapshotsToProducts(cartItems), { isDuitkuEnabled, destination });
+        const prepared = prepareCartGroups(await attachStoreSnapshotsToProducts(cartItems), { isDuitkuEnabled, destination, platformGovernance });
         return res.json({
             success: true,
             data: serializeCheckoutPreview(prepared),
@@ -2620,6 +2665,7 @@ router.post("/create-multi-store", checkoutSubmitRateLimit, async (req, res) => 
                 return cloneCheckoutProductForCartItem(lockedProduct, item?.CartItem ?? null);
             })
                 .filter(Boolean);
+            const platformGovernance = await resolvePlatformShippingGovernance(tx);
             const prepared = prepareCartGroups(await attachStoreSnapshotsToProducts(lockedCartItems, tx), {
                 isDuitkuEnabled: isDuitkuRequested || Boolean(duitkuConfig?.enabled),
                 destination: {
@@ -2627,6 +2673,7 @@ router.post("/create-multi-store", checkoutSubmitRateLimit, async (req, res) => 
                     province: shippingDetails?.province || null,
                     district: shippingDetails?.district || null,
                 },
+                platformGovernance,
             });
             if (missingLockedItems.length > 0) {
                 prepared.invalidItems.unshift(...missingLockedItems);

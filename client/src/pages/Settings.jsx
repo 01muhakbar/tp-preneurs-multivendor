@@ -1,22 +1,31 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import {
   AlertCircle,
+  AlertTriangle,
   Building2,
   CheckCircle2,
   CreditCard,
   FileText,
   Globe,
   Image as ImageIcon,
+  Info,
+  Layers,
   Lock,
   Mail,
+  Navigation,
   Phone,
+  RotateCcw,
   Save,
   Server,
   Settings as SettingsIcon,
+  ShieldCheck,
   Sparkles,
+  Truck,
   Upload,
+  Zap,
 } from "lucide-react";
 import {
   fetchAdminSettings,
@@ -66,7 +75,43 @@ const DEFAULT_SETTINGS = {
   smtpPasswordConfigured: "false",
   smtpFromEmail: "noreply@tppreneurs.com",
   smtpFromName: "TP PRENEURS",
+  // Platform Master Shipping Governance (Fase 3)
+  shippingMasterCouriers: JSON.stringify([
+    "JNE", "JNT", "SICEPAT", "POS", "GRAB", "ANTERAJA", "LION", "WAHANA", "NINJA"
+  ]),
+  shippingMandatoryCouriers: JSON.stringify(["JNE", "JNT"]),
+  shippingMasterCategories: JSON.stringify([
+    "instant", "regular", "express", "economy", "cargo"
+  ]),
+  shippingZone1Multiplier: "1.0",
+  shippingZone2Multiplier: "1.0",
+  shippingZone3Multiplier: "1.0",
+  shippingGrabBaseFare: "15000",
+  shippingGrabPerKmRate: "3000",
+  shippingMaxInstantDistanceKm: "40",
+  shippingPlatformHandlingFee: "0",
+  shippingMaintenanceNotices: JSON.stringify({}),
 };
+
+export const ADMIN_MASTER_COURIERS = [
+  { code: "JNE", name: "JNE Express", services: "REG, YES, OKE, JTR Cargo", badge: "Nasional", color: "#2563eb" },
+  { code: "JNT", name: "J&T Express", services: "EZ (Reguler), J&T Super", badge: "Populer", color: "#dc2626" },
+  { code: "SICEPAT", name: "SiCepat Ekspres", services: "SIUNTUK, BEST, Gokil Cargo", badge: "Hemat/Kargo", color: "#d97706" },
+  { code: "POS", name: "Pos Indonesia", services: "Pos Reguler, Next Day, Jumbo", badge: "BUMN Pelosok", color: "#ea580c" },
+  { code: "GRAB", name: "GrabExpress", services: "Instant Motor, Instant Mobil, Same Day", badge: "Instan", color: "#059669" },
+  { code: "ANTERAJA", name: "Anteraja", services: "Reguler, Next Day, Cargo", badge: "Reguler", color: "#7c3aed" },
+  { code: "LION", name: "Lion Parcel", services: "REGPACK, ONEPACK, BIGPACK", badge: "Jalur Udara", color: "#e11d48" },
+  { code: "WAHANA", name: "Wahana Express", services: "Service Normal, Cargo", badge: "Ekonomis", color: "#ca8a04" },
+  { code: "NINJA", name: "Ninja Xpress", services: "Standard, Express", badge: "E-Commerce", color: "#991b1b" },
+];
+
+export const ADMIN_MASTER_CATEGORIES = [
+  { code: "instant", labelId: "Instan & Same Day", labelEn: "Instant & Same Day", descId: "Radius Dekat 1-8 Jam (GrabExpress)", descEn: "Local 1-8 Hours (GrabExpress)" },
+  { code: "regular", labelId: "Reguler", labelEn: "Regular", descId: "Standar 2 - 4 Hari Kerja (Seluruh Kurir)", descEn: "Standard 2 - 4 Business Days" },
+  { code: "express", labelId: "Express / Kilat", labelEn: "Express / Next Day", descId: "1 - 2 Hari Cepat Sampai (YES, Super, BEST)", descEn: "1 - 2 Days Fast Delivery" },
+  { code: "economy", labelId: "Hemat / Ekonomi", labelEn: "Economy / Budget", descId: "3 - 6 Hari Tarif Lebih Terjangkau", descEn: "3 - 6 Days Budget Friendly" },
+  { code: "cargo", labelId: "Kargo / Muatan Berat", labelEn: "Cargo / Heavy Freight", descId: "Min. 10 kg Tarif Grosir / Truk", descEn: "Min. 10 kg Wholesale Trucking" },
+];
 
 const DEFAULT_BRANDING_SETTINGS = {
   clientLogoUrl: CANONICAL_CLIENT_LOGO_URL,
@@ -206,7 +251,71 @@ const mapSettingsToForm = (settings) => {
     smtpPasswordConfigured: normalizeBooleanString(merged.smtpPasswordConfigured, DEFAULT_SETTINGS.smtpPasswordConfigured),
     smtpFromEmail: toStringValue(merged.smtpFromEmail, DEFAULT_SETTINGS.smtpFromEmail),
     smtpFromName: toStringValue(merged.smtpFromName, DEFAULT_SETTINGS.smtpFromName),
+    shippingMasterCouriers: toStringValue(
+      merged.shippingMasterCouriers,
+      DEFAULT_SETTINGS.shippingMasterCouriers
+    ),
+    shippingMandatoryCouriers: toStringValue(
+      merged.shippingMandatoryCouriers,
+      DEFAULT_SETTINGS.shippingMandatoryCouriers
+    ),
+    shippingMasterCategories: toStringValue(
+      merged.shippingMasterCategories,
+      DEFAULT_SETTINGS.shippingMasterCategories
+    ),
+    shippingZone1Multiplier: toStringValue(
+      merged.shippingZone1Multiplier,
+      DEFAULT_SETTINGS.shippingZone1Multiplier
+    ),
+    shippingZone2Multiplier: toStringValue(
+      merged.shippingZone2Multiplier,
+      DEFAULT_SETTINGS.shippingZone2Multiplier
+    ),
+    shippingZone3Multiplier: toStringValue(
+      merged.shippingZone3Multiplier,
+      DEFAULT_SETTINGS.shippingZone3Multiplier
+    ),
+    shippingGrabBaseFare: toStringValue(
+      merged.shippingGrabBaseFare,
+      DEFAULT_SETTINGS.shippingGrabBaseFare
+    ),
+    shippingGrabPerKmRate: toStringValue(
+      merged.shippingGrabPerKmRate,
+      DEFAULT_SETTINGS.shippingGrabPerKmRate
+    ),
+    shippingMaxInstantDistanceKm: toStringValue(
+      merged.shippingMaxInstantDistanceKm,
+      DEFAULT_SETTINGS.shippingMaxInstantDistanceKm
+    ),
+    shippingPlatformHandlingFee: toStringValue(
+      merged.shippingPlatformHandlingFee,
+      DEFAULT_SETTINGS.shippingPlatformHandlingFee
+    ),
+    shippingMaintenanceNotices: toStringValue(
+      merged.shippingMaintenanceNotices,
+      DEFAULT_SETTINGS.shippingMaintenanceNotices
+    ),
   };
+};
+
+const parseJsonArray = (val, fallback = []) => {
+  if (Array.isArray(val)) return val;
+  try {
+    const res = JSON.parse(val || "[]");
+    return Array.isArray(res) ? res : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const parseJsonObject = (val, fallback = {}) => {
+  if (val && typeof val === "object" && !Array.isArray(val)) return val;
+  try {
+    const res = JSON.parse(val || "{}");
+    return res && typeof res === "object" && !Array.isArray(res) ? res : fallback;
+  } catch {
+    return fallback;
+  }
 };
 
 const normalizeBrandingSettings = (settings) => {
@@ -309,8 +418,32 @@ export default function Settings() {
   const { t, i18n } = useTranslation(["admin", "common"]);
   const queryClient = useQueryClient();
   const isId = Boolean(i18n.language?.toLowerCase().startsWith("id"));
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [activeTab, setActiveTab] = useState("branding");
+  const VALID_TABS = ["branding", "general", "smtp", "invoice", "contact", "shipping"];
+  const initialTab = searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState(
+    initialTab && VALID_TABS.includes(initialTab) ? initialTab : "branding"
+  );
+
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam && VALID_TABS.includes(tabParam) && tabParam !== activeTab) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (nextTab) => {
+    setActiveTab(nextTab);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("tab", nextTab);
+        return next;
+      },
+      { replace: true }
+    );
+  };
   const [form, setForm] = useState(() => mapSettingsToForm());
   const [feedback, setFeedback] = useState(null);
   const [brandingFeedback, setBrandingFeedback] = useState(null);
@@ -404,6 +537,97 @@ export default function Settings() {
       ...prev,
       [key]: value,
     }));
+  };
+
+  const handleToggleMasterCourier = (code) => {
+    const active = parseJsonArray(form.shippingMasterCouriers, ["JNE", "JNT"]);
+    const isSelected = active.includes(code);
+    let next;
+    if (isSelected) {
+      if (active.length <= 1) {
+        alert(isId ? "Minimal harus ada 1 mitra ekspedisi yang aktif di platform." : "At least 1 courier partner must remain active.");
+        return;
+      }
+      next = active.filter((c) => c !== code);
+    } else {
+      next = [...active, code];
+    }
+    onInputChange("shippingMasterCouriers", JSON.stringify(next));
+
+    if (isSelected) {
+      const mand = parseJsonArray(form.shippingMandatoryCouriers, ["JNE", "JNT"]).filter((c) => c !== code);
+      onInputChange("shippingMandatoryCouriers", JSON.stringify(mand));
+    }
+  };
+
+  const handleToggleMandatoryCourier = (code) => {
+    const mand = parseJsonArray(form.shippingMandatoryCouriers, ["JNE", "JNT"]);
+    const isMandatory = mand.includes(code);
+    let next;
+    if (isMandatory) {
+      if (mand.length <= 1) {
+        alert(isId ? "Minimal harus ada 1 kurir wajib nasional (rekomendasi: JNE atau J&T)." : "At least 1 mandatory fallback courier must remain.");
+        return;
+      }
+      next = mand.filter((c) => c !== code);
+    } else {
+      next = [...mand, code];
+      const active = parseJsonArray(form.shippingMasterCouriers, []);
+      if (!active.includes(code)) {
+        onInputChange("shippingMasterCouriers", JSON.stringify([...active, code]));
+      }
+    }
+    onInputChange("shippingMandatoryCouriers", JSON.stringify(next));
+  };
+
+  const handleToggleMasterCategory = (catCode) => {
+    const cats = parseJsonArray(form.shippingMasterCategories, ["regular"]);
+    const isSelected = cats.includes(catCode);
+    let next;
+    if (isSelected) {
+      if (cats.length <= 1) {
+        alert(isId ? "Minimal harus ada 1 kategori pengiriman aktif." : "At least 1 category must remain active.");
+        return;
+      }
+      next = cats.filter((c) => c !== catCode);
+    } else {
+      next = [...cats, catCode];
+    }
+    onInputChange("shippingMasterCategories", JSON.stringify(next));
+  };
+
+  const handleCourierNoticeChange = (code, noticeText) => {
+    const notices = parseJsonObject(form.shippingMaintenanceNotices, {});
+    const updated = { ...notices };
+    if (!noticeText || !noticeText.trim()) {
+      delete updated[code];
+    } else {
+      updated[code] = noticeText.trim();
+    }
+    onInputChange("shippingMaintenanceNotices", JSON.stringify(updated));
+  };
+
+  const applyAdminPresetStandard = () => {
+    onInputChange("shippingMasterCouriers", JSON.stringify(["JNE", "JNT", "SICEPAT", "POS", "GRAB", "ANTERAJA", "LION", "WAHANA", "NINJA"]));
+    onInputChange("shippingMandatoryCouriers", JSON.stringify(["JNE", "JNT"]));
+    onInputChange("shippingMasterCategories", JSON.stringify(["instant", "regular", "express", "economy", "cargo"]));
+    onInputChange("shippingZone1Multiplier", "1.0");
+    onInputChange("shippingZone2Multiplier", "1.0");
+    onInputChange("shippingZone3Multiplier", "1.0");
+    onInputChange("shippingGrabBaseFare", "15000");
+    onInputChange("shippingGrabPerKmRate", "3000");
+    onInputChange("shippingMaxInstantDistanceKm", "40");
+    onInputChange("shippingPlatformHandlingFee", "0");
+    onInputChange("shippingMaintenanceNotices", JSON.stringify({}));
+  };
+
+  const applyAdminPresetWeatherEmergency = () => {
+    const cats = parseJsonArray(form.shippingMasterCategories, []).filter((c) => c !== "instant");
+    onInputChange("shippingMasterCategories", JSON.stringify(cats.length > 0 ? cats : ["regular"]));
+    const notices = parseJsonObject(form.shippingMaintenanceNotices, {});
+    notices["JNE"] = isId ? "Estimasi keterlambatan 1-2 hari karena cuaca ekstrem" : "Estimated 1-2 days delay due to extreme weather";
+    notices["POS"] = isId ? "Pengiriman antarpulau mengalami antrean di pelabuhan" : "Inter-island shipment backlog at seaport";
+    onInputChange("shippingMaintenanceNotices", JSON.stringify(notices));
   };
 
   const onSubmit = (event) => {
@@ -583,7 +807,7 @@ export default function Settings() {
           <button
             type="button"
             className={`sett-tab-btn ${activeTab === "branding" ? "is-active" : ""}`}
-            onClick={() => setActiveTab("branding")}
+            onClick={() => handleTabChange("branding")}
           >
             <Sparkles size={14} />
             {isId ? "Branding & Logo" : "Branding & Logos"}
@@ -591,7 +815,7 @@ export default function Settings() {
           <button
             type="button"
             className={`sett-tab-btn ${activeTab === "general" ? "is-active" : ""}`}
-            onClick={() => setActiveTab("general")}
+            onClick={() => handleTabChange("general")}
           >
             <SettingsIcon size={14} />
             {isId ? "Umum & Wilayah" : "General & Locale"}
@@ -599,7 +823,7 @@ export default function Settings() {
           <button
             type="button"
             className={`sett-tab-btn ${activeTab === "smtp" ? "is-active" : ""}`}
-            onClick={() => setActiveTab("smtp")}
+            onClick={() => handleTabChange("smtp")}
           >
             <Server size={14} />
             {isId ? "Akun Google SMTP" : "Google SMTP Account"}
@@ -607,7 +831,7 @@ export default function Settings() {
           <button
             type="button"
             className={`sett-tab-btn ${activeTab === "invoice" ? "is-active" : ""}`}
-            onClick={() => setActiveTab("invoice")}
+            onClick={() => handleTabChange("invoice")}
           >
             <FileText size={14} />
             {isId ? "Faktur & Perusahaan" : "Invoice & Company"}
@@ -615,10 +839,18 @@ export default function Settings() {
           <button
             type="button"
             className={`sett-tab-btn ${activeTab === "contact" ? "is-active" : ""}`}
-            onClick={() => setActiveTab("contact")}
+            onClick={() => handleTabChange("contact")}
           >
             <Phone size={14} />
             {isId ? "Informasi Kontak" : "Contact Information"}
+          </button>
+          <button
+            type="button"
+            className={`sett-tab-btn ${activeTab === "shipping" ? "is-active" : ""}`}
+            onClick={() => handleTabChange("shipping")}
+          >
+            <Truck size={14} />
+            {isId ? "Pengaturan Pengiriman" : "Shipping Governance"}
           </button>
         </nav>
 
@@ -1107,6 +1339,339 @@ export default function Settings() {
                   placeholder="tppreneurs.com"
                 />
                 <small>{isId ? "Domain utama website toko." : "Primary marketplace web domain."}</small>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* TAB 6: MASTER SHIPPING GOVERNANCE */}
+        {activeTab === "shipping" && (
+          <section className="sett-section-card">
+            <div className="sett-section-header">
+              <div>
+                <h2>
+                  <Truck size={18} color="var(--sett-accent)" />
+                  {isId ? "Tata Kelola Pengiriman Platform (Master Governance)" : "Platform Shipping Master Governance"}
+                </h2>
+                <p>
+                  {isId
+                    ? "Kelola aktivasi mitra ekspedisi nasional, kurir wajib platform, pengali tarif zona, dan catatan pemeliharaan secara mandiri & tanpa biaya pihak ketiga."
+                    : "Manage master couriers, platform mandatory fallbacks, zone tariff multipliers, and emergency maintenance notices autonomously."}
+                </p>
+              </div>
+            </div>
+
+            {/* Platform Stats & Quick Presets Bar */}
+            <div className="sett-shipping-stats-banner">
+              <div className="sett-shipping-stats-group">
+                <div className="sett-shipping-stat-pill">
+                  <span className="sett-shipping-stat-label">{isId ? "Mitra Aktif" : "Active Couriers"}</span>
+                  <strong className="sett-shipping-stat-val text-blue-600">
+                    {parseJsonArray(form.shippingMasterCouriers, []).length} / {ADMIN_MASTER_COURIERS.length}
+                  </strong>
+                </div>
+                <div className="sett-shipping-stat-pill">
+                  <span className="sett-shipping-stat-label">{isId ? "Kurir Wajib" : "Mandatory Fallbacks"}</span>
+                  <strong className="sett-shipping-stat-val text-amber-600">
+                    {parseJsonArray(form.shippingMandatoryCouriers, []).length}
+                  </strong>
+                </div>
+                <div className="sett-shipping-stat-pill">
+                  <span className="sett-shipping-stat-label">{isId ? "Kategori Aktif" : "Active Categories"}</span>
+                  <strong className="sett-shipping-stat-val text-emerald-600">
+                    {parseJsonArray(form.shippingMasterCategories, []).length} / {ADMIN_MASTER_CATEGORIES.length}
+                  </strong>
+                </div>
+                <div className="sett-shipping-stat-pill">
+                  <span className="sett-shipping-stat-label">{isId ? "Tarif Grab Motor" : "Grab Bike"}</span>
+                  <strong className="sett-shipping-stat-val text-slate-700">
+                    Rp {Number(form.shippingGrabBaseFare || 15000).toLocaleString("id-ID")}
+                  </strong>
+                </div>
+              </div>
+
+              {/* Action Presets */}
+              <div className="sett-shipping-presets">
+                <span className="sett-shipping-preset-title">
+                  <Sparkles size={13} />
+                  {isId ? "Preset Cepat:" : "Quick Presets:"}
+                </span>
+                <button
+                  type="button"
+                  onClick={applyAdminPresetStandard}
+                  className="sett-preset-btn sett-preset-btn--primary"
+                  title={isId ? "Aktifkan seluruh 9 ekspedisi dengan tarif normal standar" : "Enable all 9 couriers with standard rate"}
+                >
+                  🚀 {isId ? "Mode Standar Nasional" : "National Standard"}
+                </button>
+                <button
+                  type="button"
+                  onClick={applyAdminPresetWeatherEmergency}
+                  className="sett-preset-btn sett-preset-btn--warning"
+                  title={isId ? "Matikan instan sementara & pasang peringatan keterlambatan cuaca" : "Pause instant & set weather alert"}
+                >
+                  🌧️ {isId ? "Mode Darurat Cuaca" : "Weather Emergency"}
+                </button>
+              </div>
+            </div>
+
+            {/* SUB-SECTION 1: 9 MASTER COURIERS */}
+            <div className="sett-shipping-subpanel">
+              <div className="sett-shipping-subpanel-title">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck size={16} color="var(--sett-primary)" />
+                  <h3>{isId ? "Mitra Ekspedisi Platform (Master Couriers)" : "Platform Courier Partners"}</h3>
+                </div>
+                <small className="text-slate-500">
+                  {isId
+                    ? "Ekspedisi yang dinonaktifkan di sini otomatis tersembunyi dari seluruh toko & checkout."
+                    : "Couriers disabled here are hidden from all stores and checkout platform-wide."}
+                </small>
+              </div>
+
+              <div className="sett-courier-grid">
+                {ADMIN_MASTER_COURIERS.map((courier) => {
+                  const activeCouriers = parseJsonArray(form.shippingMasterCouriers, []);
+                  const mandatoryCouriers = parseJsonArray(form.shippingMandatoryCouriers, []);
+                  const notices = parseJsonObject(form.shippingMaintenanceNotices, {});
+                  const isEnabled = activeCouriers.includes(courier.code);
+                  const isMandatory = mandatoryCouriers.includes(courier.code);
+                  const noticeText = notices[courier.code] || "";
+
+                  return (
+                    <div
+                      key={courier.code}
+                      className={`sett-courier-card ${isEnabled ? "is-enabled" : "is-disabled"}`}
+                    >
+                      <div className="sett-courier-card-head">
+                        <div className="flex items-center gap-2.5">
+                          <span
+                            className="sett-courier-badge-bullet"
+                            style={{ backgroundColor: courier.color }}
+                          />
+                          <div>
+                            <h4 className="sett-courier-name">{courier.name}</h4>
+                            <span className="sett-courier-services">{courier.services}</span>
+                          </div>
+                        </div>
+                        <span className="sett-courier-tag">{courier.badge}</span>
+                      </div>
+
+                      <div className="sett-courier-toggles">
+                        {/* Master Activation Toggle */}
+                        <label className="sett-courier-switch-row">
+                          <span className="sett-courier-switch-label">
+                            {isId ? "Aktifkan di Platform" : "Enable Courier"}
+                          </span>
+                          <input
+                            type="checkbox"
+                            checked={isEnabled}
+                            onChange={() => handleToggleMasterCourier(courier.code)}
+                            className="sett-switch-checkbox"
+                          />
+                        </label>
+
+                        {/* Mandatory Platform Courier Toggle */}
+                        <label
+                          className={`sett-courier-switch-row ${
+                            !isEnabled ? "opacity-50 pointer-events-none" : ""
+                          }`}
+                        >
+                          <span className="sett-courier-switch-label flex items-center gap-1">
+                            <span className="text-amber-500 font-bold">★</span>
+                            {isId ? "Kurir Wajib Platform" : "Mandatory Fallback"}
+                          </span>
+                          <input
+                            type="checkbox"
+                            checked={isMandatory}
+                            disabled={!isEnabled}
+                            onChange={() => handleToggleMandatoryCourier(courier.code)}
+                            className="sett-switch-checkbox sett-switch-checkbox--amber"
+                          />
+                        </label>
+                      </div>
+
+                      {/* Maintenance / Operational Notice Input */}
+                      <div className="sett-courier-notice-box">
+                        <label className="text-[11px] font-semibold text-slate-500 uppercase flex items-center gap-1">
+                          <AlertTriangle size={11} className={noticeText ? "text-amber-500" : "text-slate-400"} />
+                          {isId ? "Catatan Operasional / Gangguan (Opsional):" : "Operational / Weather Notice (Optional):"}
+                        </label>
+                        <input
+                          type="text"
+                          value={noticeText}
+                          onChange={(e) => handleCourierNoticeChange(courier.code, e.target.value)}
+                          placeholder={isId ? "Misal: Estimasi lambat 1 hari karena banjir/libur" : "e.g. Delays expected due to weather"}
+                          className="sett-courier-notice-input"
+                          maxLength={120}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* SUB-SECTION 2: 5 GLOBAL CATEGORIES */}
+            <div className="sett-shipping-subpanel">
+              <div className="sett-shipping-subpanel-title">
+                <div className="flex items-center gap-2">
+                  <Layers size={16} color="var(--sett-primary)" />
+                  <h3>{isId ? "Kategori Layanan Global (Master Categories)" : "Global Service Categories"}</h3>
+                </div>
+                <small className="text-slate-500">
+                  {isId
+                    ? "Kontrol kategori pengiriman yang diizinkan untuk digunakan toko dan dipilih oleh pembeli."
+                    : "Control allowed shipping service tiers across the entire platform."}
+                </small>
+              </div>
+
+              <div className="sett-category-grid">
+                {ADMIN_MASTER_CATEGORIES.map((cat) => {
+                  const activeCats = parseJsonArray(form.shippingMasterCategories, []);
+                  const isChecked = activeCats.includes(cat.code);
+
+                  return (
+                    <label
+                      key={cat.code}
+                      className={`sett-category-card ${isChecked ? "is-checked" : "is-unchecked"}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => handleToggleMasterCategory(cat.code)}
+                        className="sett-switch-checkbox"
+                      />
+                      <div className="flex-1">
+                        <strong className="block text-sm text-slate-900">
+                          {isId ? cat.labelId : cat.labelEn}
+                        </strong>
+                        <span className="block text-xs text-slate-500 mt-0.5">
+                          {isId ? cat.descId : cat.descEn}
+                        </span>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* SUB-SECTION 3: MULTI-ZONE MULTIPLIERS & GRABEXPRESS BASE TARIFFS */}
+            <div className="sett-shipping-subpanel">
+              <div className="sett-shipping-subpanel-title">
+                <div className="flex items-center gap-2">
+                  <Navigation size={16} color="var(--sett-accent)" />
+                  <h3>{isId ? "Penyesuaian Tarif Multi-Zona & Instan (Pricing Controls)" : "Tariff Multipliers & Instant Pricing"}</h3>
+                </div>
+                <small className="text-slate-500">
+                  {isId
+                    ? "Sesuaikan faktor pengali tarif per zona dan tarif dasar kalkulator jarak Haversine GrabExpress (100% mandiri tanpa kuota API)."
+                    : "Adjust zone multiplier rates and GrabExpress Haversine distance pricing."}
+                </small>
+              </div>
+
+              <div className="sett-form-grid">
+                {/* Zone 1 Multiplier */}
+                <div className="sett-field">
+                  <label>{isId ? "Pengali Tarif Zona 1 (Intra-Kota)" : "Zone 1 Multiplier (Intra-City)"}</label>
+                  <input
+                    type="number"
+                    step="0.05"
+                    min="0.5"
+                    max="5.0"
+                    value={form.shippingZone1Multiplier}
+                    onChange={(e) => onInputChange("shippingZone1Multiplier", e.target.value)}
+                    placeholder="1.0"
+                  />
+                  <small>{isId ? "Standar: 1.0. Berlaku untuk pengiriman dalam kota yang sama." : "Default: 1.0 for shipments within the same city."}</small>
+                </div>
+
+                {/* Zone 2 Multiplier */}
+                <div className="sett-field">
+                  <label>{isId ? "Pengali Tarif Zona 2 (Intra-Pulau)" : "Zone 2 Multiplier (Intra-Island)"}</label>
+                  <input
+                    type="number"
+                    step="0.05"
+                    min="0.5"
+                    max="5.0"
+                    value={form.shippingZone2Multiplier}
+                    onChange={(e) => onInputChange("shippingZone2Multiplier", e.target.value)}
+                    placeholder="1.0"
+                  />
+                  <small>{isId ? "Standar: 1.0. Berlaku untuk pengiriman antarkota dalam satu pulau." : "Default: 1.0 for inter-city shipments within the same island."}</small>
+                </div>
+
+                {/* Zone 3 Multiplier */}
+                <div className="sett-field">
+                  <label>{isId ? "Pengali Tarif Zona 3 (Antar-Pulau)" : "Zone 3 Multiplier (Inter-Island)"}</label>
+                  <input
+                    type="number"
+                    step="0.05"
+                    min="0.5"
+                    max="5.0"
+                    value={form.shippingZone3Multiplier}
+                    onChange={(e) => onInputChange("shippingZone3Multiplier", e.target.value)}
+                    placeholder="1.0"
+                  />
+                  <small>{isId ? "Standar: 1.0. Berlaku untuk pengiriman antarpulau di Indonesia." : "Default: 1.0 for inter-island national shipments."}</small>
+                </div>
+
+                {/* Platform Handling Fee */}
+                <div className="sett-field">
+                  <label>{isId ? "Biaya Penanganan Platform (Rp)" : "Platform Handling Fee (IDR)"}</label>
+                  <input
+                    type="number"
+                    step="500"
+                    min="0"
+                    value={form.shippingPlatformHandlingFee}
+                    onChange={(e) => onInputChange("shippingPlatformHandlingFee", e.target.value)}
+                    placeholder="0"
+                  />
+                  <small>{isId ? "Biaya packing aman / proteksi platform tambahan per paket (opsional, default: Rp 0)." : "Optional safety packaging or platform handling fee per package."}</small>
+                </div>
+
+                {/* GrabExpress Base Fare */}
+                <div className="sett-field">
+                  <label>{isId ? "Tarif Dasar Minimum Grab Motor (Rp)" : "GrabExpress Bike Base Fare (IDR)"}</label>
+                  <input
+                    type="number"
+                    step="1000"
+                    min="5000"
+                    value={form.shippingGrabBaseFare}
+                    onChange={(e) => onInputChange("shippingGrabBaseFare", e.target.value)}
+                    placeholder="15000"
+                  />
+                  <small>{isId ? "Tarif awal untuk radius 0-4 km pertama (default: Rp 15.000)." : "Initial fare for first 0-4 km."}</small>
+                </div>
+
+                {/* GrabExpress Per-Km Rate */}
+                <div className="sett-field">
+                  <label>{isId ? "Tarif Tambahan Per Km Grab Motor (Rp/km)" : "GrabExpress Bike Rate Per Km (IDR)"}</label>
+                  <input
+                    type="number"
+                    step="500"
+                    min="1000"
+                    value={form.shippingGrabPerKmRate}
+                    onChange={(e) => onInputChange("shippingGrabPerKmRate", e.target.value)}
+                    placeholder="3000"
+                  />
+                  <small>{isId ? "Tarif per km setelah 4 km pertama (default: Rp 3.000/km)." : "Rate per km beyond 4 km."}</small>
+                </div>
+
+                {/* Max Instant Distance */}
+                <div className="sett-field sett-col-full">
+                  <label>{isId ? "Radius Maksimum Pengiriman Instan (Km)" : "Max Instant Delivery Radius (Km)"}</label>
+                  <input
+                    type="number"
+                    step="5"
+                    min="10"
+                    max="100"
+                    value={form.shippingMaxInstantDistanceKm}
+                    onChange={(e) => onInputChange("shippingMaxInstantDistanceKm", e.target.value)}
+                    placeholder="40"
+                  />
+                  <small>{isId ? "Jarak maksimal radius GPS untuk menampilkan layanan GrabExpress di Checkout (default: 40 km)." : "Maximum GPS road distance for GrabExpress availability."}</small>
+                </div>
               </div>
             </div>
           </section>

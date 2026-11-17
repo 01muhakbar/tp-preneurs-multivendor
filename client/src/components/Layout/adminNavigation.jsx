@@ -236,6 +236,11 @@ export const ADMIN_NAVIGATION = [
         perm: "DASHBOARD_VIEW",
       },
       {
+        label: "Shipping Governance",
+        to: "/admin/settings?tab=shipping",
+        perm: "SETTINGS_MANAGE",
+      },
+      {
         label: "Store Applications",
         to: "/admin/store/applications",
         perm: "STORE_APPLICATIONS_REVIEW",
