@@ -1641,9 +1641,12 @@ const serializePreviewGroup = (group: any) => ({
   storeId: group.storeId,
   storeName: group.storeName,
   storeSlug: group.storeSlug,
-  city: group.store?.city || "Kota Makassar",
-  province: group.store?.province || "Sulawesi Selatan",
-  district: (group.store as any)?.district || "Rappocini",
+  city: group.storeOrigin?.city || group.store?.city || "Kota Makassar",
+  province: group.storeOrigin?.province || group.store?.province || "Sulawesi Selatan",
+  district: group.storeOrigin?.district || (group.store as any)?.district || "Rappocini",
+  lat: group.storeOrigin?.lat ?? (group.store as any)?.lat ?? (group.store as any)?.latitude ?? null,
+  lng: group.storeOrigin?.lng ?? (group.store as any)?.lng ?? (group.store as any)?.longitude ?? null,
+  shippingSetup: group.shippingSetup || (group.store as any)?.shippingSetup || null,
   subtotalAmount: group.subtotalAmount,
   shippingAmount: group.shippingAmount,
   totalAmount: group.totalAmount,
@@ -1919,12 +1922,31 @@ const prepareCartGroups = (
     const weightCalc = calculateBilledWeight(totalPhysicalWeightGrams, totalVolumetricWeightKg);
     const totalPackageWeightKg = isStoreDigital ? 0 : weightCalc.billedWeightKg;
 
+    const storeRaw = group.store;
+    const rawSetup = (storeRaw as any)?.shippingSetup ?? (storeRaw as any)?.get?.("shippingSetup") ?? {};
+    let shippingSetup: Record<string, any> = {};
+    if (typeof rawSetup === "string") {
+      try {
+        shippingSetup = JSON.parse(rawSetup || "{}");
+      } catch {
+        shippingSetup = {};
+      }
+    } else if (rawSetup && typeof rawSetup === "object") {
+      shippingSetup = rawSetup;
+    }
+
     const storeOrigin = {
-      city: group.store?.city || "Kota Makassar",
-      province: group.store?.province || "Sulawesi Selatan",
-      district: (group.store as any)?.district || "Rappocini",
-      lat: (group.store as any)?.lat ?? (group.store as any)?.latitude ?? null,
-      lng: (group.store as any)?.lng ?? (group.store as any)?.longitude ?? null,
+      city: shippingSetup?.originCity || storeRaw?.city || "Kota Makassar",
+      province: shippingSetup?.originProvince || storeRaw?.province || "Sulawesi Selatan",
+      district: shippingSetup?.originDistrict || (storeRaw as any)?.district || "Rappocini",
+      lat:
+        shippingSetup?.originLatitude != null && !isNaN(Number(shippingSetup.originLatitude))
+          ? Number(shippingSetup.originLatitude)
+          : (storeRaw as any)?.lat ?? (storeRaw as any)?.latitude ?? null,
+      lng:
+        shippingSetup?.originLongitude != null && !isNaN(Number(shippingSetup.originLongitude))
+          ? Number(shippingSetup.originLongitude)
+          : (storeRaw as any)?.lng ?? (storeRaw as any)?.longitude ?? null,
     };
     const zoneInfo = determineShippingZone(storeOrigin, options.destination);
     const availableShippingRates = calculateStandaloneShippingRates({
@@ -1935,6 +1957,8 @@ const prepareCartGroups = (
       isDigital: isStoreDigital,
       origin: storeOrigin,
       destination: options.destination,
+      allowedCouriers: shippingSetup?.enabledCouriers,
+      allowedCategories: shippingSetup?.enabledCategories,
     });
     const defaultShippingOption = availableShippingRates[0] || null;
     const courierCode = defaultShippingOption?.courierCode || "JNE";
@@ -1943,6 +1967,8 @@ const prepareCartGroups = (
 
     return {
       ...group,
+      storeOrigin,
+      shippingSetup,
       totalPackageWeightGrams: totalPhysicalWeightGrams,
       totalPackageWeightKg,
       weightCalculation: weightCalc,

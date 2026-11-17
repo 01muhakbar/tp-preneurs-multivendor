@@ -810,6 +810,8 @@ export const calculateStandaloneShippingRates = (params = {}) => {
     isDigital = false,
     distanceKm: directDistanceKm,
     maxDimensions,
+    allowedCouriers,
+    allowedCategories,
   } = params;
 
   if (isDigital) {
@@ -902,5 +904,23 @@ export const calculateStandaloneShippingRates = (params = {}) => {
     };
   });
 
-  return [...instantRates, ...regularRates];
+  let rates = [...instantRates, ...regularRates];
+
+  if (Array.isArray(allowedCouriers) && allowedCouriers.length > 0) {
+    const courierSet = new Set(allowedCouriers.map((c) => String(c).trim().toUpperCase()));
+    rates = rates.filter((r) => courierSet.has(r.courierCode.toUpperCase()));
+  }
+
+  if (Array.isArray(allowedCategories) && allowedCategories.length > 0) {
+    const categorySet = new Set(allowedCategories.map((c) => String(c).trim().toLowerCase()));
+    rates = rates.filter((r) => categorySet.has(r.category.toLowerCase()));
+  }
+
+  // Safety fallback: if filters produced empty results (e.g. store set incompatible courier or distance > 40km for instant),
+  // fallback to standard regular couriers (JNE / J&T) so checkout is never blocked
+  if (rates.length === 0 && regularRates.length > 0) {
+    rates = regularRates.filter((r) => r.courierCode === "JNE" || r.courierCode === "JNT");
+  }
+
+  return rates;
 };

@@ -399,13 +399,22 @@ export default function CheckoutShippingModal({
   isIndo = true,
   formatMoney = (n) => `Rp ${Number(n || 0).toLocaleString("id-ID")}`,
 }) {
-  const origin = useMemo(() => ({
-    city: store?.city || store?.address?.city || "Kota Makassar",
-    province: store?.province || store?.address?.province || "Sulawesi Selatan",
-    district: store?.district || store?.address?.district || "Rappocini",
-    lat: store?.lat ?? store?.latitude ?? store?.address?.lat ?? store?.address?.latitude,
-    lng: store?.lng ?? store?.longitude ?? store?.address?.lng ?? store?.address?.longitude,
-  }), [store?.city, store?.province, store?.district, store?.address, store?.lat, store?.latitude, store?.lng, store?.longitude]);
+  const origin = useMemo(() => {
+    const setup = store?.shippingSetup || {};
+    return {
+      city: setup.originCity || store?.city || store?.address?.city || "Kota Makassar",
+      province: setup.originProvince || store?.province || store?.address?.province || "Sulawesi Selatan",
+      district: setup.originDistrict || store?.district || store?.address?.district || "Rappocini",
+      lat:
+        setup.originLatitude != null && !isNaN(Number(setup.originLatitude))
+          ? Number(setup.originLatitude)
+          : store?.lat ?? store?.latitude ?? store?.address?.lat ?? store?.address?.latitude ?? null,
+      lng:
+        setup.originLongitude != null && !isNaN(Number(setup.originLongitude))
+          ? Number(setup.originLongitude)
+          : store?.lng ?? store?.longitude ?? store?.address?.lng ?? store?.address?.longitude ?? null,
+    };
+  }, [store?.shippingSetup, store?.city, store?.province, store?.district, store?.address, store?.lat, store?.latitude, store?.lng, store?.longitude]);
 
   const zone = useMemo(() => {
     return determineShippingZone(origin, destination);
@@ -420,12 +429,15 @@ export default function CheckoutShippingModal({
   const [activeCategory, setActiveCategory] = useState("all");
 
   const rates = useMemo(() => {
+    const setup = store?.shippingSetup || {};
     const engineRates = calculateStandaloneShippingRates({
       origin,
       destination,
       totalWeightGrams,
       items: store?.items || [],
       distanceKm: destination?.distanceKm,
+      allowedCouriers: setup.enabledCouriers,
+      allowedCategories: setup.enabledCategories,
     });
 
     if (Array.isArray(availableShippingRates) && availableShippingRates.length > 0) {
@@ -460,7 +472,21 @@ export default function CheckoutShippingModal({
         minWeight,
       };
     });
-  }, [availableShippingRates, origin, destination, totalWeightGrams, effectiveWeight, store?.items]);
+  }, [availableShippingRates, origin, destination, totalWeightGrams, effectiveWeight, store?.items, store?.shippingSetup]);
+
+  const cheapestRate = useMemo(() => {
+    if (rates.length <= 1) return null;
+    return rates.reduce((min, r) => (r.shippingFee < min.shippingFee ? r : min), rates[0]);
+  }, [rates]);
+
+  const fastestRate = useMemo(() => {
+    if (rates.length <= 1) return null;
+    const instant = rates.find((r) => r.category === "instant");
+    if (instant) return instant;
+    const express = rates.find((r) => r.category === "express");
+    if (express) return express;
+    return null;
+  }, [rates]);
 
   const [tempSelectedKey, setTempSelectedKey] = useState("");
 
@@ -647,6 +673,8 @@ export default function CheckoutShippingModal({
               const isCargo = opt.category === "cargo";
               const chargedWeight = Number(opt.chargedWeight || (isCargo ? Math.max(opt.minWeight || 10, effectiveWeight) : effectiveWeight));
               const rateFee = Number(opt.shippingFee || opt.ratePerKg * chargedWeight || 0);
+              const isCheapest = cheapestRate && key === buildOptionKey(cheapestRate);
+              const isFastest = fastestRate && key === buildOptionKey(fastestRate);
 
               return (
                 <div
@@ -684,6 +712,16 @@ export default function CheckoutShippingModal({
                             ? opt.categoryLabel || opt.category
                             : opt.categoryLabelEn || opt.category}
                         </span>
+                        {isCheapest && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                            💰 {isIndo ? "Termurah" : "Best Value"}
+                          </span>
+                        )}
+                        {isFastest && !isCheapest && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#fe6f05]/20 text-[#fe6f05] border border-[#fe6f05]/40">
+                            ⚡ {isIndo ? "Paling Cepat" : "Fastest"}
+                          </span>
+                        )}
                         <strong className="text-xs sm:text-sm text-slate-100 font-semibold truncate">
                           {opt.serviceName || opt.serviceCode}
                         </strong>
