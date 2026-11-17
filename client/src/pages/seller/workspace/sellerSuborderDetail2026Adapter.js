@@ -103,6 +103,16 @@ export const INDONESIA_COURIERS = [
     ],
   },
   {
+    code: "SAPX",
+    name: "SAPX Express",
+    services: [
+      { code: "Satria REG", name: "Satria REG - Reguler (2-4 hari)" },
+      { code: "Satria ODS", name: "Satria ODS - One Day Service (1 hari)" },
+      { code: "Satria SDS", name: "Satria SDS - Same Day Service" },
+      { code: "Satria Cargo", name: "Satria Cargo - Layanan Kargo" },
+    ],
+  },
+  {
     code: "KURIR_TOKO",
     name: "Kurir Toko / Ambil Sendiri",
     services: [

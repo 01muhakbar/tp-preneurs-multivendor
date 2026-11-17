@@ -1,22 +1,33 @@
-import React, { useState, useEffect } from "react";
-import { Check, Package, Scale, Truck, X } from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { Check, Package, Scale, Truck, X, Zap, Clock, ShieldCheck, Box } from "lucide-react";
 
-const DEFAULT_COURIER_OPTIONS = [
+export const DEFAULT_COURIER_OPTIONS = [
+  // 1. JNE Express
   {
     courierCode: "JNE",
     courierName: "JNE Express",
     serviceCode: "REG",
     serviceName: "Reguler (REG)",
+    category: "regular",
+    categoryLabel: "Reguler",
+    categoryLabelEn: "Regular",
     ratePerKg: 10000,
-    estimate: "2 - 3 Hari",
-    estimateEn: "2 - 3 Business Days",
+    minWeight: 1,
+    minFee: 10000,
+    estimate: "1 - 3 Hari",
+    estimateEn: "1 - 3 Business Days",
   },
   {
     courierCode: "JNE",
     courierName: "JNE Express",
     serviceCode: "YES",
     serviceName: "Yakin Esok Sampai (YES)",
-    ratePerKg: 20000,
+    category: "express",
+    categoryLabel: "Kilat",
+    categoryLabelEn: "Express",
+    ratePerKg: 18000,
+    minWeight: 1,
+    minFee: 18000,
     estimate: "1 Hari",
     estimateEn: "1 Business Day",
   },
@@ -25,16 +36,42 @@ const DEFAULT_COURIER_OPTIONS = [
     courierName: "JNE Express",
     serviceCode: "OKE",
     serviceName: "Ongkos Kirim Ekonomis (OKE)",
+    category: "economy",
+    categoryLabel: "Ekonomi",
+    categoryLabelEn: "Economy",
     ratePerKg: 8000,
-    estimate: "3 - 5 Hari",
-    estimateEn: "3 - 5 Business Days",
+    minWeight: 1,
+    minFee: 8000,
+    estimate: "3 - 6 Hari",
+    estimateEn: "3 - 6 Business Days",
   },
+  {
+    courierCode: "JNE",
+    courierName: "JNE Express",
+    serviceCode: "JTR",
+    serviceName: "JNE Trucking (JTR Kargo)",
+    category: "cargo",
+    categoryLabel: "Kargo",
+    categoryLabelEn: "Cargo",
+    ratePerKg: 3500,
+    minWeight: 10,
+    minFee: 35000,
+    estimate: "3 - 7 Hari",
+    estimateEn: "3 - 7 Business Days",
+  },
+
+  // 2. J&T Express
   {
     courierCode: "JNT",
     courierName: "J&T Express",
     serviceCode: "EZ",
     serviceName: "Reguler (EZ)",
+    category: "regular",
+    categoryLabel: "Reguler",
+    categoryLabelEn: "Regular",
     ratePerKg: 10000,
+    minWeight: 1,
+    minFee: 10000,
     estimate: "2 - 3 Hari",
     estimateEn: "2 - 3 Business Days",
   },
@@ -42,46 +79,305 @@ const DEFAULT_COURIER_OPTIONS = [
     courierCode: "JNT",
     courierName: "J&T Express",
     serviceCode: "SUPER",
-    serviceName: "Layanan Kilat (SUPER)",
-    ratePerKg: 22000,
-    estimate: "1 Hari",
-    estimateEn: "1 Business Day",
+    serviceName: "J&T Super (Kilat)",
+    category: "express",
+    categoryLabel: "Kilat",
+    categoryLabelEn: "Express",
+    ratePerKg: 18000,
+    minWeight: 1,
+    minFee: 18000,
+    estimate: "1 - 2 Hari",
+    estimateEn: "1 - 2 Business Days",
   },
+  {
+    courierCode: "JNT",
+    courierName: "J&T Express",
+    serviceCode: "ECO",
+    serviceName: "J&T ECO (Ekonomis)",
+    category: "economy",
+    categoryLabel: "Ekonomi",
+    categoryLabelEn: "Economy",
+    ratePerKg: 7000,
+    minWeight: 1,
+    minFee: 7000,
+    estimate: "3 - 7 Hari",
+    estimateEn: "3 - 7 Business Days",
+  },
+  {
+    courierCode: "JNT",
+    courierName: "J&T Express",
+    serviceCode: "J&T Cargo",
+    serviceName: "J&T Cargo (Kargo)",
+    category: "cargo",
+    categoryLabel: "Kargo",
+    categoryLabelEn: "Cargo",
+    ratePerKg: 3000,
+    minWeight: 10,
+    minFee: 30000,
+    estimate: "3 - 7 Hari",
+    estimateEn: "3 - 7 Business Days",
+  },
+
+  // 3. SiCepat Express
   {
     courierCode: "SICEPAT",
     courierName: "SiCepat Express",
     serviceCode: "SIUNTUNG",
     serviceName: "Reguler (SIUNTUNG)",
-    ratePerKg: 10000,
-    estimate: "2 - 3 Hari",
-    estimateEn: "2 - 3 Business Days",
+    category: "regular",
+    categoryLabel: "Reguler",
+    categoryLabelEn: "Regular",
+    ratePerKg: 9500,
+    minWeight: 1,
+    minFee: 9500,
+    estimate: "1 - 3 Hari",
+    estimateEn: "1 - 3 Business Days",
   },
   {
     courierCode: "SICEPAT",
     courierName: "SiCepat Express",
     serviceCode: "BEST",
     serviceName: "Besok Sampai (BEST)",
-    ratePerKg: 20000,
+    category: "express",
+    categoryLabel: "Kilat",
+    categoryLabelEn: "Express",
+    ratePerKg: 18000,
+    minWeight: 1,
+    minFee: 18000,
+    estimate: "1 Hari",
+    estimateEn: "1 Business Day",
+  },
+  {
+    courierCode: "SICEPAT",
+    courierName: "SiCepat Express",
+    serviceCode: "HALU",
+    serviceName: "HALU (Hemat)",
+    category: "economy",
+    categoryLabel: "Ekonomi",
+    categoryLabelEn: "Economy",
+    ratePerKg: 7000,
+    minWeight: 1,
+    minFee: 7000,
+    estimate: "2 - 5 Hari",
+    estimateEn: "2 - 5 Business Days",
+  },
+  {
+    courierCode: "SICEPAT",
+    courierName: "SiCepat Express",
+    serviceCode: "GOKIL",
+    serviceName: "GOKIL (Cargo Kilat)",
+    category: "cargo",
+    categoryLabel: "Kargo",
+    categoryLabelEn: "Cargo",
+    ratePerKg: 3500,
+    minWeight: 10,
+    minFee: 35000,
+    estimate: "2 - 5 Hari",
+    estimateEn: "2 - 5 Business Days",
+  },
+
+  // 4. Pos Indonesia
+  {
+    courierCode: "POS",
+    courierName: "Pos Indonesia",
+    serviceCode: "Pos Reguler",
+    serviceName: "Pos Reguler",
+    category: "regular",
+    categoryLabel: "Reguler",
+    categoryLabelEn: "Regular",
+    ratePerKg: 9000,
+    minWeight: 1,
+    minFee: 9000,
+    estimate: "2 - 4 Hari",
+    estimateEn: "2 - 4 Business Days",
+  },
+  {
+    courierCode: "POS",
+    courierName: "Pos Indonesia",
+    serviceCode: "Pos Nextday",
+    serviceName: "Pos Nextday (Kilat)",
+    category: "express",
+    categoryLabel: "Kilat",
+    categoryLabelEn: "Express",
+    ratePerKg: 16000,
+    minWeight: 1,
+    minFee: 16000,
     estimate: "1 Hari",
     estimateEn: "1 Business Day",
   },
   {
     courierCode: "POS",
     courierName: "Pos Indonesia",
-    serviceCode: "Pos Reguler",
-    serviceName: "Pos Reguler",
-    ratePerKg: 9000,
+    serviceCode: "Pos Sameday",
+    serviceName: "Pos Sameday (Hari Sama)",
+    category: "express",
+    categoryLabel: "Kilat",
+    categoryLabelEn: "Express",
+    ratePerKg: 20000,
+    minWeight: 1,
+    minFee: 20000,
+    estimate: "Hari yang Sama",
+    estimateEn: "Same Day Delivery",
+  },
+  {
+    courierCode: "POS",
+    courierName: "Pos Indonesia",
+    serviceCode: "Pos Jumbo",
+    serviceName: "Pos Jumbo (Kargo)",
+    category: "cargo",
+    categoryLabel: "Kargo",
+    categoryLabelEn: "Cargo",
+    ratePerKg: 4000,
+    minWeight: 5,
+    minFee: 20000,
+    estimate: "3 - 7 Hari",
+    estimateEn: "3 - 7 Business Days",
+  },
+
+  // 5. Lion Parcel
+  {
+    courierCode: "LION",
+    courierName: "Lion Parcel",
+    serviceCode: "REGPACK",
+    serviceName: "REGPACK (Reguler)",
+    category: "regular",
+    categoryLabel: "Reguler",
+    categoryLabelEn: "Regular",
+    ratePerKg: 9500,
+    minWeight: 1,
+    minFee: 9500,
     estimate: "2 - 4 Hari",
     estimateEn: "2 - 4 Business Days",
   },
+  {
+    courierCode: "LION",
+    courierName: "Lion Parcel",
+    serviceCode: "ONEPACK",
+    serviceName: "ONEPACK (Kilat Esok)",
+    category: "express",
+    categoryLabel: "Kilat",
+    categoryLabelEn: "Express",
+    ratePerKg: 17500,
+    minWeight: 1,
+    minFee: 17500,
+    estimate: "1 Hari",
+    estimateEn: "1 Business Day",
+  },
+  {
+    courierCode: "LION",
+    courierName: "Lion Parcel",
+    serviceCode: "JAGOPACK",
+    serviceName: "JAGOPACK (Ekonomis)",
+    category: "economy",
+    categoryLabel: "Ekonomi",
+    categoryLabelEn: "Economy",
+    ratePerKg: 7000,
+    minWeight: 1,
+    minFee: 7000,
+    estimate: "2 - 7 Hari",
+    estimateEn: "2 - 7 Business Days",
+  },
+  {
+    courierCode: "LION",
+    courierName: "Lion Parcel",
+    serviceCode: "BIGPACK",
+    serviceName: "BIGPACK (Kargo Besar)",
+    category: "cargo",
+    categoryLabel: "Kargo",
+    categoryLabelEn: "Cargo",
+    ratePerKg: 3500,
+    minWeight: 10,
+    minFee: 35000,
+    estimate: "3 - 6 Hari",
+    estimateEn: "3 - 6 Business Days",
+  },
+
+  // 6. SAPX Express
+  {
+    courierCode: "SAPX",
+    courierName: "SAPX Express",
+    serviceCode: "Satria REG",
+    serviceName: "Satria REG (Reguler)",
+    category: "regular",
+    categoryLabel: "Reguler",
+    categoryLabelEn: "Regular",
+    ratePerKg: 9500,
+    minWeight: 1,
+    minFee: 9500,
+    estimate: "2 - 4 Hari",
+    estimateEn: "2 - 4 Business Days",
+  },
+  {
+    courierCode: "SAPX",
+    courierName: "SAPX Express",
+    serviceCode: "Satria ODS",
+    serviceName: "Satria ODS (One Day Service)",
+    category: "express",
+    categoryLabel: "Kilat",
+    categoryLabelEn: "Express",
+    ratePerKg: 17000,
+    minWeight: 1,
+    minFee: 17000,
+    estimate: "1 Hari",
+    estimateEn: "1 Business Day",
+  },
+  {
+    courierCode: "SAPX",
+    courierName: "SAPX Express",
+    serviceCode: "Satria Cargo",
+    serviceName: "Satria Cargo (Layanan Kargo)",
+    category: "cargo",
+    categoryLabel: "Kargo",
+    categoryLabelEn: "Cargo",
+    ratePerKg: 3500,
+    minWeight: 10,
+    minFee: 35000,
+    estimate: "3 - 7 Hari",
+    estimateEn: "3 - 7 Business Days",
+  },
+
+  // 7. Anteraja
   {
     courierCode: "ANTERAJA",
     courierName: "Anteraja",
     serviceCode: "Regular",
     serviceName: "Anteraja Regular",
+    category: "regular",
+    categoryLabel: "Reguler",
+    categoryLabelEn: "Regular",
     ratePerKg: 10000,
+    minWeight: 1,
+    minFee: 10000,
     estimate: "2 - 3 Hari",
     estimateEn: "2 - 3 Business Days",
+  },
+  {
+    courierCode: "ANTERAJA",
+    courierName: "Anteraja",
+    serviceCode: "Next Day",
+    serviceName: "Anteraja Next Day",
+    category: "express",
+    categoryLabel: "Kilat",
+    categoryLabelEn: "Express",
+    ratePerKg: 18000,
+    minWeight: 1,
+    minFee: 18000,
+    estimate: "1 Hari",
+    estimateEn: "1 Business Day",
+  },
+  {
+    courierCode: "ANTERAJA",
+    courierName: "Anteraja",
+    serviceCode: "Cargo",
+    serviceName: "Anteraja Cargo",
+    category: "cargo",
+    categoryLabel: "Kargo",
+    categoryLabelEn: "Cargo",
+    ratePerKg: 3500,
+    minWeight: 10,
+    minFee: 35000,
+    estimate: "3 - 6 Hari",
+    estimateEn: "3 - 6 Business Days",
   },
 ];
 
@@ -98,14 +394,28 @@ export default function CheckoutShippingModal({
   formatMoney = (n) => `Rp ${Number(n || 0).toLocaleString("id-ID")}`,
 }) {
   const effectiveWeight = Math.max(1, Math.ceil(Number(packageWeightKg) || 1));
-  const rates =
-    Array.isArray(availableShippingRates) && availableShippingRates.length > 0
-      ? availableShippingRates
-      : DEFAULT_COURIER_OPTIONS.map((opt) => ({
-          ...opt,
-          shippingFee: opt.ratePerKg * effectiveWeight,
-          weightKg: effectiveWeight,
-        }));
+  const [activeCategory, setActiveCategory] = useState("all");
+
+  const rates = useMemo(() => {
+    if (Array.isArray(availableShippingRates) && availableShippingRates.length > 0) {
+      return availableShippingRates;
+    }
+    return DEFAULT_COURIER_OPTIONS.map((opt) => {
+      const isCargo = opt.category === "cargo";
+      const minWeight = opt.minWeight || (isCargo ? 10 : 1);
+      const chargedWeight = Math.max(minWeight, effectiveWeight);
+      const calculatedFee = opt.ratePerKg * chargedWeight;
+      const shippingFee = Math.max(opt.minFee || 0, calculatedFee);
+
+      return {
+        ...opt,
+        shippingFee,
+        weightKg: effectiveWeight,
+        chargedWeight,
+        minWeight,
+      };
+    });
+  }, [availableShippingRates, effectiveWeight]);
 
   const [tempSelectedKey, setTempSelectedKey] = useState("");
 
@@ -131,10 +441,45 @@ export default function CheckoutShippingModal({
     onClose?.();
   };
 
+  const categories = [
+    { key: "all", label: isIndo ? "Semua" : "All" },
+    { key: "regular", label: isIndo ? "Reguler" : "Standard" },
+    { key: "express", label: isIndo ? "Kilat" : "Express" },
+    { key: "economy", label: isIndo ? "Ekonomi" : "Economy" },
+    { key: "cargo", label: isIndo ? "Kargo" : "Cargo" },
+  ];
+
+  const categoryCounts = categories.reduce((acc, cat) => {
+    acc[cat.key] =
+      cat.key === "all"
+        ? rates.length
+        : rates.filter((r) => (r.category || "regular") === cat.key).length;
+    return acc;
+  }, {});
+
+  const filteredRates =
+    activeCategory === "all"
+      ? rates
+      : rates.filter((r) => (r.category || "regular") === activeCategory);
+
+  const getCategoryBadgeClass = (category) => {
+    switch (category) {
+      case "express":
+        return "bg-amber-500/15 text-amber-300 border-amber-500/40";
+      case "economy":
+        return "bg-emerald-500/15 text-emerald-300 border-emerald-500/40";
+      case "cargo":
+        return "bg-purple-500/15 text-purple-300 border-purple-500/40";
+      case "regular":
+      default:
+        return "bg-[#034c85]/40 text-blue-200 border-[#034c85]";
+    }
+  };
+
   return (
     <div className="co26-modal-overlay" onClick={onClose}>
       <div
-        className="co26-modal-container max-w-lg w-full"
+        className="co26-modal-container max-w-xl w-full"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -165,7 +510,7 @@ export default function CheckoutShippingModal({
         </div>
 
         {/* Package Weight & Info Banner */}
-        <div className="px-4 py-3 bg-[#034c85]/10 border-b border-[#034c85]/30 flex items-center justify-between gap-3">
+        <div className="px-4 py-2.5 bg-[#034c85]/10 border-b border-[#034c85]/30 flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2 text-xs text-slate-300">
             <Scale size={16} className="text-[#fe6f05] shrink-0" />
             <div>
@@ -182,97 +527,166 @@ export default function CheckoutShippingModal({
               ) : null}
             </div>
           </div>
-          <span className="text-[11px] text-slate-400 text-right shrink-0 hidden sm:inline">
-            {isIndo ? "Dihitung otomatis per kg" : "Auto calculated per kg"}
+          <span className="text-[11px] text-slate-400 text-right shrink-0">
+            {isIndo ? "Tarif dihitung otomatis sesuai berat" : "Auto calculated based on weight"}
           </span>
         </div>
 
-        {/* Courier Services List */}
-        <div className="co26-modal-body p-4 max-h-[58vh] overflow-y-auto space-y-2.5">
-          {rates.map((opt) => {
-            const key = buildOptionKey(opt);
-            const isSelected = key === tempSelectedKey;
-            const rateFee = Number(opt.shippingFee || opt.ratePerKg * effectiveWeight || 0);
+        {/* Category Filter Tabs */}
+        <div className="px-4 pt-3 pb-2 border-b border-slate-700/50 flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+          {categories.map((cat) => {
+            const count = categoryCounts[cat.key] || 0;
+            if (cat.key !== "all" && count === 0) return null;
+            const isActive = activeCategory === cat.key;
 
             return (
-              <div
-                key={key}
-                role="button"
-                tabIndex={0}
-                onClick={() => setTempSelectedKey(key)}
-                className={`p-3 rounded-xl border transition cursor-pointer flex items-center justify-between gap-3 ${
-                  isSelected
-                    ? "bg-[#034c85]/20 border-[#fe6f05] shadow-sm shadow-[#fe6f05]/10"
-                    : "bg-slate-800/50 border-slate-700/60 hover:bg-slate-800 hover:border-slate-600"
+              <button
+                key={cat.key}
+                type="button"
+                onClick={() => setActiveCategory(cat.key)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition flex items-center gap-1.5 ${
+                  isActive
+                    ? "bg-[#fe6f05] text-white shadow-sm shadow-[#fe6f05]/30"
+                    : "bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white"
                 }`}
               >
-                {/* Left side: Radio + Details */}
-                <div className="flex items-start gap-3 min-w-0">
-                  <div
-                    className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 mt-0.5 transition ${
-                      isSelected
-                        ? "border-[#fe6f05] bg-[#fe6f05] text-white"
-                        : "border-slate-500 bg-transparent"
-                    }`}
-                  >
-                    {isSelected && <Check size={12} strokeWidth={3} />}
-                  </div>
-
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-bold px-2 py-0.5 rounded bg-[#034c85]/40 text-blue-200 border border-[#034c85]">
-                        {opt.courierName || opt.courierCode}
-                      </span>
-                      <strong className="text-xs sm:text-sm text-slate-100 font-semibold truncate">
-                        {opt.serviceName || opt.serviceCode}
-                      </strong>
-                    </div>
-
-                    <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-400">
-                      <span>
-                        {isIndo ? "Estimasi:" : "Est:"}{" "}
-                        <span className="text-slate-300 font-medium">
-                          {isIndo ? opt.estimate || "2 - 3 Hari" : opt.estimateEn || "2 - 3 Business Days"}
-                        </span>
-                      </span>
-                      <span>•</span>
-                      <span className="text-slate-400">
-                        {formatMoney(opt.ratePerKg || 10000)} / kg
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right side: Calculated Shipping Fee */}
-                <div className="text-right shrink-0">
-                  <strong className="text-sm sm:text-base font-bold text-[#fe6f05] block">
-                    {formatMoney(rateFee)}
-                  </strong>
-                  <span className="text-[10px] text-slate-400 block">
-                    ({effectiveWeight} kg)
-                  </span>
-                </div>
-              </div>
+                <span>{cat.label}</span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                    isActive ? "bg-black/25 text-white" : "bg-slate-700 text-slate-400"
+                  }`}
+                >
+                  {count}
+                </span>
+              </button>
             );
           })}
         </div>
 
+        {/* Courier Services List */}
+        <div className="co26-modal-body p-4 max-h-[52vh] overflow-y-auto space-y-2.5">
+          {filteredRates.length === 0 ? (
+            <div className="text-center py-8 text-slate-400 text-xs">
+              {isIndo
+                ? "Tidak ada layanan pengiriman pada kategori ini."
+                : "No shipping services available for this category."}
+            </div>
+          ) : (
+            filteredRates.map((opt) => {
+              const key = buildOptionKey(opt);
+              const isSelected = key === tempSelectedKey;
+              const isCargo = opt.category === "cargo";
+              const chargedWeight = Number(opt.chargedWeight || (isCargo ? Math.max(opt.minWeight || 10, effectiveWeight) : effectiveWeight));
+              const rateFee = Number(opt.shippingFee || opt.ratePerKg * chargedWeight || 0);
+
+              return (
+                <div
+                  key={key}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setTempSelectedKey(key)}
+                  className={`p-3 rounded-xl border transition cursor-pointer flex items-center justify-between gap-3 ${
+                    isSelected
+                      ? "bg-[#034c85]/20 border-[#fe6f05] shadow-sm shadow-[#fe6f05]/15"
+                      : "bg-slate-800/50 border-slate-700/60 hover:bg-slate-800 hover:border-slate-600"
+                  }`}
+                >
+                  {/* Left side: Radio + Details */}
+                  <div className="flex items-start gap-3 min-w-0">
+                    <div
+                      className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 mt-0.5 transition ${
+                        isSelected
+                          ? "border-[#fe6f05] bg-[#fe6f05] text-white"
+                          : "border-slate-500 bg-transparent"
+                      }`}
+                    >
+                      {isSelected && <Check size={12} strokeWidth={3} />}
+                    </div>
+
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-700 text-slate-200 border border-slate-600">
+                          {opt.courierName || opt.courierCode}
+                        </span>
+                        <span
+                          className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${getCategoryBadgeClass(
+                            opt.category
+                          )}`}
+                        >
+                          {isIndo
+                            ? opt.categoryLabel || opt.category
+                            : opt.categoryLabelEn || opt.category}
+                        </span>
+                        <strong className="text-xs sm:text-sm text-slate-100 font-semibold truncate">
+                          {opt.serviceName || opt.serviceCode}
+                        </strong>
+                      </div>
+
+                      <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-400 flex-wrap">
+                        <span>
+                          {isIndo ? "Estimasi:" : "Est:"}{" "}
+                          <span className="text-slate-300 font-medium">
+                            {isIndo
+                              ? opt.estimate || "2 - 3 Hari"
+                              : opt.estimateEn || "2 - 3 Business Days"}
+                          </span>
+                        </span>
+                        <span>•</span>
+                        <span className="text-slate-400">
+                          {formatMoney(opt.ratePerKg || 10000)} / kg
+                        </span>
+                        {isCargo && opt.minWeight ? (
+                          <>
+                            <span>•</span>
+                            <span className="text-amber-400 font-medium text-[10px]">
+                              {isIndo
+                                ? `Min. ${opt.minWeight} kg`
+                                : `Min. ${opt.minWeight} kg`}
+                            </span>
+                          </>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right side: Calculated Shipping Fee */}
+                  <div className="text-right shrink-0">
+                    <strong className="text-sm sm:text-base font-bold text-[#fe6f05] block">
+                      {formatMoney(rateFee)}
+                    </strong>
+                    <span className="text-[10px] text-slate-400 block">
+                      ({chargedWeight} kg{isCargo && effectiveWeight < opt.minWeight ? " min" : ""})
+                    </span>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
         {/* Modal Footer */}
-        <div className="p-4 border-t border-slate-700/60 flex items-center justify-end gap-2.5 bg-slate-900/60 rounded-b-2xl">
-          <button
-            type="button"
-            className="px-4 py-2 rounded-xl text-xs sm:text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition"
-            onClick={onClose}
-          >
-            {isIndo ? "Batal" : "Cancel"}
-          </button>
-          <button
-            type="button"
-            className="px-5 py-2 rounded-xl text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-[#034c85] to-[#fe6f05] hover:opacity-95 active:scale-95 transition shadow-md shadow-[#fe6f05]/20"
-            onClick={handleConfirm}
-          >
-            {isIndo ? "Konfirmasi Opsi Ini" : "Confirm Option"}
-          </button>
+        <div className="p-3.5 sm:p-4 border-t border-slate-700/60 flex items-center justify-between gap-2.5 bg-slate-900/70 rounded-b-2xl">
+          <span className="text-xs text-slate-400 hidden sm:inline">
+            {isIndo
+              ? `${filteredRates.length} opsi tersedia`
+              : `${filteredRates.length} options available`}
+          </span>
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <button
+              type="button"
+              className="px-4 py-2 rounded-xl text-xs sm:text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition"
+              onClick={onClose}
+            >
+              {isIndo ? "Batal" : "Cancel"}
+            </button>
+            <button
+              type="button"
+              className="px-5 py-2 rounded-xl text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-[#034c85] to-[#fe6f05] hover:opacity-95 active:scale-95 transition shadow-md shadow-[#fe6f05]/20"
+              onClick={handleConfirm}
+            >
+              {isIndo ? "Konfirmasi Opsi Ini" : "Confirm Option"}
+            </button>
+          </div>
         </div>
       </div>
     </div>
