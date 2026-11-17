@@ -340,6 +340,7 @@ export default function AccountShippingAddress2026View({
 
             <div className="mb-4">
               <AddressAutocompleteSearch
+                value={form?.streetName || ""}
                 onSelectAddress={onSelectAddressFromSearch}
                 isIndo={isIndo}
               />

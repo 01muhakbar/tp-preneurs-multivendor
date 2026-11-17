@@ -589,6 +589,7 @@ export default function CheckoutAddressModal({
               />
 
               <AddressAutocompleteSearch
+                value={streetName}
                 onSelectAddress={handleSelectAddressFromSearch}
                 isIndo={isIndo}
                 className="mb-1"

@@ -8,12 +8,13 @@ import { searchAddressSuggestions } from "../../services/osmGeocodingService.js"
  * 100% Free, zero third-party cost, no API keys needed.
  */
 export default function AddressAutocompleteSearch({
+  value = "",
   onSelectAddress,
   isIndo = true,
   placeholder = "",
   className = "",
 }) {
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(value || "");
   const [suggestions, setSuggestions] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -21,13 +22,28 @@ export default function AddressAutocompleteSearch({
 
   const containerRef = useRef(null);
   const inputRef = useRef(null);
+  const isTypingRef = useRef(false);
 
-  // Debounced search
+  // Synchronize internal query state when the external value prop changes (e.g. edit mode, prefilled address)
   useEffect(() => {
+    if (!isTypingRef.current && value !== undefined && value !== null && value !== query) {
+      setQuery(value);
+      setIsOpen(false);
+      setSuggestions([]);
+    }
+  }, [value]);
+
+  // Debounced search - ONLY triggered when the user is actively typing
+  useEffect(() => {
+    if (!isTypingRef.current) {
+      return;
+    }
+
     const trimmed = query.trim();
     if (trimmed.length < 3) {
       setSuggestions([]);
       setIsLoading(false);
+      setIsOpen(false);
       return;
     }
 
@@ -36,7 +52,9 @@ export default function AddressAutocompleteSearch({
       try {
         const results = await searchAddressSuggestions(trimmed, 6);
         setSuggestions(results);
-        setIsOpen(results.length > 0);
+        if (isTypingRef.current) {
+          setIsOpen(results.length > 0);
+        }
       } catch (err) {
         console.error("Geocoding search failed:", err);
         setSuggestions([]);
@@ -53,6 +71,7 @@ export default function AddressAutocompleteSearch({
     const handleOutsideClick = (e) => {
       if (containerRef.current && !containerRef.current.contains(e.target)) {
         setIsOpen(false);
+        isTypingRef.current = false;
       }
     };
     document.addEventListener("mousedown", handleOutsideClick);
@@ -60,13 +79,17 @@ export default function AddressAutocompleteSearch({
   }, []);
 
   const handleSelect = (item) => {
+    isTypingRef.current = false;
     setSelectedId(item.id);
-    setQuery(item.title || item.streetName);
+    const selectedText = item.streetName || item.title || "";
+    setQuery(selectedText);
     setIsOpen(false);
+    setSuggestions([]);
     onSelectAddress?.(item);
   };
 
   const handleClear = () => {
+    isTypingRef.current = false;
     setQuery("");
     setSuggestions([]);
     setIsOpen(false);
@@ -92,6 +115,7 @@ export default function AddressAutocompleteSearch({
           type="text"
           value={query}
           onChange={(e) => {
+            isTypingRef.current = true;
             setQuery(e.target.value);
             if (!isOpen && e.target.value.trim().length >= 3) {
               setIsOpen(true);

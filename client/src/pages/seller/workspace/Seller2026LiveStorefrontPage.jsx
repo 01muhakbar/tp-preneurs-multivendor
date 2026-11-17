@@ -783,6 +783,7 @@ export default function Seller2026LiveStorefrontPage() {
 
             <div className="mb-4">
               <AddressAutocompleteSearch
+                value={form.originAddressLine1 || ""}
                 isIndo={isId}
                 placeholder={isId ? "Cari ruko, jalan toko, atau pasar... (Cth: Jl. Somba Opu, Pasar Sentral)" : "Search shop street, market, building..."}
                 onSelectAddress={(item) => {
