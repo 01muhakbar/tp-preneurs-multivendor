@@ -1455,6 +1455,35 @@ export default function CheckoutPage() {
   const provinceRef = useRef(null);
   const streetNameRef = useRef(null);
 
+  const addressesQuery = useQuery({
+    queryKey: ["user", "addresses"],
+    queryFn: () => listAddresses(),
+    enabled: Boolean(user?.id || user || hasCheckoutAuthHint),
+    staleTime: 15_000,
+  });
+
+  const defaultAddressQuery = useQuery({
+    queryKey: ["user", "addresses", "default"],
+    queryFn: () => getDefaultAddress().catch(() => null),
+    enabled: Boolean(user?.id || user || hasCheckoutAuthHint),
+    staleTime: 15_000,
+  });
+
+  const savedAddresses = useMemo(() => {
+    const raw = addressesQuery.data;
+    if (Array.isArray(raw)) return raw;
+    if (Array.isArray(raw?.items)) return raw.items;
+    return [];
+  }, [addressesQuery.data]);
+
+  const defaultAddress = useMemo(() => {
+    return (
+      defaultAddressQuery.data ||
+      savedAddresses.find((a) => Boolean(a?.isPrimary)) ||
+      (savedAddresses.length > 0 ? savedAddresses[0] : null)
+    );
+  }, [defaultAddressQuery.data, savedAddresses]);
+
   const { i18n } = useTranslation();
   const [, setLangSyncCounter] = useState(0);
 
@@ -1587,27 +1616,40 @@ export default function CheckoutPage() {
       })),
     [items]
   );
+  const effectiveCity = shippingForm?.city || defaultAddress?.city || "";
+  const effectiveProvince = shippingForm?.province || defaultAddress?.province || "";
+  const effectiveDistrict = shippingForm?.district || defaultAddress?.district || "";
+  const effectiveLat = shippingForm?.lat ?? shippingForm?.latitude ?? defaultAddress?.lat ?? defaultAddress?.latitude ?? null;
+  const effectiveLng = shippingForm?.lng ?? shippingForm?.longitude ?? defaultAddress?.lng ?? defaultAddress?.longitude ?? null;
+
   const checkoutPreviewSignature = useMemo(
     () =>
       [
         ...summaryItems.map((item) => `${item.lineId}:${item.qty}`),
-        shippingForm?.city || "",
-        shippingForm?.province || "",
-        shippingForm?.district || "",
+        effectiveCity,
+        effectiveProvince,
+        effectiveDistrict,
       ]
         .sort()
         .join("|"),
-    [summaryItems, shippingForm?.city, shippingForm?.province, shippingForm?.district]
+    [summaryItems, effectiveCity, effectiveProvince, effectiveDistrict]
   );
   const checkoutPreviewRequestPayload = useMemo(
     () => ({
-      city: shippingForm?.city || "",
-      province: shippingForm?.province || "",
-      district: shippingForm?.district || "",
-      lat: shippingForm?.lat ?? shippingForm?.latitude ?? null,
-      lng: shippingForm?.lng ?? shippingForm?.longitude ?? null,
+      city: effectiveCity,
+      province: effectiveProvince,
+      district: effectiveDistrict,
+      lat: effectiveLat,
+      lng: effectiveLng,
+      destination: {
+        city: effectiveCity,
+        province: effectiveProvince,
+        district: effectiveDistrict,
+        lat: effectiveLat,
+        lng: effectiveLng,
+      },
     }),
-    [shippingForm?.city, shippingForm?.province, shippingForm?.district, shippingForm?.lat, shippingForm?.latitude, shippingForm?.lng, shippingForm?.longitude]
+    [effectiveCity, effectiveProvince, effectiveDistrict, effectiveLat, effectiveLng]
   );
   const checkoutPreviewQuery = useQuery({
     queryKey: ["checkout-preview-by-store", checkoutPreviewSignature],
@@ -2165,6 +2207,8 @@ export default function CheckoutPage() {
       houseNumber: normalized.houseNumber,
       otherDetails: normalized.otherDetails || "",
       markAs: normalized.markAs,
+      lat: address?.lat ?? address?.latitude ?? prev?.lat ?? null,
+      lng: address?.lng ?? address?.longitude ?? prev?.lng ?? null,
     }));
   };
 
@@ -2485,35 +2529,6 @@ export default function CheckoutPage() {
       return changed ? next : prev;
     });
   }, [checkoutPreviewGroups]);
-
-  const addressesQuery = useQuery({
-    queryKey: ["user", "addresses"],
-    queryFn: () => listAddresses(),
-    enabled: Boolean(user?.id || user || hasCheckoutAuthHint),
-    staleTime: 15_000,
-  });
-
-  const defaultAddressQuery = useQuery({
-    queryKey: ["user", "addresses", "default"],
-    queryFn: () => getDefaultAddress().catch(() => null),
-    enabled: Boolean(user?.id || user || hasCheckoutAuthHint),
-    staleTime: 15_000,
-  });
-
-  const savedAddresses = useMemo(() => {
-    const raw = addressesQuery.data;
-    if (Array.isArray(raw)) return raw;
-    if (Array.isArray(raw?.items)) return raw.items;
-    return [];
-  }, [addressesQuery.data]);
-
-  const defaultAddress = useMemo(() => {
-    return (
-      defaultAddressQuery.data ||
-      savedAddresses.find((a) => Boolean(a?.isPrimary)) ||
-      (savedAddresses.length > 0 ? savedAddresses[0] : null)
-    );
-  }, [defaultAddressQuery.data, savedAddresses]);
 
   useEffect(() => {
     if (!selectedAddressId) {

@@ -400,7 +400,7 @@ export default function CheckoutShippingModal({
   formatMoney = (n) => `Rp ${Number(n || 0).toLocaleString("id-ID")}`,
 }) {
   const origin = useMemo(() => ({
-    city: store?.city || store?.address?.city || "Kota Makassar",
+    city: store?.city || store?.address?.city || "Kabupaten Gowa",
     province: store?.province || store?.address?.province || "Sulawesi Selatan",
     district: store?.district || store?.address?.district || "Somba Opu",
     lat: store?.lat ?? store?.latitude ?? store?.address?.lat ?? store?.address?.latitude,
@@ -420,15 +420,28 @@ export default function CheckoutShippingModal({
   const [activeCategory, setActiveCategory] = useState("all");
 
   const rates = useMemo(() => {
-    if (Array.isArray(availableShippingRates) && availableShippingRates.length > 0) {
-      return availableShippingRates;
-    }
     const engineRates = calculateStandaloneShippingRates({
       origin,
       destination,
       totalWeightGrams,
       items: store?.items || [],
+      distanceKm: destination?.distanceKm,
     });
+
+    if (Array.isArray(availableShippingRates) && availableShippingRates.length > 0) {
+      const hasInstant = availableShippingRates.some((r) => r.category === "instant");
+      if (hasInstant) {
+        return availableShippingRates;
+      }
+      // If server rates only have regular couriers (e.g. preview called before address loaded),
+      // merge the local instant rates if within range (<= 40 km)!
+      const localInstantRates = engineRates.filter((r) => r.category === "instant");
+      if (localInstantRates.length > 0) {
+        return [...localInstantRates, ...availableShippingRates];
+      }
+      return availableShippingRates;
+    }
+
     if (Array.isArray(engineRates) && engineRates.length > 0) {
       return engineRates;
     }

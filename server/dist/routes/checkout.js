@@ -1287,7 +1287,20 @@ const loadCheckoutStoreSnapshots = async (storeIds, transaction) => {
     }
     const stores = await Store.findAll({
         where: { id: { [Op.in]: normalizedIds } },
-        attributes: ["id", "ownerUserId", "activeStorePaymentProfileId", "name", "slug", "status"],
+        attributes: [
+            "id",
+            "ownerUserId",
+            "activeStorePaymentProfileId",
+            "name",
+            "slug",
+            "status",
+            "city",
+            "district",
+            "province",
+            "addressLine1",
+            "addressLine2",
+            "postalCode",
+        ],
         include: [
             {
                 model: StorePaymentProfile,
@@ -1326,6 +1339,9 @@ const serializePreviewGroup = (group) => ({
     storeId: group.storeId,
     storeName: group.storeName,
     storeSlug: group.storeSlug,
+    city: group.store?.city || "Kabupaten Gowa",
+    province: group.store?.province || "Sulawesi Selatan",
+    district: group.store?.district || "Somba Opu",
     subtotalAmount: group.subtotalAmount,
     shippingAmount: group.shippingAmount,
     totalAmount: group.totalAmount,
@@ -1547,9 +1563,11 @@ const prepareCartGroups = (cartItems, options = {}) => {
         const weightCalc = calculateBilledWeight(totalPhysicalWeightGrams, totalVolumetricWeightKg);
         const totalPackageWeightKg = isStoreDigital ? 0 : weightCalc.billedWeightKg;
         const storeOrigin = {
-            city: group.store?.city || null,
-            province: group.store?.province || null,
-            district: group.store?.district || null,
+            city: group.store?.city || "Kabupaten Gowa",
+            province: group.store?.province || "Sulawesi Selatan",
+            district: group.store?.district || "Somba Opu",
+            lat: group.store?.lat ?? group.store?.latitude ?? null,
+            lng: group.store?.lng ?? group.store?.longitude ?? null,
         };
         const zoneInfo = determineShippingZone(storeOrigin, options.destination);
         const availableShippingRates = calculateStandaloneShippingRates({
@@ -2409,6 +2427,8 @@ router.post("/preview", checkoutPreviewRateLimit, async (req, res) => {
             city: parsed.data.city || null,
             province: parsed.data.province || null,
             district: parsed.data.district || null,
+            lat: parsed.data.lat ?? parsed.data.latitude ?? null,
+            lng: parsed.data.lng ?? parsed.data.longitude ?? null,
         };
         const prepared = prepareCartGroups(await attachStoreSnapshotsToProducts(cartItems), { isDuitkuEnabled, destination });
         return res.json({

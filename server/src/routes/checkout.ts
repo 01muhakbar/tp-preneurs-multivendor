@@ -1578,7 +1578,20 @@ const loadCheckoutStoreSnapshots = async (storeIds: number[], transaction?: any)
 
   const stores = await Store.findAll({
     where: { id: { [Op.in]: normalizedIds } } as any,
-    attributes: ["id", "ownerUserId", "activeStorePaymentProfileId", "name", "slug", "status"],
+    attributes: [
+      "id",
+      "ownerUserId",
+      "activeStorePaymentProfileId",
+      "name",
+      "slug",
+      "status",
+      "city",
+      "district",
+      "province",
+      "addressLine1",
+      "addressLine2",
+      "postalCode",
+    ],
     include: [
       {
         model: StorePaymentProfile,
@@ -1628,6 +1641,9 @@ const serializePreviewGroup = (group: any) => ({
   storeId: group.storeId,
   storeName: group.storeName,
   storeSlug: group.storeSlug,
+  city: group.store?.city || "Kabupaten Gowa",
+  province: group.store?.province || "Sulawesi Selatan",
+  district: (group.store as any)?.district || "Somba Opu",
   subtotalAmount: group.subtotalAmount,
   shippingAmount: group.shippingAmount,
   totalAmount: group.totalAmount,
@@ -1904,9 +1920,11 @@ const prepareCartGroups = (
     const totalPackageWeightKg = isStoreDigital ? 0 : weightCalc.billedWeightKg;
 
     const storeOrigin = {
-      city: group.store?.city || null,
-      province: group.store?.province || null,
-      district: (group.store as any)?.district || null,
+      city: group.store?.city || "Kabupaten Gowa",
+      province: group.store?.province || "Sulawesi Selatan",
+      district: (group.store as any)?.district || "Somba Opu",
+      lat: (group.store as any)?.lat ?? (group.store as any)?.latitude ?? null,
+      lng: (group.store as any)?.lng ?? (group.store as any)?.longitude ?? null,
     };
     const zoneInfo = determineShippingZone(storeOrigin, options.destination);
     const availableShippingRates = calculateStandaloneShippingRates({
@@ -2836,6 +2854,8 @@ router.post("/preview", checkoutPreviewRateLimit, async (req, res) => {
       city: parsed.data.city || null,
       province: parsed.data.province || null,
       district: parsed.data.district || null,
+      lat: (parsed.data as any).lat ?? (parsed.data as any).latitude ?? null,
+      lng: (parsed.data as any).lng ?? (parsed.data as any).longitude ?? null,
     };
     const prepared = prepareCartGroups(
       await attachStoreSnapshotsToProducts(cartItems),

@@ -682,7 +682,9 @@ export const calculateHaversineRoadDistance = (
   circuityFactor = 1.30
 ): number => {
   if (!lat1 || !lon1 || !lat2 || !lon2) return 0;
-  if (lat1 === lat2 && lon1 === lon2) return 0;
+  // Identical centroids mean same district (intra-kecamatan).
+  // Return minimum intra-district delivery distance (2.5 km, bracket 0-5 km)
+  if (lat1 === lat2 && lon1 === lon2) return 2.5;
 
   const toRad = (angle: number) => (angle * Math.PI) / 180;
   const R = 6371; // Earth radius in km
@@ -698,7 +700,7 @@ export const calculateHaversineRoadDistance = (
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   const airDistance = R * c;
 
-  const roadDistance = airDistance * circuityFactor;
+  const roadDistance = Math.max(1.5, airDistance * circuityFactor);
   return Math.round(roadDistance * 10) / 10;
 };
 
