@@ -751,7 +751,7 @@ export const getInstantShippingRates = (params) => {
  * Calculates standalone shipping rates based on billed weight, zone, and product type
  */
 export const calculateStandaloneShippingRates = (params) => {
-    const { billedWeightKg, zone = "ZONA_1", zoneMultiplier = 1.0, cargoMultiplier = 1.0, isDigital = false, origin, destination, maxDimensions, } = params;
+    const { billedWeightKg, zone = "ZONA_1", zoneMultiplier = 1.0, cargoMultiplier = 1.0, isDigital = false, isService = false, origin, destination, maxDimensions, } = params;
     if (isDigital) {
         return [
             {
@@ -769,6 +769,27 @@ export const calculateStandaloneShippingRates = (params) => {
                 minWeight: 0,
                 estimate: "Langsung Aktif",
                 estimateEn: "Instant Access",
+                zone: "ZONA_1",
+            },
+        ];
+    }
+    if (isService) {
+        return [
+            {
+                courierCode: "SERVICE",
+                courierName: "Layanan & Jasa",
+                serviceCode: "DIRECT",
+                serviceName: "Koordinasi Langsung via WhatsApp",
+                category: "regular",
+                categoryLabel: "Layanan",
+                categoryLabelEn: "Service",
+                shippingFee: 0,
+                ratePerKg: 0,
+                weightKg: 0,
+                chargedWeight: 0,
+                minWeight: 0,
+                estimate: "Sesuai Kesepakatan",
+                estimateEn: "As Agreed",
                 zone: "ZONA_1",
             },
         ];

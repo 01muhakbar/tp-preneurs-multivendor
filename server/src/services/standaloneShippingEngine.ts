@@ -880,6 +880,7 @@ export interface CalculateShippingRatesParams {
   zoneMultiplier?: number;
   cargoMultiplier?: number;
   isDigital?: boolean;
+  isService?: boolean;
   distanceKm?: number | null;
   origin?: {
     city?: string | null;
@@ -929,6 +930,7 @@ export const calculateStandaloneShippingRates = (
     zoneMultiplier = 1.0,
     cargoMultiplier = 1.0,
     isDigital = false,
+    isService = false,
     origin,
     destination,
     maxDimensions,
@@ -951,6 +953,28 @@ export const calculateStandaloneShippingRates = (
         minWeight: 0,
         estimate: "Langsung Aktif",
         estimateEn: "Instant Access",
+        zone: "ZONA_1",
+      },
+    ];
+  }
+
+  if (isService) {
+    return [
+      {
+        courierCode: "SERVICE",
+        courierName: "Layanan & Jasa",
+        serviceCode: "DIRECT",
+        serviceName: "Koordinasi Langsung via WhatsApp",
+        category: "regular",
+        categoryLabel: "Layanan",
+        categoryLabelEn: "Service",
+        shippingFee: 0,
+        ratePerKg: 0,
+        weightKg: 0,
+        chargedWeight: 0,
+        minWeight: 0,
+        estimate: "Sesuai Kesepakatan",
+        estimateEn: "As Agreed",
         zone: "ZONA_1",
       },
     ];

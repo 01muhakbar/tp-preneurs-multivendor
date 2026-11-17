@@ -599,6 +599,11 @@ export default function CheckoutShippingModal({
                   (Fisik: {totalWeightGrams} g)
                 </span>
               ) : null}
+              {(store?.hasDigitalItems || store?.hasServiceItems) && (
+                <span className="text-emerald-400 text-[11px] font-medium ml-1.5">
+                  · {isIndo ? "Hanya produk fisik toko" : "Physical goods only"}
+                </span>
+              )}
             </div>
 
             {/* Tolerance badge */}

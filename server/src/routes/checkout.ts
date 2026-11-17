@@ -212,7 +212,7 @@ const createMultiStoreSchema = z.object({
         courierCode: z.string().trim().min(1).max(64),
         courierService: z.string().trim().min(1).max(64),
         shippingFee: z.number().nonnegative().optional(),
-        totalWeight: z.number().positive().optional(),
+        totalWeight: z.number().nonnegative().optional(),
       })
     )
     .max(20)
@@ -1658,6 +1658,12 @@ const serializePreviewGroup = (group: any) => ({
   courierService: group.courierService || "REG",
   totalPackageWeightKg: group.totalPackageWeightKg ?? 1,
   totalPackageWeightGrams: group.totalPackageWeightGrams ?? 1000,
+  hasPhysicalItems: Boolean(group.hasPhysicalItems),
+  hasDigitalItems: Boolean(group.hasDigitalItems),
+  hasServiceItems: Boolean(group.hasServiceItems),
+  isStoreNonPhysical: Boolean(group.isStoreNonPhysical),
+  isStoreService: Boolean(group.isStoreService),
+  isStoreDigital: Boolean(group.isStoreDigital),
   availableShippingRates: group.availableShippingRates || [],
   defaultShippingOption: group.defaultShippingOption || null,
   paymentAvailable: group.paymentAvailable,
@@ -1687,6 +1693,15 @@ const serializePreviewGroup = (group: any) => ({
     weight: item.weight ?? 1000,
     lineWeight: item.lineWeight ?? ((item.weight ?? 1000) * item.qty),
     productType: item.productType || "physical",
+    isPhysical: item.isPhysical ?? (item.productType === "physical"),
+    isDigital: item.isDigital ?? (item.productType === "digital"),
+    isService: item.isService ?? (item.productType === "service"),
+    isWeightless: item.isWeightless ?? (item.productType === "digital" || item.productType === "service"),
+    serviceDeliveryType: item.serviceDeliveryType,
+    serviceDuration: item.serviceDuration,
+    serviceInstructions: item.serviceInstructions,
+    serviceContactWhatsapp: item.serviceContactWhatsapp,
+    digitalInstructions: item.digitalInstructions,
     variantKey: item.variantKey,
     variantLabel: item.variantLabel,
     variantSelections: item.variantSelections ?? [],
@@ -1859,11 +1874,14 @@ const prepareCartGroups = (
 
     const group = groupsMap.get(storeId);
     group.subtotalAmount += lineTotal;
-    const itemProductType = getProductTypeMetadata(getAttr(product, "seo")).productType;
+    const itemProductMeta = getProductTypeMetadata(getAttr(product, "seo"));
+    const itemProductType = itemProductMeta.productType;
     const isDigitalItem = itemProductType === "digital";
+    const isServiceItem = itemProductType === "service";
+    const isWeightless = isDigitalItem || isServiceItem;
     const rawWeight = Math.max(0, toNumber(getAttr(product, "weight"), 0));
-    const itemWeight = isDigitalItem ? 0 : (rawWeight > 0 ? rawWeight : 1000);
-    const lineWeight = isDigitalItem ? 0 : itemWeight * quantity;
+    const itemWeight = isWeightless ? 0 : (rawWeight > 0 ? rawWeight : 1000);
+    const lineWeight = isWeightless ? 0 : itemWeight * quantity;
 
     group.items.push({
       product,
@@ -1872,6 +1890,15 @@ const prepareCartGroups = (
       productId,
       productName: String(getAttr(product, "name") || `Product #${productId}`),
       productType: itemProductType,
+      isPhysical: itemProductType === "physical",
+      isDigital: isDigitalItem,
+      isService: isServiceItem,
+      isWeightless,
+      serviceDeliveryType: itemProductMeta.serviceDeliveryType,
+      serviceDuration: itemProductMeta.serviceDuration,
+      serviceInstructions: itemProductMeta.serviceInstructions,
+      serviceContactWhatsapp: itemProductMeta.serviceContactWhatsapp,
+      digitalInstructions: itemProductMeta.digitalInstructions,
       slug: String(getAttr(product, "slug") || ""),
       sku: lineSnapshot.sku,
       barcode: lineSnapshot.barcode,
@@ -1910,13 +1937,19 @@ const prepareCartGroups = (
   }
 
   const groups = Array.from(groupsMap.values()).map((group) => {
-    const isStoreDigital =
-      group.items.length > 0 && group.items.every((it: any) => it.productType === "digital");
+    const hasPhysicalItems = group.items.some((it: any) => it.productType === "physical");
+    const hasDigitalItems = group.items.some((it: any) => it.productType === "digital");
+    const hasServiceItems = group.items.some((it: any) => it.productType === "service");
+    const isStoreService = group.items.length > 0 && group.items.every((it: any) => it.productType === "service");
+    const isStoreDigital = group.items.length > 0 && group.items.every((it: any) => it.productType === "digital");
+    const isStoreNonPhysical = group.items.length > 0 && !hasPhysicalItems;
+
     const totalPhysicalWeightGrams = group.items.reduce(
       (sum: number, it: any) => sum + toNumber(it.lineWeight, 0),
       0
     );
     const totalVolumetricWeightKg = group.items.reduce((sum: number, it: any) => {
+      if (it.productType !== "physical") return sum;
       const p = it.product;
       const l = toNumber(p?.length ?? p?.get?.("length"), 0);
       const w = toNumber(p?.width ?? p?.get?.("width"), 0);
@@ -1925,7 +1958,7 @@ const prepareCartGroups = (
     }, 0);
 
     const weightCalc = calculateBilledWeight(totalPhysicalWeightGrams, totalVolumetricWeightKg);
-    const totalPackageWeightKg = isStoreDigital ? 0 : weightCalc.billedWeightKg;
+    const totalPackageWeightKg = isStoreNonPhysical ? 0 : weightCalc.billedWeightKg;
 
     const storeRaw = group.store;
     const rawSetup = (storeRaw as any)?.shippingSetup ?? (storeRaw as any)?.get?.("shippingSetup") ?? {};
@@ -1968,6 +2001,7 @@ const prepareCartGroups = (
       zoneMultiplier,
       cargoMultiplier: zoneInfo.cargoMultiplier,
       isDigital: isStoreDigital,
+      isService: isStoreService,
       origin: storeOrigin,
       destination: options.destination,
       allowedCouriers: shippingSetup?.enabledCouriers,
@@ -1982,14 +2016,20 @@ const prepareCartGroups = (
       maxInstantDistanceKm: gov?.grabPricing?.maxDistanceKm,
     });
     const defaultShippingOption = availableShippingRates[0] || null;
-    const courierCode = defaultShippingOption?.courierCode || "JNE";
-    const courierService = defaultShippingOption?.serviceCode || "REG";
-    const shippingAmount = defaultShippingOption?.shippingFee ?? (isStoreDigital ? 0 : 10000);
+    const courierCode = defaultShippingOption?.courierCode || (isStoreService ? "SERVICE" : isStoreDigital ? "DIGITAL" : "JNE");
+    const courierService = defaultShippingOption?.serviceCode || (isStoreService ? "DIRECT" : isStoreDigital ? "INSTANT" : "REG");
+    const shippingAmount = defaultShippingOption?.shippingFee ?? (isStoreNonPhysical ? 0 : 10000);
 
     return {
       ...group,
       storeOrigin,
       shippingSetup,
+      hasPhysicalItems,
+      hasDigitalItems,
+      hasServiceItems,
+      isStoreNonPhysical,
+      isStoreService,
+      isStoreDigital,
       totalPackageWeightGrams: totalPhysicalWeightGrams,
       totalPackageWeightKg,
       weightCalculation: weightCalc,
@@ -3037,24 +3077,13 @@ router.post("/create-multi-store", checkoutSubmitRateLimit, async (req, res) => 
     let shippingDetails = normalizeShippingDetails(parsed.data.shippingDetails);
     if (useDefaultShipping) {
       const defaultAddress = await getDefaultAddressByUser(authUser.id);
-      if (!defaultAddress) {
-        return res.status(400).json({
-          success: false,
-          message: "Default shipping address not set.",
-        });
+      if (defaultAddress) {
+        shippingDetails = normalizeShippingDetails(defaultAddress);
       }
-      shippingDetails = normalizeShippingDetails(defaultAddress);
-    }
-    const missingShippingField = getMissingShippingField(shippingDetails);
-    if (missingShippingField) {
-      return res.status(400).json({
-        success: false,
-        message: `Invalid shipping details: ${missingShippingField}`,
-      });
     }
 
     const customer = parsed.data.customer ?? {};
-    const resolvedCustomer = {
+    let resolvedCustomer = {
       name: shippingDetails?.fullName || String(customer.name || "").trim(),
       phone: shippingDetails?.phoneNumber || String(customer.phone || "").trim(),
       address: shippingDetails
@@ -3062,16 +3091,6 @@ router.post("/create-multi-store", checkoutSubmitRateLimit, async (req, res) => 
         : String(customer.address || "").trim(),
       notes: customer.notes ? String(customer.notes).trim() : null,
     };
-    if (
-      !resolvedCustomer.name.trim() ||
-      !resolvedCustomer.phone.trim() ||
-      !resolvedCustomer.address.trim()
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Customer shipping information is incomplete.",
-      });
-    }
 
     const tx = await sequelize.transaction();
     try {
@@ -3104,6 +3123,63 @@ router.post("/create-multi-store", checkoutSubmitRateLimit, async (req, res) => 
           message: "Cart is empty.",
           code: "CART_EMPTY",
         });
+      }
+
+      const needsPhysicalShipping = cartItems.some((item: any) => {
+        const itemType = getProductTypeMetadata(getAttr(item, "seo")).productType;
+        return itemType === "physical";
+      });
+
+      if (needsPhysicalShipping) {
+        if (useDefaultShipping && !shippingDetails) {
+          await tx.rollback();
+          return res.status(400).json({
+            success: false,
+            message: "Default shipping address not set.",
+          });
+        }
+        const missingShippingField = getMissingShippingField(shippingDetails);
+        if (missingShippingField) {
+          await tx.rollback();
+          return res.status(400).json({
+            success: false,
+            message: `Invalid shipping details: ${missingShippingField}`,
+          });
+        }
+        if (
+          !resolvedCustomer.name.trim() ||
+          !resolvedCustomer.phone.trim() ||
+          !resolvedCustomer.address.trim()
+        ) {
+          await tx.rollback();
+          return res.status(400).json({
+            success: false,
+            message: "Customer shipping information is incomplete.",
+          });
+        }
+      } else {
+        // Non-physical items only: if no physical address is provided, populate virtual fulfillment details
+        const virtualName = shippingDetails?.fullName || customer.name || "Customer";
+        const virtualPhone = shippingDetails?.phoneNumber || customer.phone || "08000000000";
+        if (!shippingDetails || getMissingShippingField(shippingDetails)) {
+          shippingDetails = {
+            fullName: virtualName,
+            phoneNumber: virtualPhone,
+            streetName: shippingDetails?.streetName || "Digital / Online Fulfillment",
+            houseNumber: shippingDetails?.houseNumber || "0",
+            district: shippingDetails?.district || "Online",
+            city: shippingDetails?.city || "Online",
+            province: shippingDetails?.province || "Indonesia",
+            postalCode: shippingDetails?.postalCode || "00000",
+            country: "Indonesia",
+          } as any;
+          resolvedCustomer = {
+            name: virtualName,
+            phone: virtualPhone,
+            address: "Digital / Online Fulfillment",
+            notes: customer.notes ? String(customer.notes).trim() : null,
+          };
+        }
       }
 
       const requestedProductIds = Array.from(

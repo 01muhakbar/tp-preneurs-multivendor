@@ -4,14 +4,17 @@ import { useTranslation } from "react-i18next";
 import {
   AlertTriangle,
   ArrowLeft,
+  Briefcase,
   Check,
   ChevronRight,
   CreditCard,
+  Download,
   Info,
   Loader2,
   LockKeyhole,
   MapPin,
   MessageSquare,
+  Package,
   ShieldCheck,
   ShoppingBag,
   Store,
@@ -411,6 +414,11 @@ export default function Checkout2026View({
                   <h2 className="text-xs sm:text-sm font-bold text-slate-200 uppercase tracking-wide">
                     {T.deliveryAddress}
                   </h2>
+                  {viewModel?.needsShippingAddress === false && (
+                    <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      {isIndo ? "⚡ Non-Fisik · Alamat Opsional" : "⚡ Digital/Service · Address Optional"}
+                    </span>
+                  )}
                 </div>
 
                 {activeAddress ? (
@@ -447,6 +455,12 @@ export default function Checkout2026View({
                       {formattedAddressText}
                     </p>
                   </div>
+                ) : viewModel?.needsShippingAddress === false ? (
+                  <p className="text-xs sm:text-sm text-slate-400 font-medium mt-1">
+                    {isIndo
+                      ? "Pesanan Anda berisi produk non-fisik (Digital/Layanan). Anda dapat melanjutkan checkout tanpa memilih alamat fisik."
+                      : "Your order contains non-physical products (Digital/Service). Physical delivery address is optional."}
+                  </p>
                 ) : (
                   <p className="text-xs sm:text-sm text-[#fe6f05] font-semibold mt-1">
                     {T.noAddressChosen}
@@ -549,6 +563,31 @@ export default function Checkout2026View({
                       <div className="co26-shopee-product-info">
                         <h3 className="co26-shopee-product-title">{item?.name || "Product"}</h3>
 
+                        {/* Product Type Badge */}
+                        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                          {item?.productType === "service" ? (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                              <Briefcase size={10} />
+                              <span>{isIndo ? "Layanan / Jasa" : "Service"}</span>
+                              {item.serviceDeliveryType && (
+                                <span className="opacity-75 font-normal">
+                                  ({item.serviceDeliveryType === "onsite" ? "On-Site" : "Online"})
+                                </span>
+                              )}
+                            </span>
+                          ) : item?.productType === "digital" ? (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                              <Download size={10} />
+                              <span>{isIndo ? "Produk Digital" : "Digital"}</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-800 text-slate-300 border border-slate-700">
+                              <Package size={10} />
+                              <span>{isIndo ? "Fisik" : "Physical"}</span>
+                            </span>
+                          )}
+                        </div>
+
                         {Array.isArray(item?.variantSelections) && item.variantSelections.length > 0 && (
                           <div className="co26-shopee-variant-pill">
                             {item.variantSelections
@@ -624,65 +663,157 @@ export default function Checkout2026View({
                   />
                 </div>
 
-                {/* Opsi Pengiriman (Shipping Options) */}
-                <div className="co26-shopee-shipping-section">
-                  <div className="flex items-center justify-between pb-2 border-b border-slate-700/50">
-                    <span className="text-xs font-bold text-slate-300">
-                      {T.shippingOption}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setShippingModalStore(group)}
-                      className="text-xs font-bold text-[#fe6f05] hover:underline flex items-center gap-1 transition"
-                    >
-                      <span>{T.change}</span>
-                      <ChevronRight size={14} />
-                    </button>
-                  </div>
+                {/* Opsi Pengiriman Adaptif per Toko */}
+                {group.isStoreDigital ? (
+                  <div className="co26-shopee-shipping-section">
+                    <div className="flex items-center justify-between pb-2 border-b border-slate-700/50">
+                      <span className="text-xs font-bold text-slate-300">
+                        {isIndo ? "Akses Produk Digital" : "Digital Asset Delivery"}
+                      </span>
+                      <span className="text-xs font-bold text-emerald-400">
+                        {isIndo ? "⚡ Akses Instan" : "⚡ Instant"}
+                      </span>
+                    </div>
 
-                  <div
-                    className="co26-shopee-shipping-box cursor-pointer hover:border-[#fe6f05]/50 transition"
-                    onClick={() => setShippingModalStore(group)}
-                    role="button"
-                    tabIndex={0}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-start gap-2.5 min-w-0">
-                        <Truck className="w-4 h-4 text-[#fe6f05] shrink-0 mt-0.5" />
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#034c85]/40 text-blue-200 border border-[#034c85]">
-                              {currentShippingSelection?.courierName || currentShippingSelection?.courierCode || "JNE"}
-                            </span>
-                            <strong className="text-xs sm:text-sm text-slate-100 font-bold truncate">
-                              {currentShippingSelection?.serviceName || currentShippingSelection?.serviceCode || "Reguler (REG)"}
+                    <div className="co26-shopee-shipping-box bg-slate-800/40 border-slate-700/60">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-start gap-2.5 min-w-0">
+                          <Download className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+                          <div className="min-w-0">
+                            <strong className="text-xs sm:text-sm text-cyan-300 font-bold block">
+                              {isIndo ? "Akses Berkas Digital Langsung" : "Direct Digital Access"}
                             </strong>
-                          </div>
-                          <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-400 flex-wrap">
-                            <span>
+                            <p className="text-[11px] text-slate-400 mt-0.5">
                               {isIndo
-                                ? (currentShippingSelection?.estimate ? `Estimasi: ${currentShippingSelection.estimate}` : T.shippingEstimate)
-                                : (currentShippingSelection?.estimateEn ? `Est: ${currentShippingSelection.estimateEn}` : T.shippingEstimate)}
-                            </span>
-                            <span>•</span>
-                            <span className="text-slate-300 font-medium">
-                              ⚖ {packageWeight} kg
-                            </span>
+                                ? "Tautan download dan kunci lisensi tersedia otomatis setelah pembayaran lunas."
+                                : "Download link and access instructions will be available immediately after payment."}
+                            </p>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="text-right shrink-0">
-                        <span className="text-xs sm:text-sm font-bold text-slate-100 block">
-                          {groupShippingFee > 0 ? formatMoney(groupShippingFee) : T.freeShipping}
-                        </span>
-                        <span className="text-[10px] text-slate-400 block">
-                          {T.shippingAuto}
-                        </span>
+                        <div className="text-right shrink-0">
+                          <span className="text-xs sm:text-sm font-bold text-emerald-400 block">
+                            {isIndo ? "Bebas Ongkir" : "Free"}
+                          </span>
+                          <span className="text-[10px] text-slate-400 block">
+                            Rp 0
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
+                ) : group.isStoreService ? (
+                  <div className="co26-shopee-shipping-section">
+                    <div className="flex items-center justify-between pb-2 border-b border-slate-700/50">
+                      <span className="text-xs font-bold text-slate-300">
+                        {isIndo ? "Metode Pemenuhan Layanan" : "Service Fulfillment"}
+                      </span>
+                      <span className="text-xs font-bold text-amber-400">
+                        {isIndo ? "🛠️ Tanpa Kurir Fisik" : "🛠️ No Courier Needed"}
+                      </span>
+                    </div>
+
+                    <div className="co26-shopee-shipping-box bg-slate-800/40 border-slate-700/60">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-start gap-2.5 min-w-0">
+                          <Briefcase className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                          <div className="min-w-0">
+                            <strong className="text-xs sm:text-sm text-amber-300 font-bold block">
+                              {isIndo ? "Koordinasi Langsung via WhatsApp Toko" : "Direct WhatsApp Coordination"}
+                            </strong>
+                            <p className="text-[11px] text-slate-400 mt-0.5">
+                              {isIndo
+                                ? "Penyedia jasa akan mengonfirmasi jadwal & instruksi brief melalui chat setelah pembayaran lunas."
+                                : "Service provider will coordinate schedule and brief instructions via chat after payment."}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="text-right shrink-0">
+                          <span className="text-xs sm:text-sm font-bold text-emerald-400 block">
+                            {isIndo ? "Bebas Ongkir" : "Free"}
+                          </span>
+                          <span className="text-[10px] text-slate-400 block">
+                            Rp 0
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="co26-shopee-shipping-section">
+                    <div className="flex items-center justify-between pb-2 border-b border-slate-700/50">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-slate-300">
+                          {T.shippingOption}
+                        </span>
+                        {(group.hasDigitalItems || group.hasServiceItems) && (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-500/15 text-blue-300 border border-blue-500/30">
+                            {isIndo ? "Khusus Barang Fisik" : "Physical Goods Only"}
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShippingModalStore(group)}
+                        className="text-xs font-bold text-[#fe6f05] hover:underline flex items-center gap-1 transition"
+                      >
+                        <span>{T.change}</span>
+                        <ChevronRight size={14} />
+                      </button>
+                    </div>
+
+                    <div
+                      className="co26-shopee-shipping-box cursor-pointer hover:border-[#fe6f05]/50 transition"
+                      onClick={() => setShippingModalStore(group)}
+                      role="button"
+                      tabIndex={0}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-start gap-2.5 min-w-0">
+                          <Truck className="w-4 h-4 text-[#fe6f05] shrink-0 mt-0.5" />
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#034c85]/40 text-blue-200 border border-[#034c85]">
+                                {currentShippingSelection?.courierName || currentShippingSelection?.courierCode || "JNE"}
+                              </span>
+                              <strong className="text-xs sm:text-sm text-slate-100 font-bold truncate">
+                                {currentShippingSelection?.serviceName || currentShippingSelection?.serviceCode || "Reguler (REG)"}
+                              </strong>
+                            </div>
+                            <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-400 flex-wrap">
+                              <span>
+                                {isIndo
+                                  ? (currentShippingSelection?.estimate ? `Estimasi: ${currentShippingSelection.estimate}` : T.shippingEstimate)
+                                  : (currentShippingSelection?.estimateEn ? `Est: ${currentShippingSelection.estimateEn}` : T.shippingEstimate)}
+                              </span>
+                              <span>•</span>
+                              <span className="text-slate-300 font-medium">
+                                ⚖ {packageWeight} kg
+                              </span>
+                            </div>
+                            {(group.hasDigitalItems || group.hasServiceItems) && (
+                              <p className="text-[10px] text-blue-300/80 mt-1">
+                                {isIndo
+                                  ? "📦 Berat paket dihitung hanya dari produk fisik toko ini. Produk digital & jasa bebas ongkir."
+                                  : "📦 Package weight only calculates physical products. Digital & services are freight-free."}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="text-right shrink-0">
+                          <span className="text-xs sm:text-sm font-bold text-slate-100 block">
+                            {groupShippingFee > 0 ? formatMoney(groupShippingFee) : T.freeShipping}
+                          </span>
+                          <span className="text-[10px] text-slate-400 block">
+                            {T.shippingAuto}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Store Subtotal Footer */}
                 <div className="co26-shopee-store-footer">

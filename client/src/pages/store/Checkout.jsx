@@ -3199,8 +3199,8 @@ export default function CheckoutPage() {
             isPreviewBlockingSubmission ||
             couponBlocksSubmission ||
             !hasPaymentSelected ||
-            !hasAddressSelected,
-          submitMessage: !hasAddressSelected
+            (checkout2026ViewModel.needsShippingAddress && !hasAddressSelected),
+          submitMessage: (checkout2026ViewModel.needsShippingAddress && !hasAddressSelected)
             ? (isIndo ? "Pilih alamat pengiriman terlebih dahulu." : "Select a shipping address first.")
             : !hasPaymentSelected
               ? (isIndo ? "Pilih salah satu saluran pembayaran." : "Choose a payment channel.")
