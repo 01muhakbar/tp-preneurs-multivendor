@@ -808,21 +808,36 @@ export default function Checkout2026View({
             )}
           </div>
 
-          <button
-            type="button"
-            className="co26-shopee-btn-submit"
-            onClick={onSubmit}
-            disabled={busy || status?.submitDisabled}
-          >
-            {busy ? (
-              <div className="flex items-center gap-2">
-                <Loader2 className="animate-spin" size={16} />
-                <span>{T.placingOrder}</span>
-              </div>
-            ) : (
-              <span>{T.placeOrder}</span>
+          <div className="flex flex-col items-end">
+            <button
+              type="button"
+              className="co26-shopee-btn-submit"
+              onClick={onSubmit}
+              disabled={busy || status?.submitDisabled}
+              title={
+                status?.submitMessage ||
+                (status?.submitDisabled
+                  ? isIndo
+                    ? "Lengkapi saluran pembayaran dan alamat pengiriman untuk memesan"
+                    : "Complete payment channel and delivery address to place order"
+                  : "")
+              }
+            >
+              {busy ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="animate-spin" size={16} />
+                  <span>{T.placingOrder}</span>
+                </div>
+              ) : (
+                <span>{T.placeOrder}</span>
+              )}
+            </button>
+            {status?.submitDisabled && status?.submitMessage && !busy && (
+              <span className="text-[11px] text-amber-400 font-medium mt-1 max-w-[220px] text-right line-clamp-1">
+                {status.submitMessage}
+              </span>
             )}
-          </button>
+          </div>
         </div>
       </div>
 

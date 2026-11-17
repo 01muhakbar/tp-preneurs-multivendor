@@ -1914,6 +1914,16 @@ export default function CheckoutPage() {
     paymentOptionId !== "duitku" ||
     DUITKU_PAYMENT_METHOD_OPTIONS.some((option) => option.code === duitkuPaymentMethod);
 
+  const hasPaymentSelected = Boolean(
+    paymentOptionId &&
+    (paymentOptionId !== "duitku" || (duitkuPaymentMethod && DUITKU_PAYMENT_METHOD_OPTIONS.some((option) => option.code === duitkuPaymentMethod)))
+  );
+
+  const hasAddressSelected = Boolean(
+    selectedAddressId ||
+    (shippingForm?.streetName && shippingForm?.province && shippingForm?.city)
+  );
+
   const handleSelectDuitkuPaymentMethod = (code) => {
     setDuitkuPaymentMethod(code);
     if (error && (error.includes("saluran pembayaran") || error.includes("payment channel"))) {
@@ -2631,109 +2641,111 @@ export default function CheckoutPage() {
       houseNumber: "",
     });
 
+    const effectiveFirstName = String(firstName || "").trim();
+    const effectiveLastName = String(lastName || "").trim() || effectiveFirstName || "-";
+    const effectiveHouseNumber = String(shippingForm?.houseNumber || "").trim() || "-";
+
     const requiredShippingFields = {
       province: String(shippingForm?.province || "").trim(),
       city: String(shippingForm?.city || "").trim(),
       district: String(shippingForm?.district || "").trim(),
       postalCode: String(shippingForm?.postalCode || "").trim(),
       streetName: String(shippingForm?.streetName || "").trim(),
-      houseNumber: String(shippingForm?.houseNumber || "").trim(),
+      houseNumber: effectiveHouseNumber,
     };
 
+    if (!selectedAddressId && (!requiredShippingFields.province || !requiredShippingFields.streetName)) {
+      const msg = isIndo
+        ? "Silakan pilih atau tambahkan alamat pengiriman terlebih dahulu."
+        : "Please select or add a delivery address first.";
+      setError(msg);
+      toast.error(msg);
+      const addrBox = document.querySelector(".co26-shopee-address-box");
+      if (addrBox) {
+        addrBox.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+      return;
+    }
+
     if (
-      !String(firstName || "").trim() ||
-      !String(lastName || "").trim() ||
+      !effectiveFirstName ||
       !phoneValue ||
       !requiredShippingFields.province ||
       !requiredShippingFields.city ||
       !requiredShippingFields.district ||
       !requiredShippingFields.postalCode ||
-      !requiredShippingFields.streetName ||
-      !requiredShippingFields.houseNumber
+      !requiredShippingFields.streetName
     ) {
-      setError("Please complete required checkout fields.");
+      const msg = isIndo
+        ? "Silakan lengkapi alamat pengiriman Anda terlebih dahulu."
+        : "Please complete your delivery address first.";
+      setError(msg);
+      toast.error(msg);
       const nextErrors = {
-        firstName: firstName.trim() ? "" : "First name is required.",
-        lastName: lastName.trim() ? "" : "Last name is required.",
-        phone: phoneValue ? "" : "Phone is required.",
-        province: requiredShippingFields.province ? "" : "Province is required.",
-        city: requiredShippingFields.city ? "" : "City/Regency is required.",
-        district: requiredShippingFields.district ? "" : "Subdistrict is required.",
-        postalCode: requiredShippingFields.postalCode ? "" : "Postal code is required.",
-        streetName: requiredShippingFields.streetName ? "" : "Street name is required.",
-        houseNumber: requiredShippingFields.houseNumber ? "" : "House number is required.",
+        firstName: effectiveFirstName ? "" : (isIndo ? "Nama harus diisi." : "First name is required."),
+        lastName: "",
+        phone: phoneValue ? "" : (isIndo ? "Nomor telepon harus diisi." : "Phone is required."),
+        province: requiredShippingFields.province ? "" : (isIndo ? "Provinsi harus diisi." : "Province is required."),
+        city: requiredShippingFields.city ? "" : (isIndo ? "Kota/Kabupaten harus diisi." : "City/Regency is required."),
+        district: requiredShippingFields.district ? "" : (isIndo ? "Kecamatan harus diisi." : "Subdistrict is required."),
+        postalCode: requiredShippingFields.postalCode ? "" : (isIndo ? "Kode pos harus diisi." : "Postal code is required."),
+        streetName: requiredShippingFields.streetName ? "" : (isIndo ? "Nama jalan harus diisi." : "Street name is required."),
+        houseNumber: "",
       };
       setFieldErrors(nextErrors);
-      if (nextErrors.firstName) {
-        focusField(firstNameRef);
-      } else if (nextErrors.phone) {
-        focusField(phoneRef);
-      } else if (nextErrors.province) {
-        focusField(provinceRef);
-      } else if (nextErrors.streetName) {
-        focusField(streetNameRef);
+      const addrBox = document.querySelector(".co26-shopee-address-box");
+      if (addrBox) {
+        addrBox.scrollIntoView({ behavior: "smooth", block: "center" });
       }
       return;
     }
 
     if (!/^\d{5}$/.test(requiredShippingFields.postalCode)) {
-      setError("Postal code must be 5 digits.");
+      const msg = isIndo ? "Kode pos harus 5 digit angka." : "Postal code must be 5 digits.";
+      setError(msg);
+      toast.error(msg);
       setFieldErrors((prev) => ({
         ...prev,
-        postalCode: "Postal code must be 5 digits.",
+        postalCode: msg,
       }));
-      focusField(streetNameRef);
+      const addrBox = document.querySelector(".co26-shopee-address-box");
+      if (addrBox) {
+        addrBox.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
       return;
     }
 
-    const parsedCustomer = checkoutCustomerSchema.safeParse(payloadDraft.customer);
+    const customerAddressString =
+      shippingAddress ||
+      `${requiredShippingFields.streetName}${effectiveHouseNumber && effectiveHouseNumber !== "-" ? ` No. ${effectiveHouseNumber}` : ""}, ${requiredShippingFields.district}, ${requiredShippingFields.city}, ${requiredShippingFields.province} ${requiredShippingFields.postalCode}`;
+
+    const parsedCustomer = checkoutCustomerSchema.safeParse({
+      name: buildFullName(effectiveFirstName, effectiveLastName),
+      phone: phoneValue,
+      address: customerAddressString,
+    });
     if (!parsedCustomer.success) {
-      const nextErrors = {
-        firstName: "",
-        lastName: "",
-        phone: "",
-        province: "",
-        city: "",
-        district: "",
-        postalCode: "",
-        streetName: "",
-        houseNumber: "",
-      };
-      for (const issue of parsedCustomer.error.issues) {
-        const path = issue.path.join(".");
-        if (path === "name") {
-          nextErrors.firstName = issue.message;
-        }
-        if (path === "phone") {
-          nextErrors.phone = issue.message;
-        }
-        if (path === "address") {
-          nextErrors.streetName = issue.message;
-        }
-      }
-      setFieldErrors(nextErrors);
-      setError("Please check highlighted fields.");
-      if (nextErrors.firstName) {
-        focusField(firstNameRef);
-      } else if (nextErrors.phone) {
-        focusField(phoneRef);
-      } else if (nextErrors.province) {
-        focusField(provinceRef);
-      } else if (nextErrors.streetName) {
-        focusField(streetNameRef);
-      }
+      const msg = isIndo
+        ? "Silakan periksa kembali data pembeli dan alamat pengiriman."
+        : "Please check your customer details and shipping address.";
+      setError(msg);
+      toast.error(msg);
       return;
     }
 
     if (items.length === 0) {
-      setError("Your cart is empty.");
+      const emptyMsg = isIndo ? "Keranjang belanja Anda kosong." : "Your cart is empty.";
+      setError(emptyMsg);
+      toast.error(emptyMsg);
       return;
     }
 
     if (couponBlocksSubmission) {
-      setError(
-        "Order-level coupon only supports single-store checkout. Use store-group coupons for multi-store carts."
-      );
+      const cMsg = isIndo
+        ? "Kupon berlaku per toko. Gunakan kupon di grup toko masing-masing."
+        : "Order-level coupon only supports single-store checkout. Use store-group coupons for multi-store carts.";
+      setError(cMsg);
+      toast.error(cMsg);
       return;
     }
 
@@ -2864,13 +2876,15 @@ export default function CheckoutPage() {
         );
         return;
       }
+      let finalErrMsg = "";
       if (err?.response?.status === 409 && data?.code === "CHECKOUT_IDEMPOTENCY_IN_PROGRESS") {
-        setError(
+        finalErrMsg =
           serverMessage ||
-            "Your checkout is still being processed. Please wait a moment and try again. If the order completed, check My Orders."
-        );
+          (isIndo
+            ? "Pesanan Anda sedang diproses. Mohon tunggu beberapa saat dan periksa menu Pesanan Saya."
+            : "Your checkout is still being processed. Please wait a moment and try again. If the order completed, check My Orders.");
       } else if (err?.response?.status === 409 && Array.isArray(data?.data?.invalidItems)) {
-        setError(resolveCheckoutSubmitErrorMessage(data, serverMessage));
+        finalErrMsg = resolveCheckoutSubmitErrorMessage(data, serverMessage);
       } else if (
         err?.response?.status === 409 &&
         (Array.isArray(data?.data?.groups) ||
@@ -2878,13 +2892,28 @@ export default function CheckoutPage() {
           Number.isFinite(Number(data?.data?.available)) ||
           Number.isFinite(Number(data?.data?.requested)))
       ) {
-        setError(resolveCheckoutSubmitErrorMessage(data, serverMessage));
+        finalErrMsg = resolveCheckoutSubmitErrorMessage(data, serverMessage);
       } else if (err?.response?.status === 400 && Array.isArray(data?.missing)) {
         clearCart();
-        setError("Cart items are no longer available. Please add them again.");
+        finalErrMsg = isIndo
+          ? "Produk dalam keranjang tidak lagi tersedia. Silakan pilih kembali."
+          : "Cart items are no longer available. Please add them again.";
         setTimeout(() => navigate("/search"), 800);
       } else {
-        setError(serverMessage || ORDER_FAILED);
+        finalErrMsg =
+          serverMessage ||
+          (isIndo
+            ? "Gagal memproses pesanan. Silakan periksa kembali metode pembayaran atau alamat pengiriman Anda."
+            : ORDER_FAILED);
+      }
+      setError(finalErrMsg);
+      toast.error(finalErrMsg);
+      const alertEl =
+        document.querySelector(".co26-shopee-alert") ||
+        document.getElementById("checkout-payment-section") ||
+        document.querySelector(".co26-shopee-top-header");
+      if (alertEl) {
+        alertEl.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     } finally {
       submitLockRef.current = false;
@@ -2971,18 +3000,22 @@ export default function CheckoutPage() {
             couponStatus === "loading" ||
             hasGroupCouponLoading ||
             isPreviewBlockingSubmission ||
-            couponBlocksSubmission,
-          submitMessage: !hasDuitkuChannelSelection
-            ? (isIndo ? "Pilih salah satu saluran pembayaran." : "Choose a payment channel.")
-            : isPreviewBlockingSubmission
-            ? (paymentOptionId !== "duitku" && previewHasPaymentBlocker)
-              ? "Payment is unavailable for one or more stores."
-              : checkoutPreviewInvalidItems.length > 0
-                ? "Resolve invalid items before placing this order."
-                : "Waiting for the latest backend checkout preview."
-            : couponBlocksSubmission
-              ? "Apply coupons inside their matching store group."
-              : "",
+            couponBlocksSubmission ||
+            !hasPaymentSelected ||
+            !hasAddressSelected,
+          submitMessage: !hasAddressSelected
+            ? (isIndo ? "Pilih alamat pengiriman terlebih dahulu." : "Select a shipping address first.")
+            : !hasPaymentSelected
+              ? (isIndo ? "Pilih salah satu saluran pembayaran." : "Choose a payment channel.")
+              : isPreviewBlockingSubmission
+                ? (paymentOptionId !== "duitku" && previewHasPaymentBlocker)
+                  ? (isIndo ? "Pembayaran tidak tersedia untuk toko ini." : "Payment is unavailable for one or more stores.")
+                  : checkoutPreviewInvalidItems.length > 0
+                    ? (isIndo ? "Periksa produk yang disorot sebelum memesan." : "Resolve invalid items before placing this order.")
+                    : (isIndo ? "Menunggu pratinjau checkout..." : "Waiting for checkout preview...")
+                : couponBlocksSubmission
+                  ? (isIndo ? "Gunakan kupon di grup toko masing-masing." : "Apply coupons inside their matching store group.")
+                  : "",
         }}
         coupons={{
           code: couponCode,

@@ -2954,8 +2954,25 @@ router.post("/create-multi-store", checkoutSubmitRateLimit, async (req, res) => 
             }
           })();
 
+          const finalPayAmount = Math.floor(discountedGrandTotal);
+          const rawItemSum = prepared.groups.flatMap((g: any) => g.items)
+            .reduce((sum: number, it: any) => sum + Math.floor(it.price) * (Number(it.qty) || 1), 0);
+          const hasDiscountOrAdjustment = rawItemSum !== finalPayAmount;
+
+          const itemDetailsPayload = hasDiscountOrAdjustment
+            ? [{
+                name: `Pesanan ${invoiceNo}`.slice(0, 50),
+                price: finalPayAmount,
+                quantity: 1,
+              }]
+            : prepared.groups.flatMap((g: any) => g.items.map((item: any) => ({
+                name: String(item.productName || item.product?.title || "Item").slice(0, 50),
+                price: Math.floor(item.price),
+                quantity: Number(item.qty) || 1,
+              })));
+
           const requestBody = buildDuitkuCreateInvoiceRequest({
-            paymentAmount: Math.floor(discountedGrandTotal),
+            paymentAmount: finalPayAmount,
             merchantOrderId: invoiceNo,
             productDetails: `Payment for Order ${invoiceNo}`,
             email: authUserEmail, // Fix #3: email asli user, bukan hardcoded
@@ -2963,11 +2980,7 @@ router.post("/create-multi-store", checkoutSubmitRateLimit, async (req, res) => 
             phoneNumber: resolvedCustomer.phone || undefined,
             paymentMethod: duitkuPaymentMethod || undefined,
             expiryPeriod: orderExpiryMinutes,
-            itemDetails: prepared.groups.flatMap((g: any) => g.items.map((item: any) => ({
-               name: String(item.productName || item.product?.title || "Item").slice(0, 50),
-               price: Math.floor(item.price),
-               quantity: item.qty
-            })))
+            itemDetails: itemDetailsPayload,
           }, {
             callbackUrl: duitkuConfig.callbackUrl,
             returnUrl: returnUrlWithOrderId
