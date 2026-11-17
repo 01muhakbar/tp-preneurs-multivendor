@@ -65,6 +65,17 @@ export type Seller2026ProductsViewModel = {
 export type Seller2026ProductDetailViewModel = {
   product: {
     id: string | number | null;
+    productType?: string;
+    isPhysical?: boolean;
+    isDigital?: boolean;
+    isService?: boolean;
+    isWeightless?: boolean;
+    digitalAssetUrl?: string | null;
+    digitalInstructions?: string | null;
+    serviceDeliveryType?: string | null;
+    serviceDuration?: string | null;
+    serviceInstructions?: string | null;
+    serviceContactWhatsapp?: string | null;
     name: string;
     slug?: string;
     sku: string;
@@ -328,6 +339,9 @@ const productSubmitEligibility = (product: Record<string, unknown>) => {
 
 export function adaptSellerProduct(value: unknown) {
   const product = object(value);
+  const seo = object(product.seo);
+  const rawProductType = text(product.productType ?? seo.productType ?? seo.product_type, "physical").toLowerCase();
+  const productType = ["physical", "digital", "service"].includes(rawProductType) ? rawProductType : "physical";
   const visibility = object(product.visibility);
   const id = idValue(product.id ?? product.productId ?? product.uuid, "") as string | number;
   const submit = productSubmitEligibility(product);
@@ -335,6 +349,13 @@ export function adaptSellerProduct(value: unknown) {
 
   return {
     id,
+    productType,
+    isPhysical: productType === "physical",
+    isDigital: productType === "digital",
+    isService: productType === "service",
+    isWeightless: productType === "digital" || productType === "service",
+    serviceDeliveryType: text(product.serviceDeliveryType ?? seo.serviceDeliveryType, "online"),
+    serviceDuration: text(product.serviceDuration ?? seo.serviceDuration, ""),
     name: text(product.name || product.title, "Untitled product"),
     slug: text(product.slug) || undefined,
     sku: text(product.sku || product.code, "No SKU"),
@@ -547,6 +568,17 @@ export function adaptSeller2026ProductDetail(value: unknown): Seller2026ProductD
         ];
   const price = productPrice(product);
   const seo = object(product.seo);
+  const rawProductType = text(product.productType ?? seo.productType ?? seo.product_type, "physical").toLowerCase();
+  const productType = ["physical", "digital", "service"].includes(rawProductType) ? rawProductType : "physical";
+  const isPhysical = productType === "physical";
+  const isDigital = productType === "digital";
+  const isService = productType === "service";
+  const digitalAssetUrl = isDigital ? text(product.digitalAssetUrl ?? seo.digitalAssetUrl) || null : null;
+  const digitalInstructions = isDigital ? text(product.digitalInstructions ?? seo.digitalInstructions) || null : null;
+  const serviceDeliveryType = isService ? text(product.serviceDeliveryType ?? seo.serviceDeliveryType, "online") : null;
+  const serviceDuration = isService ? text(product.serviceDuration ?? seo.serviceDuration) || null : null;
+  const serviceInstructions = isService ? text(product.serviceInstructions ?? seo.serviceInstructions) || null : null;
+  const serviceContactWhatsapp = isService ? text(product.serviceContactWhatsapp ?? seo.serviceContactWhatsapp) || null : null;
   const sales = number(product.salesCount ?? product.soldCount ?? product.sold ?? performance.sales, 0);
   const productTags = tags(product.tags).length ? tags(product.tags) : tags(attributes.tags);
   const description = text(
@@ -557,6 +589,17 @@ export function adaptSeller2026ProductDetail(value: unknown): Seller2026ProductD
   return {
     product: {
       id: idValue(product.id ?? product.productId, null),
+      productType,
+      isPhysical,
+      isDigital,
+      isService,
+      isWeightless: isDigital || isService,
+      digitalAssetUrl,
+      digitalInstructions,
+      serviceDeliveryType,
+      serviceDuration,
+      serviceInstructions,
+      serviceContactWhatsapp,
       name: text(product.name || product.title, "Untitled product"),
       slug: text(product.slug) || undefined,
       sku: text(product.sku || product.code, "No SKU"),

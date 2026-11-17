@@ -3,13 +3,18 @@ import { Link, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   Box,
+  Briefcase,
   ChevronLeft,
   ChevronRight,
+  Download,
   Edit3,
   ExternalLink,
   Eye,
+  Globe,
   Heart,
   Image,
+  MapPin,
+  MessageSquare,
   PackageOpen,
   ShieldCheck,
   Tag,
@@ -76,7 +81,29 @@ export default function Seller2026LiveProductDetailPage() {
     <div className="seller2026-dashboard seller2026-product-detail">
       <div className="seller2026-detail__breadcrumbs"><Link to={workspaceRoutes.catalog()}>Catalog</Link><ChevronRight size={14} /><Link to={workspaceRoutes.catalog()}>Products</Link><ChevronRight size={14} /><span>{product.name}</span></div>
       <header className="seller2026-detail__header">
-        <div><h1>Product Details</h1><p>Product specifications, inventory, and storefront performance.</p><div><Pill>{lifecycle}</Pill><Pill>{data.labels.visibility}</Pill><Pill>{data.labels.inventory}</Pill><Pill>{data.labels.review}</Pill></div></div>
+        <div>
+          <h1>Product Details</h1>
+          <p>Product specifications, inventory, and storefront performance.</p>
+          <div style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap", marginTop: "6px" }}>
+            <Pill>{lifecycle}</Pill>
+            {product.productType === "service" ? (
+              <span className="seller2026-pill" style={{ background: "rgba(249, 115, 22, 0.2)", color: "#f97316", borderColor: "rgba(249, 115, 22, 0.4)", fontWeight: 600 }}>
+                🛠️ Layanan (Jasa)
+              </span>
+            ) : product.productType === "digital" ? (
+              <span className="seller2026-pill" style={{ background: "rgba(168, 85, 247, 0.2)", color: "#c084fc", borderColor: "rgba(168, 85, 247, 0.4)", fontWeight: 600 }}>
+                ⚡ Produk Digital
+              </span>
+            ) : (
+              <span className="seller2026-pill" style={{ background: "rgba(59, 130, 246, 0.2)", color: "#60a5fa", borderColor: "rgba(59, 130, 246, 0.4)", fontWeight: 600 }}>
+                📦 Produk Fisik
+              </span>
+            )}
+            <Pill>{data.labels.visibility}</Pill>
+            <Pill>{data.labels.inventory}</Pill>
+            <Pill>{data.labels.review}</Pill>
+          </div>
+        </div>
         <div><Link to={workspaceRoutes.catalog()}><ArrowLeft size={16} />Back to Catalog</Link>{publicUrl ? <a href={publicUrl} target="_blank" rel="noreferrer"><Eye size={16} />View in Store<ExternalLink size={14} /></a> : <span className="is-disabled"><Eye size={16} />View in Store</span>}{canEdit ? <Link className="is-primary" to={workspaceRoutes.productEdit(product.id)}><Edit3 size={16} />Edit Product</Link> : null}</div>
       </header>
 
@@ -151,6 +178,66 @@ export default function Seller2026LiveProductDetailPage() {
           <h2><Eye size={17} />Storefront Preview &amp; Health</h2>
           <div className="seller2026-detail-card__preview">{images[0] ? <img src={resolveAssetUrl(images[0])} alt="" /> : <Box size={24} />}<div><Pill>{publicUrl ? "Listed on Storefront" : "Not listed"}</Pill><span>{publicUrl ? "Visible in storefront." : "Approval required."}</span>{publicUrl ? <a href={publicUrl} target="_blank" rel="noreferrer">Preview in Store <ExternalLink size={13} /></a> : null}</div></div>
           <div className="seller2026-detail-card__health"><span>Listing Health</span><i><b style={{ width: `${data.listingHealth}%` }} /></i><strong>{data.listingHealth}%</strong></div>
+        </div>
+        <div className="seller2026-detail-card">
+          {product.productType === "service" ? (
+            <>
+              <h2><Briefcase size={17} />Informasi Layanan &amp; Jasa</h2>
+              <dl className="seller2026-detail-card__pricing" style={{ gridTemplateColumns: "1fr" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                  <dt style={{ display: "flex", alignItems: "center", gap: "6px" }}><Globe size={14} /> Mode Pelaksanaan</dt>
+                  <dd style={{ fontWeight: 600 }}>{product.serviceDeliveryType === "onsite" ? "📍 On-Site (Datang ke Lokasi)" : "🌐 Online / Jarak Jauh"}</dd>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                  <dt>Estimasi Durasi / Waktu</dt>
+                  <dd style={{ fontWeight: 600 }}>{product.serviceDuration || "Sesuai Kesepakatan"}</dd>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                  <dt style={{ display: "flex", alignItems: "center", gap: "6px" }}><MessageSquare size={14} /> WhatsApp Hotline</dt>
+                  <dd style={{ fontWeight: 600 }}>{product.serviceContactWhatsapp || "Sama dengan nomor toko"}</dd>
+                </div>
+              </dl>
+              {product.serviceInstructions ? (
+                <div style={{ marginTop: "10px", fontSize: "12.5px", background: "rgba(255,255,255,0.03)", padding: "10px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.06)" }}>
+                  <strong style={{ display: "block", marginBottom: "4px", color: "var(--prod-text)" }}>Instruksi untuk Pembeli:</strong>
+                  <p style={{ margin: 0, color: "var(--prod-muted)", whiteSpace: "pre-line" }}>{product.serviceInstructions}</p>
+                </div>
+              ) : null}
+            </>
+          ) : product.productType === "digital" ? (
+            <>
+              <h2><Download size={17} />Informasi Berkas Digital</h2>
+              <dl className="seller2026-detail-card__pricing" style={{ gridTemplateColumns: "1fr" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "6px 0", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                  <dt>Tautan Berkas Digital</dt>
+                  <dd style={{ wordBreak: "break-all", fontWeight: 600 }}>
+                    {product.digitalAssetUrl ? (
+                      <a href={product.digitalAssetUrl} target="_blank" rel="noreferrer" style={{ color: "#38bdf8" }}>
+                        {product.digitalAssetUrl}
+                      </a>
+                    ) : "-"}
+                  </dd>
+                </div>
+              </dl>
+              {product.digitalInstructions ? (
+                <div style={{ marginTop: "10px", fontSize: "12.5px", background: "rgba(255,255,255,0.03)", padding: "10px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.06)" }}>
+                  <strong style={{ display: "block", marginBottom: "4px", color: "var(--prod-text)" }}>Petunjuk Akses / Lisensi:</strong>
+                  <p style={{ margin: 0, color: "var(--prod-muted)", whiteSpace: "pre-line" }}>{product.digitalInstructions}</p>
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <h2><Box size={17} />Informasi Logistik Fisik</h2>
+              <dl className="seller2026-detail-card__pricing">
+                <div><dt>Pengiriman</dt><dd>Kurir Logistik</dd></div>
+                <div><dt>Status Berat</dt><dd>Dihitung Otomatis</dd></div>
+              </dl>
+              <p style={{ fontSize: "12px", color: "var(--prod-muted)", marginTop: "8px" }}>
+                Produk ini memerlukan kurir pengiriman dan nomor resi ekspedisi.
+              </p>
+            </>
+          )}
         </div>
       </section>
 

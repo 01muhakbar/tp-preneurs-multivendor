@@ -7,6 +7,8 @@ import {
   Check,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
+  Info,
   Sparkles,
   ShoppingBag,
 } from "lucide-react";
@@ -268,6 +270,19 @@ export default function StoreShippingCourierSettings({
           >
             {isIndo ? "Pilih Semua" : "Select All"}
           </button>
+        </div>
+      </div>
+
+      {/* Info Notice: Non-Physical Products Exemption */}
+      <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-blue-500/30 bg-blue-500/10 p-3 text-xs text-blue-200">
+        <Info size={16} className="shrink-0 text-blue-400 mt-0.5" />
+        <div>
+          <span className="font-semibold text-blue-300">
+            {isIndo ? "Khusus Pengiriman Produk Fisik: " : "Physical Products Only: "}
+          </span>
+          {isIndo
+            ? "Pilihan ekspedisi ini hanya berlaku untuk produk fisik. Produk Digital & Layanan (Jasa) dibebaskan dari ongkos kirim dan tidak memerlukan kurir ekspedisi di checkout."
+            : "These shipping options only apply to physical products. Digital assets and Services are freight-exempt (free shipping) and will not require courier selection at checkout."}
         </div>
       </div>
 

@@ -11,6 +11,11 @@ export const createInitialProductForm2026Meta = () => ({
   brand: "",
   productType: "physical",
   digitalAssetUrl: "",
+  digitalInstructions: "",
+  serviceDeliveryType: "online",
+  serviceDuration: "",
+  serviceInstructions: "",
+  serviceContactWhatsapp: "",
   enablePromoPrice: false,
   lowStockThreshold: "",
   weight: "",
@@ -74,10 +79,23 @@ export const buildProductForm2026Review = ({
     category: defaultCategory?.name || selectedCategories[0]?.name || "-",
     categoryPath: selectedCategories.map((category) => category.name).join(" > ") || "-",
     productType: titleCaseValue(meta.productType, "Physical"),
-    weight: meta.weight ? `${meta.weight} ${meta.weightUnit}` : "-",
+    digitalAssetUrl: meta.digitalAssetUrl || "-",
+    digitalInstructions: meta.digitalInstructions || "-",
+    serviceDeliveryType: meta.serviceDeliveryType === "onsite" ? "On-Site (Datang ke Lokasi)" : "Online / Jarak Jauh",
+    serviceDuration: meta.serviceDuration || "-",
+    serviceInstructions: meta.serviceInstructions || "-",
+    serviceContactWhatsapp: meta.serviceContactWhatsapp || "-",
+    weight:
+      meta.productType === "physical"
+        ? meta.weight
+          ? `${meta.weight} ${meta.weightUnit}`
+          : "-"
+        : "0 kg (Non-Fisik)",
     dimensions:
-      meta.length || meta.width || meta.height
-        ? `${meta.length || 0} x ${meta.width || 0} x ${meta.height || 0} ${meta.dimensionUnit}`
+      meta.productType === "physical"
+        ? meta.length || meta.width || meta.height
+          ? `${meta.length || 0} x ${meta.width || 0} x ${meta.height || 0} ${meta.dimensionUnit}`
+          : "-"
         : "-",
     basePrice: form.price || "0",
     salePrice: meta.enablePromoPrice && form.salePrice ? form.salePrice : "-",

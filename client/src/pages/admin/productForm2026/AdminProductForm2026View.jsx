@@ -3,15 +3,21 @@ import { useTranslation } from "react-i18next";
 import {
   ArrowLeft,
   Box,
+  Briefcase,
   Check,
   ChevronDown,
   ChevronRight,
+  Clock,
   Download,
   Eye,
+  FileText,
+  Globe,
   GripVertical,
   HardDrive,
   Info,
+  MapPin,
   Maximize2,
+  MessageSquare,
   Monitor,
   Package,
   Plus,
@@ -1317,7 +1323,7 @@ function DetailsStep({
             {[
               { value: "physical", label: t("productForm.Physical"), icon: Package },
               { value: "digital", label: t("productForm.Digital"), icon: Download },
-              { value: "service", label: t("productForm.Service"), icon: Box },
+              { value: "service", label: t("productForm.Service"), icon: Briefcase },
             ].map((option) => {
               const Icon = option.icon;
               return (
@@ -1389,9 +1395,12 @@ function DetailsStep({
           </section>
         </div>
       ) : meta.productType === "digital" ? (
-        <div className="apf26-grid">
+        <div className="apf26-grid apf26-grid--2">
           <section className="apf26-card">
             <h2>{t("productForm.Digital Asset")} <RequiredMark /></h2>
+            <p className="mt-1 text-sm text-slate-400">
+              Tautan unduh berkas digital (Google Drive, Dropbox, atau tautan download cloud).
+            </p>
             <div className="mt-4">
               <TextField
                 id="product-digital-asset-url"
@@ -1402,6 +1411,98 @@ function DetailsStep({
                 value={meta.digitalAssetUrl || ""}
                 onChange={(event) => onMetaChange({ digitalAssetUrl: event.target.value })}
                 placeholder="https://drive.google.com/..."
+              />
+            </div>
+          </section>
+          <section className="apf26-card">
+            <h2>Petunjuk Akses / Kunci Lisensi <span className="font-normal">(Opsional)</span></h2>
+            <p className="mt-1 text-sm text-slate-400">
+              Instruksi ekstra untuk pembeli (misal cara ekstrak berkas zip atau kunci lisensi).
+            </p>
+            <div className="mt-4">
+              <TextField
+                id="product-digital-instructions"
+                name="digitalInstructions"
+                label="Petunjuk Akses Berkas"
+                as="textarea"
+                value={meta.digitalInstructions || ""}
+                onChange={(event) => onMetaChange({ digitalInstructions: event.target.value })}
+                placeholder="Contoh: Setelah mengunduh file, ekstrak menggunakan WinRAR atau masukkan kode akses..."
+              />
+            </div>
+          </section>
+        </div>
+      ) : meta.productType === "service" ? (
+        <div className="apf26-grid apf26-grid--2">
+          <section className="apf26-card">
+            <h2>Pengaturan Layanan & Jasa <RequiredMark /></h2>
+            <p className="mt-1 text-sm text-slate-400">
+              Tentukan metode pelaksanaan jasa dan durasi estimasi pengerjaan.
+            </p>
+            <div className="mt-4">
+              <label className="block text-sm font-semibold mb-2">Mode Pelaksanaan Jasa</label>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                <button
+                  type="button"
+                  className={`apf26-choice ${(!meta.serviceDeliveryType || meta.serviceDeliveryType === "online") ? "is-active" : ""}`}
+                  onClick={() => onMetaChange({ serviceDeliveryType: "online" })}
+                  style={{ padding: "14px", textAlign: "left" }}
+                >
+                  <Globe size={24} style={{ marginBottom: "6px" }} />
+                  <strong style={{ display: "block" }}>Online / Jarak Jauh</strong>
+                  <span style={{ fontSize: "11px", opacity: 0.75 }}>Pengerjaan digital / daring</span>
+                </button>
+                <button
+                  type="button"
+                  className={`apf26-choice ${meta.serviceDeliveryType === "onsite" ? "is-active" : ""}`}
+                  onClick={() => onMetaChange({ serviceDeliveryType: "onsite" })}
+                  style={{ padding: "14px", textAlign: "left" }}
+                >
+                  <MapPin size={24} style={{ marginBottom: "6px" }} />
+                  <strong style={{ display: "block" }}>On-Site / Lokasi</strong>
+                  <span style={{ fontSize: "11px", opacity: 0.75 }}>Datang ke tempat / janji fisik</span>
+                </button>
+              </div>
+
+              <div className="mt-4">
+                <TextField
+                  id="product-service-duration"
+                  name="serviceDuration"
+                  label="Estimasi Durasi Pengerjaan / Waktu Sesi"
+                  placeholder="Contoh: 1-2 Hari Kerja, 60 Menit, atau Sesuai Kesepakatan"
+                  value={meta.serviceDuration || ""}
+                  onChange={(event) => onMetaChange({ serviceDuration: event.target.value })}
+                />
+              </div>
+
+              <div className="mt-3">
+                <TextField
+                  id="product-service-whatsapp"
+                  name="serviceContactWhatsapp"
+                  label="Nomor WhatsApp Koordinasi Jasa (Opsional)"
+                  placeholder="Contoh: 08123456789 (Kosongkan jika sama dengan nomor toko)"
+                  value={meta.serviceContactWhatsapp || ""}
+                  onChange={(event) => onMetaChange({ serviceContactWhatsapp: event.target.value })}
+                />
+              </div>
+            </div>
+          </section>
+
+          <section className="apf26-card">
+            <h2>Brief & Kebutuhan Pembeli <span className="font-normal">(Panduan)</span></h2>
+            <p className="mt-1 text-sm text-slate-400">
+              Jelaskan hal apa saja yang perlu disiapkan oleh pembeli setelah memesan layanan ini.
+            </p>
+            <div className="mt-4">
+              <TextField
+                id="product-service-instructions"
+                name="serviceInstructions"
+                label="Instruksi Brief untuk Pembeli"
+                as="textarea"
+                rows={6}
+                value={meta.serviceInstructions || ""}
+                onChange={(event) => onMetaChange({ serviceInstructions: event.target.value })}
+                placeholder="Contoh: Setelah pembayaran diverifikasi, silakan kirimkan materi/brief ke WhatsApp kami atau tentukan jadwal kedatangan..."
               />
             </div>
           </section>
@@ -1513,8 +1614,24 @@ function ReviewStep({
           <h3>{t("productForm.Category & Type")}</h3>
           <ReviewRow label={t("productForm.Category")} value={review.categoryPath} />
           <ReviewRow label={t("productForm.Product Type")} value={review.productType} />
-          <ReviewRow label={t("productForm.Weight")} value={review.weight} />
-          <ReviewRow label={t("productForm.Dimensions")} value={review.dimensions} />
+          {meta.productType === "physical" ? (
+            <>
+              <ReviewRow label={t("productForm.Weight")} value={review.weight} />
+              <ReviewRow label={t("productForm.Dimensions")} value={review.dimensions} />
+            </>
+          ) : meta.productType === "service" ? (
+            <>
+              <ReviewRow label="Mode Layanan" value={review.serviceDeliveryType} />
+              <ReviewRow label="Estimasi Durasi" value={review.serviceDuration} />
+              <ReviewRow label="Kontak WhatsApp" value={review.serviceContactWhatsapp} />
+              <ReviewRow label="Instruksi Pembeli" value={review.serviceInstructions} multiline />
+            </>
+          ) : (
+            <>
+              <ReviewRow label="Link Unduhan" value={review.digitalAssetUrl} multiline />
+              <ReviewRow label="Petunjuk Akses" value={review.digitalInstructions} multiline />
+            </>
+          )}
         </section>
         <section className="apf26-review-card">
           <h3>{t("productForm.Product Identity")}</h3>

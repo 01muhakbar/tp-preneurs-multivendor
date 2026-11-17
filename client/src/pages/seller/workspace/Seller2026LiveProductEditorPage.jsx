@@ -664,12 +664,33 @@ export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
     setSelectedAttributes(variationState.selectedAttributes);
     setSelectedAttributeValues(variationState.selectedAttributeValues);
     setVariants(variationState.variants);
+    const initialSeoData = product.seo || {};
     setForm2026Meta((prev) => ({
       ...prev,
       productType: initialProductType,
       digitalAssetUrl:
         initialProductType === "digital"
-          ? String(product.digitalAssetUrl ?? product.seo?.digitalAssetUrl ?? "")
+          ? String(product.digitalAssetUrl ?? initialSeoData.digitalAssetUrl ?? "")
+          : "",
+      digitalInstructions:
+        initialProductType === "digital"
+          ? String(product.digitalInstructions ?? initialSeoData.digitalInstructions ?? "")
+          : "",
+      serviceDeliveryType:
+        initialProductType === "service"
+          ? String(product.serviceDeliveryType ?? initialSeoData.serviceDeliveryType ?? "online")
+          : "online",
+      serviceDuration:
+        initialProductType === "service"
+          ? String(product.serviceDuration ?? initialSeoData.serviceDuration ?? "")
+          : "",
+      serviceInstructions:
+        initialProductType === "service"
+          ? String(product.serviceInstructions ?? initialSeoData.serviceInstructions ?? "")
+          : "",
+      serviceContactWhatsapp:
+        initialProductType === "service"
+          ? String(product.serviceContactWhatsapp ?? initialSeoData.serviceContactWhatsapp ?? "")
           : "",
       enablePromoPrice:
         product.pricing?.salePrice !== null &&
@@ -1306,13 +1327,19 @@ export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
           : null,
       productType: form2026Meta.productType || "physical",
       digitalAssetUrl: form2026Meta.productType === "digital" ? form2026Meta.digitalAssetUrl || null : null,
-      weight: toOptionalNumber(form2026Meta.weight) ?? null,
+      digitalInstructions: form2026Meta.productType === "digital" ? form2026Meta.digitalInstructions || null : null,
+      serviceDeliveryType: form2026Meta.productType === "service" ? form2026Meta.serviceDeliveryType || "online" : null,
+      serviceDuration: form2026Meta.productType === "service" ? form2026Meta.serviceDuration || null : null,
+      serviceInstructions: form2026Meta.productType === "service" ? form2026Meta.serviceInstructions || null : null,
+      serviceContactWhatsapp: form2026Meta.productType === "service" ? form2026Meta.serviceContactWhatsapp || null : null,
+      weight: form2026Meta.productType === "physical" ? toOptionalNumber(form2026Meta.weight) ?? null : null,
       notes: form2026Meta.additionalNotes || null,
-      length: toOptionalNumber(form2026Meta.length) ?? null,
-      width: toOptionalNumber(form2026Meta.width) ?? null,
-      height: toOptionalNumber(form2026Meta.height) ?? null,
+      length: form2026Meta.productType === "physical" ? toOptionalNumber(form2026Meta.length) ?? null : null,
+      width: form2026Meta.productType === "physical" ? toOptionalNumber(form2026Meta.width) ?? null : null,
+      height: form2026Meta.productType === "physical" ? toOptionalNumber(form2026Meta.height) ?? null : null,
       dimensions:
-        form2026Meta.length || form2026Meta.width || form2026Meta.height
+        form2026Meta.productType === "physical" &&
+        (form2026Meta.length || form2026Meta.width || form2026Meta.height)
           ? {
               length: toOptionalNumber(form2026Meta.length),
               width: toOptionalNumber(form2026Meta.width),

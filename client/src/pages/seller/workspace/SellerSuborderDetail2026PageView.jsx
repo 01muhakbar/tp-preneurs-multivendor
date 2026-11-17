@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   ArrowLeft,
   Box,
+  Briefcase,
   CalendarDays,
   Check,
   CheckCircle2,
@@ -11,6 +12,7 @@ import {
   Download,
   ExternalLink,
   FileText,
+  Globe,
   MapPin,
   MessageCircle,
   Package,
@@ -792,13 +794,16 @@ export default function SellerSuborderDetail2026PageView({
   }, [order?.shipping?.trackingNo, order?.shipping?.courier, order?.shipping?.courierService, order?.shipping?.trackingUrl, fulfillmentDraft.shippingProvider]);
 
   const isDigitalOrder = Boolean(order.isDigitalOrder);
+  const isServiceOrder = Boolean(order.isServiceOrder);
+  const isNonPhysicalOrder = Boolean(order.isNonPhysicalOrder || isDigitalOrder || isServiceOrder);
+  const primaryServiceItem = Array.isArray(order.items) ? order.items.find((it) => it.isService) : null;
   const digitalAssetUrl =
     order.digitalAssetUrl ||
     (Array.isArray(order.items) ? order.items.find((it) => it.digitalAssetUrl)?.digitalAssetUrl : null);
 
   const handleActionClick = (action) => {
     setValidationError("");
-    if ((action === "MARK_SHIPPED" || action === "UPDATE_TRACKING") && !isDigitalOrder) {
+    if ((action === "MARK_SHIPPED" || action === "UPDATE_TRACKING") && !isNonPhysicalOrder) {
       const tracking = String(fulfillmentDraft.trackingNumber || "").trim();
       if (!tracking) {
         setValidationError(t.fillTrackingAlert || t.shippingRequired);
@@ -839,7 +844,7 @@ export default function SellerSuborderDetail2026PageView({
         </button>
 
         <div className="tpsodp2026-topbar__actions">
-          {!isDigitalOrder && (
+          {!isNonPhysicalOrder && (
             <button
               type="button"
               className="tpsodp2026-btn-outline"
@@ -1066,6 +1071,11 @@ export default function SellerSuborderDetail2026PageView({
                             <Download size={11} />
                             <span>{t.digitalBadge}</span>
                           </span>
+                        ) : item.isService ? (
+                          <span className="tpsodp2026-item-row__digital-badge" style={{ background: "rgba(249, 115, 22, 0.15)", color: "#f97316", borderColor: "rgba(249, 115, 22, 0.3)" }}>
+                            <Briefcase size={11} />
+                            <span>{isIndo ? "Layanan / Jasa" : "Service"}</span>
+                          </span>
                         ) : item.weightLabel ? (
                           <span className="tpsodp2026-item-row__weight" title={t.catalogWeightHint}>
                             <Scale size={11} />
@@ -1103,12 +1113,27 @@ export default function SellerSuborderDetail2026PageView({
               <div className="tpsodp2026-card__header-title">
                 {isDigitalOrder ? (
                   <Download size={18} className="tpsodp2026-icon-accent" />
+                ) : isServiceOrder ? (
+                  <Briefcase size={18} style={{ color: "#f97316" }} />
                 ) : (
                   <Truck size={18} className="tpsodp2026-icon-primary" />
                 )}
-                <h2>{isDigitalOrder ? t.digitalDeliveryTitle : t.shipping}</h2>
+                <h2>
+                  {isDigitalOrder
+                    ? t.digitalDeliveryTitle
+                    : isServiceOrder
+                      ? (isIndo ? "Pemenuhan Layanan & Jasa" : "Service Fulfillment")
+                      : t.shipping}
+                </h2>
               </div>
-              <StatusPill status={{ label: order.shipping?.status, tone: order.shipping?.statusTone }} />
+              <StatusPill
+                status={{
+                  label: isServiceOrder
+                    ? (isPaid ? (isIndo ? "Siap Dikerjakan" : "Ready to Execute") : (isIndo ? "Menunggu Pembayaran" : "Unpaid"))
+                    : order.shipping?.status,
+                  tone: isServiceOrder ? (isPaid ? "green" : "amber") : order.shipping?.statusTone,
+                }}
+              />
             </header>
 
             {isDigitalOrder ? (
@@ -1168,6 +1193,75 @@ export default function SellerSuborderDetail2026PageView({
                     <div className="tpsodp2026-digital-hint-banner">
                       <Sparkles size={15} className="tpsodp2026-icon-accent" />
                       <p>{isPaid ? t.digitalDeliverySyncNotePaid : t.digitalDeliverySyncNoteUnpaid}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : isServiceOrder ? (
+              <div className="tpsodp2026-digital-delivery-content">
+                <div className="tpsodp2026-digital-asset-card" style={{ borderColor: "rgba(249, 115, 22, 0.3)" }}>
+                  <div className="tpsodp2026-digital-asset-header">
+                    <div className="tpsodp2026-digital-badge-wrap">
+                      <span className="tpsodp2026-pill" style={{ background: "rgba(249, 115, 22, 0.15)", color: "#f97316", borderColor: "rgba(249, 115, 22, 0.3)" }}>
+                        <Briefcase size={12} style={{ marginRight: "4px" }} />
+                        {isIndo ? "Produk Layanan / Jasa" : "Service Order"}
+                      </span>
+                      <span className={`tpsodp2026-pill tpsodp2026-pill--${isPaid ? "green" : "amber"}`}>
+                        <span className="tpsodp2026-pill__dot" />
+                        {isPaid ? (isIndo ? "Pembayaran Terverifikasi" : "Payment Verified") : (isIndo ? "Menunggu Pembayaran" : "Payment Pending")}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="tpsodp2026-digital-asset-body">
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "14px" }}>
+                      <div style={{ background: "rgba(255,255,255,0.03)", padding: "10px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.06)" }}>
+                        <span style={{ fontSize: "11px", color: "var(--tpsodp-muted)", display: "block" }}>Mode Pelaksanaan</span>
+                        <strong style={{ fontSize: "13px" }}>
+                          {primaryServiceItem?.serviceDeliveryType === "onsite" ? "📍 On-Site (Datang ke Lokasi)" : "🌐 Online / Jarak Jauh"}
+                        </strong>
+                      </div>
+                      <div style={{ background: "rgba(255,255,255,0.03)", padding: "10px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.06)" }}>
+                        <span style={{ fontSize: "11px", color: "var(--tpsodp-muted)", display: "block" }}>Estimasi Durasi</span>
+                        <strong style={{ fontSize: "13px" }}>
+                          {primaryServiceItem?.serviceDuration || "Sesuai Kesepakatan"}
+                        </strong>
+                      </div>
+                    </div>
+
+                    {primaryServiceItem?.serviceInstructions && (
+                      <div style={{ marginBottom: "14px", background: "rgba(255,255,255,0.02)", padding: "12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.06)" }}>
+                        <label className="tpsodp2026-field__label" style={{ marginBottom: "4px" }}>Brief / Instruksi untuk Pembeli:</label>
+                        <p style={{ margin: 0, fontSize: "12.5px", color: "var(--tpsodp-text)", whiteSpace: "pre-line" }}>
+                          {primaryServiceItem.serviceInstructions}
+                        </p>
+                      </div>
+                    )}
+
+                    {order.customer?.phone && (
+                      <div style={{ display: "flex", gap: "10px", alignItems: "center", marginTop: "12px" }}>
+                        <a
+                          href={`https://wa.me/${String(order.customer.phone).replace(/[^0-9]/g, "").replace(/^0/, "62")}?text=${encodeURIComponent(
+                            `Halo Kak ${order.customer.name || ""}, kami dari toko di TP Preneurs terkait pesanan layanan Anda #${order.suborderNumber || ""}.`
+                          )}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="tpsodp2026-btn-outline"
+                          style={{ borderColor: "#22c55e", color: "#22c55e", display: "inline-flex", alignItems: "center", gap: "6px", textDecoration: "none" }}
+                        >
+                          <MessageCircle size={15} />
+                          <span>{isIndo ? "Hubungi Pembeli via WhatsApp" : "Contact Buyer on WhatsApp"}</span>
+                        </a>
+                      </div>
+                    )}
+
+                    <div className="tpsodp2026-digital-hint-banner" style={{ marginTop: "14px" }}>
+                      <Sparkles size={15} className="tpsodp2026-icon-accent" />
+                      <p>
+                        {isPaid
+                          ? (isIndo ? "Pesanan jasa ini telah lunas. Setelah jasa selesai dikerjakan, Anda dapat menyelesaikan status pesanan." : "This service order is paid. You may complete fulfillment after performing the service.")
+                          : (isIndo ? "Menunggu pembeli menyelesaikan pembayaran sebelum pelaksanaan jasa." : "Awaiting payment verification before executing the service.")}
+                      </p>
                     </div>
                   </div>
                 </div>

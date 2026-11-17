@@ -790,6 +790,11 @@ const SELLER_AUTHORING_EDITABLE_FIELDS = [
   "ogImageUrl",
   "productType",
   "digitalAssetUrl",
+  "digitalInstructions",
+  "serviceDeliveryType",
+  "serviceDuration",
+  "serviceInstructions",
+  "serviceContactWhatsapp",
   "weight",
   "notes",
   "additionalNotes",
@@ -1216,15 +1221,17 @@ const parseSellerProductDraftPayload = async (body: any = {}, storeId?: number |
   const price = normalizeOptionalMoney(body?.price);
   const salePrice = normalizeOptionalMoney(body?.salePrice ?? body?.compareAtPrice);
   const stock = normalizeOptionalInteger(body?.stock);
-  const weight = normalizeOptionalInteger(body?.weight);
+  const parsedProductType = String(body?.productType || "").trim().toLowerCase();
+  const isWeightlessProduct = parsedProductType === "digital" || parsedProductType === "service";
+  const weight = isWeightlessProduct ? 0 : normalizeOptionalInteger(body?.weight);
   const notes = nullableString(body?.notes ?? body?.additionalNotes);
   const dimensionInput =
     body?.dimensions && typeof body.dimensions === "object" && !Array.isArray(body.dimensions)
       ? body.dimensions
       : {};
-  const length = normalizeOptionalInteger(body?.length ?? (dimensionInput as any)?.length);
-  const width = normalizeOptionalInteger(body?.width ?? (dimensionInput as any)?.width);
-  const height = normalizeOptionalInteger(body?.height ?? (dimensionInput as any)?.height);
+  const length = isWeightlessProduct ? 0 : normalizeOptionalInteger(body?.length ?? (dimensionInput as any)?.length);
+  const width = isWeightlessProduct ? 0 : normalizeOptionalInteger(body?.width ?? (dimensionInput as any)?.width);
+  const height = isWeightlessProduct ? 0 : normalizeOptionalInteger(body?.height ?? (dimensionInput as any)?.height);
   const parsedHasVariants = parseOptionalBooleanInput(body?.hasVariants);
   const hasImageUrls = Array.isArray(body?.imageUrls);
   const tags = normalizeTagListInput(body?.tags);
@@ -1241,13 +1248,29 @@ const parseSellerProductDraftPayload = async (body: any = {}, storeId?: number |
   const hasSeoPayload =
     typeof rawSeo !== "undefined" ||
     typeof body?.productType !== "undefined" ||
-    typeof body?.digitalAssetUrl !== "undefined";
+    typeof body?.digitalAssetUrl !== "undefined" ||
+    typeof body?.digitalInstructions !== "undefined" ||
+    typeof body?.serviceDeliveryType !== "undefined" ||
+    typeof body?.serviceDuration !== "undefined" ||
+    typeof body?.serviceInstructions !== "undefined" ||
+    typeof body?.serviceContactWhatsapp !== "undefined";
   const sanitizedSeo = hasSeoPayload ? sanitizeSellerProductSeo(rawSeo) : undefined;
   const seo = hasSeoPayload
-    ? typeof body?.productType !== "undefined" || typeof body?.digitalAssetUrl !== "undefined"
+    ? typeof body?.productType !== "undefined" ||
+      typeof body?.digitalAssetUrl !== "undefined" ||
+      typeof body?.digitalInstructions !== "undefined" ||
+      typeof body?.serviceDeliveryType !== "undefined" ||
+      typeof body?.serviceDuration !== "undefined" ||
+      typeof body?.serviceInstructions !== "undefined" ||
+      typeof body?.serviceContactWhatsapp !== "undefined"
       ? mergeProductTypeMetadataIntoSeo(sanitizedSeo, {
           productType: body?.productType,
           digitalAssetUrl: body?.digitalAssetUrl,
+          digitalInstructions: body?.digitalInstructions,
+          serviceDeliveryType: body?.serviceDeliveryType,
+          serviceDuration: body?.serviceDuration,
+          serviceInstructions: body?.serviceInstructions,
+          serviceContactWhatsapp: body?.serviceContactWhatsapp,
         })
       : sanitizedSeo
     : undefined;
@@ -2027,7 +2050,12 @@ const serializeProductListItem = (
     storefrontVisibilityState: visibility.stateCode,
     availability,
     productType: productTypeMetadata.productType,
+    isPhysical: productTypeMetadata.isPhysical,
     isDigital: productTypeMetadata.isDigital,
+    isService: productTypeMetadata.isService,
+    isWeightless: productTypeMetadata.isWeightless,
+    serviceDeliveryType: productTypeMetadata.serviceDeliveryType,
+    serviceDuration: productTypeMetadata.serviceDuration,
     pricing: {
       price,
       salePrice: salePrice && salePrice > 0 ? salePrice : null,
@@ -2138,8 +2166,16 @@ const serializeProductDetail = (
     storefrontVisibilityState: visibility.stateCode,
     availability,
     productType: productTypeMetadata.productType,
+    isPhysical: productTypeMetadata.isPhysical,
     isDigital: productTypeMetadata.isDigital,
+    isService: productTypeMetadata.isService,
+    isWeightless: productTypeMetadata.isWeightless,
     digitalAssetUrl: productTypeMetadata.digitalAssetUrl,
+    digitalInstructions: productTypeMetadata.digitalInstructions,
+    serviceDeliveryType: productTypeMetadata.serviceDeliveryType,
+    serviceDuration: productTypeMetadata.serviceDuration,
+    serviceInstructions: productTypeMetadata.serviceInstructions,
+    serviceContactWhatsapp: productTypeMetadata.serviceContactWhatsapp,
     descriptions: {
       description: getAttr(product, "description")
         ? String(getAttr(product, "description"))
@@ -3276,6 +3312,36 @@ router.patch(
                   )
                     ? incomingSeo.digitalAssetUrl
                     : existingMetadata.digitalAssetUrl,
+                  digitalInstructions: Object.prototype.hasOwnProperty.call(
+                    incomingSeo,
+                    "digitalInstructions"
+                  )
+                    ? incomingSeo.digitalInstructions
+                    : existingMetadata.digitalInstructions,
+                  serviceDeliveryType: Object.prototype.hasOwnProperty.call(
+                    incomingSeo,
+                    "serviceDeliveryType"
+                  )
+                    ? incomingSeo.serviceDeliveryType
+                    : existingMetadata.serviceDeliveryType,
+                  serviceDuration: Object.prototype.hasOwnProperty.call(
+                    incomingSeo,
+                    "serviceDuration"
+                  )
+                    ? incomingSeo.serviceDuration
+                    : existingMetadata.serviceDuration,
+                  serviceInstructions: Object.prototype.hasOwnProperty.call(
+                    incomingSeo,
+                    "serviceInstructions"
+                  )
+                    ? incomingSeo.serviceInstructions
+                    : existingMetadata.serviceInstructions,
+                  serviceContactWhatsapp: Object.prototype.hasOwnProperty.call(
+                    incomingSeo,
+                    "serviceContactWhatsapp"
+                  )
+                    ? incomingSeo.serviceContactWhatsapp
+                    : existingMetadata.serviceContactWhatsapp,
                 });
               })()
             : getAttr(product, "seo"),

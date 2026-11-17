@@ -56,6 +56,10 @@ const SELLER_PRODUCTS_I18N = {
     allCategories: "Semua Kategori",
     allStatus: "Semua Status",
     allStock: "Semua Stok",
+    allTypes: "Semua Tipe",
+    typePhysical: "Fisik",
+    typeDigital: "Digital",
+    typeService: "Layanan",
     inStock: "Tersedia",
     lowStock: "Stok Rendah",
     outOfStock: "Stok Habis",
@@ -133,6 +137,10 @@ const SELLER_PRODUCTS_I18N = {
     allCategories: "All Categories",
     allStatus: "All Status",
     allStock: "All Stock",
+    allTypes: "All Types",
+    typePhysical: "Physical",
+    typeDigital: "Digital",
+    typeService: "Service",
     inStock: "In Stock",
     lowStock: "Low Stock",
     outOfStock: "Out of Stock",
@@ -376,6 +384,7 @@ export default function Seller2026LiveProductsPage() {
     status: searchParams.get("status") || "all",
     category: searchParams.get("category") || "all",
     stock: searchParams.get("stock") || "all",
+    productType: searchParams.get("productType") || "all",
     page: readNumber(searchParams.get("page"), 1),
     limit: readNumber(searchParams.get("limit"), 10),
   };
@@ -422,9 +431,15 @@ export default function Seller2026LiveProductsPage() {
   };
 
   const visibleProducts = useMemo(() => {
-    if (query.stock === "all") return data.products;
-    return data.products.filter((product) => inventoryStateKey(product.stock) === query.stock);
-  }, [data.products, query.stock]);
+    let list = data.products;
+    if (query.stock !== "all") {
+      list = list.filter((product) => inventoryStateKey(product.stock) === query.stock);
+    }
+    if (query.productType !== "all") {
+      list = list.filter((product) => (product.productType || "physical") === query.productType);
+    }
+    return list;
+  }, [data.products, query.stock, query.productType]);
 
   const toggleAll = (checked) => setSelected(checked ? visibleProducts.map((item) => item.id) : []);
 
@@ -684,6 +699,12 @@ export default function Seller2026LiveProductsPage() {
             <option value="low_stock">{t.lowStock}</option>
             <option value="out_of_stock">{t.outOfStock}</option>
           </select>
+          <select value={query.productType} onChange={(event) => updateQuery({ productType: event.target.value, page: 1 })}>
+            <option value="all">{t.allTypes || "Semua Tipe"}</option>
+            <option value="physical">📦 {t.typePhysical || "Fisik"}</option>
+            <option value="digital">⚡ {t.typeDigital || "Digital"}</option>
+            <option value="service">🛠️ {t.typeService || "Layanan"}</option>
+          </select>
           <button type="button" onClick={() => setSearchParams({})}>
             <RefreshCw size={16} />
             {t.reset}
@@ -734,6 +755,19 @@ export default function Seller2026LiveProductsPage() {
                       <SellerProductThumbnail product={product} />
                       <div className="seller2026-product-card__badges">
                         <Pill>{lifecycleLabel(product.status, isId)}</Pill>
+                        {product.productType === "service" ? (
+                          <span style={{ fontSize: "10.5px", padding: "2px 7px", borderRadius: "10px", background: "rgba(249, 115, 22, 0.2)", color: "#f97316", fontWeight: 700, border: "1px solid rgba(249, 115, 22, 0.4)" }}>
+                            🛠️ {isId ? "Layanan" : "Service"}
+                          </span>
+                        ) : product.productType === "digital" ? (
+                          <span style={{ fontSize: "10.5px", padding: "2px 7px", borderRadius: "10px", background: "rgba(168, 85, 247, 0.2)", color: "#a855f7", fontWeight: 700, border: "1px solid rgba(168, 85, 247, 0.4)" }}>
+                            ⚡ Digital
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: "10.5px", padding: "2px 7px", borderRadius: "10px", background: "rgba(59, 130, 246, 0.2)", color: "#60a5fa", fontWeight: 700, border: "1px solid rgba(59, 130, 246, 0.4)" }}>
+                            📦 {isId ? "Fisik" : "Physical"}
+                          </span>
+                        )}
                         <Pill>{review}</Pill>
                       </div>
                     </div>
@@ -884,8 +918,21 @@ export default function Seller2026LiveProductsPage() {
                             {product.name}
                           </Link>
                           <small className="seller2026-product-row__slug">{product.sku || product.slug}</small>
-                          <div className="seller2026-product-row__badge">
+                          <div className="seller2026-product-row__badge" style={{ display: "flex", gap: "6px", alignItems: "center", marginTop: "3px" }}>
                             <Pill>{lifecycleLabel(product.status, isId)}</Pill>
+                            {product.productType === "service" ? (
+                              <span style={{ fontSize: "11px", padding: "2px 7px", borderRadius: "10px", background: "rgba(249, 115, 22, 0.15)", color: "#f97316", fontWeight: 700, border: "1px solid rgba(249, 115, 22, 0.3)" }}>
+                                🛠️ {isId ? "Layanan" : "Service"}
+                              </span>
+                            ) : product.productType === "digital" ? (
+                              <span style={{ fontSize: "11px", padding: "2px 7px", borderRadius: "10px", background: "rgba(168, 85, 247, 0.15)", color: "#a855f7", fontWeight: 700, border: "1px solid rgba(168, 85, 247, 0.3)" }}>
+                                ⚡ Digital
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: "11px", padding: "2px 7px", borderRadius: "10px", background: "rgba(59, 130, 246, 0.15)", color: "#60a5fa", fontWeight: 700, border: "1px solid rgba(59, 130, 246, 0.3)" }}>
+                                📦 {isId ? "Fisik" : "Physical"}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>

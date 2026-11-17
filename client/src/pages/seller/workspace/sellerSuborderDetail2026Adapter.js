@@ -395,6 +395,8 @@ const normalizeItems = (items, isIndo = false) =>
       "physical"
     ).toLowerCase();
     const isDigital = productType === "digital" || Boolean(row.isDigital);
+    const isService = productType === "service" || Boolean(row.isService);
+    const isPhysical = productType === "physical";
     const digitalAssetUrl = text(
       row.digitalAssetUrl ||
       row.product?.digitalAssetUrl ||
@@ -412,13 +414,19 @@ const normalizeItems = (items, isIndo = false) =>
       subtotal,
       subtotalLabel: formatMoney(subtotal),
       imageUrl: text(row.imageUrl ?? row.image ?? row.imageSnapshot ?? row.product?.image),
-      weight,
-      lineWeight,
-      weightLabel: weight > 0 ? formatWeight(weight) : null,
-      lineWeightLabel: lineWeight > 0 ? formatWeight(lineWeight) : null,
+      weight: isDigital || isService ? 0 : weight,
+      lineWeight: isDigital || isService ? 0 : lineWeight,
+      weightLabel: !isDigital && !isService && weight > 0 ? formatWeight(weight) : null,
+      lineWeightLabel: !isDigital && !isService && lineWeight > 0 ? formatWeight(lineWeight) : null,
       productType,
       isDigital,
+      isService,
+      isPhysical,
       digitalAssetUrl,
+      serviceDeliveryType: text(row.serviceDeliveryType || row.product?.seo?.serviceDeliveryType, "online"),
+      serviceDuration: text(row.serviceDuration || row.product?.seo?.serviceDuration),
+      serviceInstructions: text(row.serviceInstructions || row.product?.seo?.serviceInstructions),
+      serviceContactWhatsapp: text(row.serviceContactWhatsapp || row.product?.seo?.serviceContactWhatsapp),
     };
   });
 
@@ -661,6 +669,13 @@ export const normalizeSellerSuborderDetailFor2026 = ({ suborder, routes = {}, is
   const hasDigitalItems =
     Boolean(order.hasDigitalItems || detail.hasDigitalItems) ||
     normItems.some((it) => it.isDigital);
+  const isServiceOrder =
+    Boolean(order.isService || detail.isService) ||
+    (normItems.length > 0 && normItems.every((it) => it.isService));
+  const hasServiceItems =
+    Boolean(order.hasServiceItems || detail.hasServiceItems) ||
+    normItems.some((it) => it.isService);
+  const isNonPhysicalOrder = isDigitalOrder || isServiceOrder;
 
   const primaryDigitalAssetUrl =
     normItems.find((it) => it.digitalAssetUrl)?.digitalAssetUrl ||
@@ -725,6 +740,31 @@ export const normalizeSellerSuborderDetailFor2026 = ({ suborder, routes = {}, is
         description: isIndo
           ? "Pesanan digital belum dibayar. Akses unduhan akan otomatis aktif begitu pembeli menyelesaikan pembayaran."
           : "Digital order is unpaid. Download access will automatically unlock once payment is verified.",
+        icon: "clock",
+        badge: isIndo ? "Belum Bayar" : "Unpaid",
+        badgeTone: "amber",
+      };
+    }
+
+    if (isServiceOrder) {
+      if (isPaid) {
+        return {
+          bucket: "service_active",
+          title: isIndo ? "Pesanan Layanan / Jasa Siap Diproses" : "Service Order Active",
+          description: isIndo
+            ? "Pembayaran telah terverifikasi. Silakan hubungi pembeli via WhatsApp untuk konfirmasi brief atau jadwal pengerjaan jasa."
+            : "Payment verified. Please contact the buyer via WhatsApp to confirm the brief or schedule.",
+          icon: "briefcase",
+          badge: isIndo ? "Layanan Siap Diproses" : "Service Ready",
+          badgeTone: "orange",
+        };
+      }
+      return {
+        bucket: "unpaid",
+        title: isIndo ? "Menunggu Pembayaran Layanan" : "Awaiting Service Payment",
+        description: isIndo
+          ? "Pembeli belum menyelesaikan pembayaran untuk pesanan layanan ini."
+          : "Customer has not completed payment for this service order.",
         icon: "clock",
         badge: isIndo ? "Belum Bayar" : "Unpaid",
         badgeTone: "amber",
@@ -1047,6 +1087,9 @@ export const normalizeSellerSuborderDetailFor2026 = ({ suborder, routes = {}, is
 
     isDigitalOrder,
     hasDigitalItems,
+    isServiceOrder,
+    hasServiceItems,
+    isNonPhysicalOrder,
     digitalAssetUrl: primaryDigitalAssetUrl,
   };
 };

@@ -603,7 +603,7 @@ const buildSellerShippingLabel = (suborder) => {
         Boolean(senderAddress) &&
         Boolean(storeShippingSetup.isShippingReady);
     const reason = physicalItems.length === 0
-        ? "Label pengiriman hanya tersedia untuk produk Physical."
+        ? "Label pengiriman hanya tersedia untuk produk Fisik (produk Digital & Layanan tidak memerlukan resi kurir)."
         : !recipientAddress
             ? "Alamat penerima belum tersedia."
             : !senderAddress || !storeShippingSetup.isShippingReady
@@ -1493,10 +1493,18 @@ const serializeDetail = (suborder, sellerAccess = null) => {
                 barcode: String(getAttr(item, "barcodeSnapshot") || "").trim() || null,
                 image: String(getAttr(item, "imageSnapshot") || "").trim() || null,
                 productType: productTypeMetadata.productType,
+                isPhysical: productTypeMetadata.isPhysical,
                 isDigital: productTypeMetadata.isDigital,
+                isService: productTypeMetadata.isService,
+                isWeightless: productTypeMetadata.isWeightless,
                 digitalAssetUrl: productTypeMetadata.digitalAssetUrl,
-                weight,
-                lineWeight: weight * qty,
+                digitalInstructions: productTypeMetadata.digitalInstructions,
+                serviceDeliveryType: productTypeMetadata.serviceDeliveryType,
+                serviceDuration: productTypeMetadata.serviceDuration,
+                serviceInstructions: productTypeMetadata.serviceInstructions,
+                serviceContactWhatsapp: productTypeMetadata.serviceContactWhatsapp,
+                weight: productTypeMetadata.isWeightless ? 0 : weight,
+                lineWeight: productTypeMetadata.isWeightless ? 0 : weight * qty,
             };
         }),
         package: (() => {
@@ -1567,6 +1575,26 @@ const serializeDetail = (suborder, sellerAccess = null) => {
                     seo: getAttr(prod, "seo"),
                 }).isDigital;
             }),
+        isService: Array.isArray(suborder?.items) &&
+            suborder.items.length > 0 &&
+            suborder.items.every((it) => {
+                const prod = it?.product ?? it?.get?.("product") ?? null;
+                return getProductTypeMetadata({
+                    productType: getAttr(it, "productTypeSnapshot"),
+                    product_type: getAttr(it, "product_type_snapshot"),
+                    seo: getAttr(prod, "seo"),
+                }).isService;
+            }),
+        isNonPhysical: Array.isArray(suborder?.items) &&
+            suborder.items.length > 0 &&
+            suborder.items.every((it) => {
+                const prod = it?.product ?? it?.get?.("product") ?? null;
+                return getProductTypeMetadata({
+                    productType: getAttr(it, "productTypeSnapshot"),
+                    product_type: getAttr(it, "product_type_snapshot"),
+                    seo: getAttr(prod, "seo"),
+                }).isWeightless;
+            }),
         hasDigitalItems: Array.isArray(suborder?.items) &&
             suborder.items.some((it) => {
                 const prod = it?.product ?? it?.get?.("product") ?? null;
@@ -1575,6 +1603,15 @@ const serializeDetail = (suborder, sellerAccess = null) => {
                     product_type: getAttr(it, "product_type_snapshot"),
                     seo: getAttr(prod, "seo"),
                 }).isDigital;
+            }),
+        hasServiceItems: Array.isArray(suborder?.items) &&
+            suborder.items.some((it) => {
+                const prod = it?.product ?? it?.get?.("product") ?? null;
+                return getProductTypeMetadata({
+                    productType: getAttr(it, "productTypeSnapshot"),
+                    product_type: getAttr(it, "product_type_snapshot"),
+                    seo: getAttr(prod, "seo"),
+                }).isService;
             }),
     };
 };
