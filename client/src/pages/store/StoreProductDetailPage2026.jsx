@@ -36,6 +36,7 @@ import {
   ZoomOut,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import toast from "react-hot-toast";
 import { useCart } from "../../hooks/useCart.ts";
 import { resolveAssetUrl } from "../../lib/assetUrl.js";
 import { useProduct, useProducts } from "../../storefront.jsx";
@@ -188,6 +189,9 @@ export const getReviewCount = (product) =>
   Math.max(0, Math.round(toNumber(product?.reviewCount ?? product?.reviewsCount ?? product?.ratingCount, 0)));
 
 export const getStock = (product, selectedVariant) => {
+  if (selectedVariant && String(selectedVariant?.status || "").toLowerCase() === "inactive") {
+    return 0;
+  }
   const value =
     selectedVariant?.stock ??
     selectedVariant?.quantity ??
@@ -351,10 +355,40 @@ export const getSelectedOriginalPrice = (product, selectedVariant) =>
 
 export const isPurchasable = (product, selectedVariant, quantity) => {
   if (product?.purchaseState && product.purchaseState.isPurchasable === false) return false;
+  const groups = normalizeVariationGroups(product);
+  if (groups.length > 0 && !selectedVariant) return false;
+  if (selectedVariant && String(selectedVariant?.status || "").toLowerCase() === "inactive") return false;
   const stock = getStock(product, selectedVariant);
   if (stock !== null && stock <= 0) return false;
   if (stock !== null && quantity > stock) return false;
   return true;
+};
+
+export const isOptionAvailable = (product, group, option, selectedOptions = {}) => {
+  const allVariants = normalizeVariants(product);
+  if (allVariants.length === 0) return true;
+
+  const otherSelectedKeys = Object.entries(selectedOptions || {})
+    .filter(([grpId]) => String(grpId) !== String(group.id))
+    .map(([, selKey]) => String(selKey).toLowerCase())
+    .filter(Boolean);
+
+  const matchingVariants = allVariants.filter((variant) => {
+    const variantKeys = (variant.selections || []).map((s) => String(s.selectionKey).toLowerCase());
+    const matchesThisOption = variantKeys.includes(String(option.selectionKey).toLowerCase());
+    if (!matchesThisOption) return false;
+
+    return otherSelectedKeys.every((otherKey) => variantKeys.includes(otherKey));
+  });
+
+  if (matchingVariants.length === 0) {
+    const anyMatching = allVariants.filter((v) =>
+      (v.selections || []).some((s) => String(s.selectionKey).toLowerCase() === String(option.selectionKey).toLowerCase())
+    );
+    return anyMatching.some((v) => v.status !== "inactive" && (v.stock === null || v.stock > 0));
+  }
+
+  return matchingVariants.some((v) => v.status !== "inactive" && (v.stock === null || v.stock > 0));
 };
 
 /* Reusable Touch & Mouse Swipe Slider Hook for PDP Hero Gallery & Lightbox */
@@ -729,6 +763,12 @@ export default function StoreProductDetailPage2026() {
     [product, selectedOptions]
   );
 
+  useEffect(() => {
+    if (selectedVariant?.image) {
+      setActiveImageIndex(0);
+    }
+  }, [selectedVariant?.image]);
+
   const images = useMemo(() => {
     const variantImage = selectedVariant?.image ? [selectedVariant.image] : [];
     const all = Array.from(new Set([...variantImage, ...getProductImages(product)]));
@@ -1005,7 +1045,13 @@ export default function StoreProductDetailPage2026() {
     };
   };
 
+  const hasIncompleteVariants = variationGroups.length > 0 && !selectedVariant;
+
   const handleAddToCart = async () => {
+    if (hasIncompleteVariants) {
+      toast(isIndo ? "Silakan pilih opsi varian produk terlebih dahulu." : "Please select product options first.");
+      return;
+    }
     if (!canPurchase) return;
     setIsAdding(true);
     try {
@@ -1016,6 +1062,10 @@ export default function StoreProductDetailPage2026() {
   };
 
   const handleBuyNow = async () => {
+    if (hasIncompleteVariants) {
+      toast(isIndo ? "Silakan pilih opsi varian produk terlebih dahulu." : "Please select product options first.");
+      return;
+    }
     if (!canPurchase) return;
     setIsAdding(true);
     try {
@@ -1337,6 +1387,7 @@ export default function StoreProductDetailPage2026() {
                     <div className="flex flex-wrap gap-2">
                       {group.options.map((opt) => {
                         const active = selectedOptions[group.id] === opt.selectionKey;
+                        const available = isOptionAvailable(product, group, opt, selectedOptions);
                         return (
                           <button
                             key={opt.id}
@@ -1344,13 +1395,20 @@ export default function StoreProductDetailPage2026() {
                             onClick={() =>
                               setSelectedOptions((prev) => ({ ...prev, [group.id]: opt.selectionKey }))
                             }
-                            className={`rounded-lg border px-3.5 py-1.5 text-xs font-bold transition ${
+                            className={`rounded-lg border px-3.5 py-1.5 text-xs font-bold transition flex items-center gap-1.5 ${
                               active
-                                ? "border-[var(--pdp-orange)] bg-[var(--pdp-orange-soft)] text-[var(--pdp-orange)]"
-                                : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 dark:border-white/10 dark:bg-slate-800 dark:text-slate-200"
+                                ? "border-[var(--pdp-orange)] bg-[var(--pdp-orange-soft)] text-[var(--pdp-orange)] shadow-sm"
+                                : available
+                                ? "border-slate-200 bg-white text-slate-700 hover:border-slate-300 dark:border-white/10 dark:bg-slate-800 dark:text-slate-200"
+                                : "border-slate-200/60 bg-slate-100/70 text-slate-400 line-through dark:border-white/5 dark:bg-slate-800/40 dark:text-slate-500"
                             }`}
                           >
-                            {opt.value}
+                            <span>{opt.value}</span>
+                            {!available && (
+                              <span className="no-underline text-[10px] font-semibold text-slate-400 dark:text-slate-500">
+                                ({isIndo ? "Habis" : "Sold out"})
+                              </span>
+                            )}
                           </button>
                         );
                       })}

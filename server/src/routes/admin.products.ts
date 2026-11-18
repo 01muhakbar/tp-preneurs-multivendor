@@ -1021,6 +1021,8 @@ const sanitizeAdminProductVariations = async (value: unknown) => {
         );
       }
 
+      const status = asOptionalString(entry.status)?.toLowerCase() === "inactive" ? "inactive" : "active";
+
       return {
         id: asOptionalString(entry.id) ?? `variant-${index + 1}`,
         combination: providedCombination,
@@ -1031,6 +1033,7 @@ const sanitizeAdminProductVariations = async (value: unknown) => {
         price,
         salePrice,
         quantity,
+        status,
         image: normalizeUploadsUrl(entry.image),
       };
     })

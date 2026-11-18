@@ -759,6 +759,7 @@ const sanitizeAdminProductVariations = async (value) => {
         if (quantity !== null && (!Number.isFinite(quantity) || quantity < 0)) {
             throw createCategoryContractError(`variations.variants[${index}].quantity must be a valid non-negative integer.`);
         }
+        const status = asOptionalString(entry.status)?.toLowerCase() === "inactive" ? "inactive" : "active";
         return {
             id: asOptionalString(entry.id) ?? `variant-${index + 1}`,
             combination: providedCombination,
@@ -769,6 +770,7 @@ const sanitizeAdminProductVariations = async (value) => {
             price,
             salePrice,
             quantity,
+            status,
             image: normalizeUploadsUrl(entry.image),
         };
     })

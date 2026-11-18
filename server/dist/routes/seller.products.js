@@ -440,6 +440,7 @@ const normalizeSellerVariationPayload = (input, hasVariantsFlag) => {
             error.code = "SELLER_PRODUCT_VARIANT_IMAGE_URL_INVALID";
             throw error;
         }
+        const status = String(entry?.status || "").trim().toLowerCase() === "inactive" ? "inactive" : "active";
         return {
             id: normalizeString(entry?.id) || `variant-${index + 1}`,
             combination,
@@ -451,6 +452,7 @@ const normalizeSellerVariationPayload = (input, hasVariantsFlag) => {
             salePrice: typeof salePrice === "number" ? (salePrice > 0 ? salePrice : null) : null,
             quantity: typeof quantity === "number" ? quantity : null,
             stock: typeof quantity === "number" ? quantity : null,
+            status,
             image,
         };
     });

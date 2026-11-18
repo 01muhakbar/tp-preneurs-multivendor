@@ -1238,6 +1238,105 @@
   gap: 12px;
 }
 
+/* Bulk Matrix Bar */
+.apf26-bulk-matrix-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: color-mix(in srgb, var(--apf26-primary, #034c85) 6%, var(--apf26-surface));
+  border: 1px solid color-mix(in srgb, var(--apf26-primary, #034c85) 20%, var(--apf26-border));
+  border-radius: 10px;
+  margin-bottom: 8px;
+}
+
+.apf26-bulk-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.apf26-bulk-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--apf26-muted);
+  white-space: nowrap;
+}
+
+.apf26-bulk-input {
+  width: 110px !important;
+  height: 34px !important;
+  padding: 4px 8px !important;
+  font-size: 12px !important;
+}
+
+.apf26-bulk-btn {
+  height: 34px !important;
+  padding: 0 12px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  white-space: nowrap;
+}
+
+.apf26-btn-autosku {
+  display: inline-flex;
+  align-items: center;
+  border-color: color-mix(in srgb, var(--apf26-accent, #fe6f05) 45%, var(--apf26-border));
+  color: var(--apf26-accent, #fe6f05);
+  margin-left: auto;
+}
+
+.apf26-btn-autosku:hover {
+  background: color-mix(in srgb, var(--apf26-accent, #fe6f05) 12%, transparent);
+}
+
+/* Variant Status Pill */
+.apf26-variant-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 150ms ease;
+}
+
+.apf26-variant-status-pill.is-active {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.25);
+}
+
+.apf26-variant-status-pill.is-active:hover {
+  background: rgba(16, 185, 129, 0.2);
+}
+
+.apf26-variant-status-pill.is-inactive {
+  background: rgba(148, 163, 184, 0.15);
+  color: var(--apf26-muted);
+  border-color: rgba(148, 163, 184, 0.3);
+}
+
+.apf26-variant-status-pill.is-inactive:hover {
+  background: rgba(148, 163, 184, 0.25);
+}
+
+.apf26-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.apf26-row-inactive {
+  opacity: 0.65;
+  background: color-mix(in srgb, var(--apf26-surface-soft) 70%, transparent);
+}
+
 .apf26-table-wrap {
   overflow-x: auto;
   border: 1px solid var(--apf26-border);

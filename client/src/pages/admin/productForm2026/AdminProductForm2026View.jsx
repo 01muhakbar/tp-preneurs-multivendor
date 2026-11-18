@@ -907,6 +907,7 @@ function PricingStep({ form, meta, onFormChange, onMetaChange }) {
 }
 
 function VariantsStep({
+  form,
   hasVariants,
   selectedAttributes,
   selectedAttributeValues,
@@ -932,7 +933,46 @@ function VariantsStep({
   onRemoveVariant,
   onVariantImageUpload,
 }) {
-  const { t } = useTranslation("admin");
+  const { t, i18n } = useTranslation("admin");
+  const isId = String(i18n.language || "").toLowerCase().startsWith("id");
+  const [bulkPrice, setBulkPrice] = useState("");
+  const [bulkStock, setBulkStock] = useState("");
+
+  const handleApplyBulkPrice = () => {
+    const val = Number(bulkPrice);
+    if (!bulkPrice || Number.isNaN(val) || val < 0) return;
+    variants.forEach((v) => {
+      onVariantFieldChange(v.id, "price", val);
+    });
+    setBulkPrice("");
+  };
+
+  const handleApplyBulkStock = () => {
+    if (bulkStock === "" || Number.isNaN(Number(bulkStock))) return;
+    const qty = Math.max(0, parseInt(bulkStock, 10));
+    variants.forEach((v) => {
+      onVariantFieldChange(v.id, "quantity", qty);
+    });
+    setBulkStock("");
+  };
+
+  const handleAutoGenerateSku = () => {
+    const base = String(form?.sku || form?.name || "PRD")
+      .toUpperCase()
+      .replace(/[^A-Z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 16);
+
+    variants.forEach((v) => {
+      const combClean = String(v.combination || "")
+        .toUpperCase()
+        .replace(/[^A-Z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 24);
+      const generated = `${base}-${combClean}`;
+      onVariantFieldChange(v.id, "sku", generated);
+    });
+  };
 
   return (
     <div className="apf26-grid">
@@ -1090,41 +1130,94 @@ function VariantsStep({
                 disabled={variants.length === 0}
                 onClick={onClearVariants}
               >
-                {t("productForm.Clear Variants")}
+                {isId ? "Hapus Semua Varian" : t("productForm.Clear Variants")}
               </button>
               <button type="button" className="apf26-button apf26-button--primary" onClick={onGenerateVariants}>
-                {t("productForm.Generate Variants")}
+                {isId ? "Generate Kombinasi Varian" : t("productForm.Generate Variants")}
               </button>
             </div>
+
+            {variants.length > 0 && (
+              <div className="apf26-bulk-matrix-bar">
+                <div className="apf26-bulk-group">
+                  <span className="apf26-bulk-label">{isId ? "Harga Massal:" : "Bulk Price:"}</span>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="Rp 0"
+                    className="apf26-input apf26-bulk-input"
+                    value={bulkPrice}
+                    onChange={(e) => setBulkPrice(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="apf26-button apf26-button--primary apf26-bulk-btn"
+                    onClick={handleApplyBulkPrice}
+                    disabled={!bulkPrice}
+                  >
+                    {isId ? "Terapkan Harga" : "Apply Price"}
+                  </button>
+                </div>
+
+                <div className="apf26-bulk-group">
+                  <span className="apf26-bulk-label">{isId ? "Stok Massal:" : "Bulk Stock:"}</span>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    className="apf26-input apf26-bulk-input"
+                    value={bulkStock}
+                    onChange={(e) => setBulkStock(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="apf26-button apf26-button--primary apf26-bulk-btn"
+                    onClick={handleApplyBulkStock}
+                    disabled={bulkStock === ""}
+                  >
+                    {isId ? "Terapkan Stok" : "Apply Stock"}
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  className="apf26-button apf26-bulk-btn apf26-btn-autosku"
+                  onClick={handleAutoGenerateSku}
+                  title={isId ? "Buat SKU otomatis untuk semua kombinasi varian" : "Auto generate SKU for all variants"}
+                >
+                  <Sparkles size={14} style={{ marginRight: 6 }} />
+                  {isId ? "Generate SKU Otomatis" : "Auto Generate SKU"}
+                </button>
+              </div>
+            )}
 
             <div className="apf26-table-wrap">
               <table className="apf26-table">
                 <thead>
                   <tr>
-                    {[
-                      "Image",
-                      "Variant",
-                      "SKU",
-                      "Barcode",
-                      "Price",
-                      "Sale Price",
-                      "Quantity",
-                      "Action",
-                    ].map((label) => (
-                      <th key={label}>{t("productForm." + label)}</th>
-                    ))}
+                    <th style={{ width: "85px" }}>{isId ? "Foto" : "Image"}</th>
+                    <th style={{ minWidth: "160px" }}>{isId ? "Kombinasi Varian" : "Variant"}</th>
+                    <th style={{ width: "160px" }}>SKU</th>
+                    <th style={{ width: "130px" }}>Barcode</th>
+                    <th style={{ width: "130px" }}>{isId ? "Harga (Rp)" : "Price"}</th>
+                    <th style={{ width: "130px" }}>{isId ? "Harga Coret" : "Sale Price"}</th>
+                    <th style={{ width: "110px" }}>{isId ? "Stok" : "Quantity"}</th>
+                    <th style={{ width: "110px" }}>Status</th>
+                    <th style={{ width: "60px", textAlign: "center" }}>{isId ? "Aksi" : "Action"}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {variants.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="apf26-table-empty">
-                        {t("productForm.Generate variants to review and edit each combination.")}
+                      <td colSpan={9} className="apf26-table-empty">
+                        {isId
+                          ? "Pilih atribut di atas dan klik Generate Kombinasi Varian untuk memulai."
+                          : t("productForm.Generate variants to review and edit each combination.")}
                       </td>
                     </tr>
                   ) : (
                     variants.map((variant) => (
-                      <tr key={variant.id}>
+                      <tr key={variant.id} className={variant.status === "inactive" ? "apf26-row-inactive" : ""}>
                         <td>
                           <div className="apf26-variant-image-cell">
                             <span className="apf26-variant-image">
@@ -1209,9 +1302,28 @@ function VariantsStep({
                         <td>
                           <button
                             type="button"
+                            onClick={() => {
+                              const nextStatus = (variant.status || "active") === "active" ? "inactive" : "active";
+                              onVariantFieldChange(variant.id, "status", nextStatus);
+                            }}
+                            className={`apf26-variant-status-pill ${(variant.status || "active") === "active" ? "is-active" : "is-inactive"}`}
+                            title={isId ? "Klik untuk mengubah status aktif varian" : "Click to toggle variant status"}
+                          >
+                            <span className="apf26-status-dot" />
+                            <span>
+                              {(variant.status || "active") === "active"
+                                ? (isId ? "Aktif" : "Active")
+                                : (isId ? "Nonaktif" : "Inactive")}
+                            </span>
+                          </button>
+                        </td>
+                        <td style={{ textAlign: "center" }}>
+                          <button
+                            type="button"
                             className="apf26-icon-button"
                             onClick={() => onRemoveVariant(variant.id)}
                             aria-label={`Remove ${variant.combination}`}
+                            title={isId ? "Hapus kombinasi varian" : "Remove variant"}
                           >
                             <X size={16} />
                           </button>
@@ -1933,6 +2045,7 @@ export default function AdminProductForm2026View({
             ) : null}
             {activeStep === 4 ? (
               <VariantsStep
+                form={form}
                 hasVariants={hasVariants}
                 selectedAttributes={selectedAttributes}
                 selectedAttributeValues={selectedAttributeValues}

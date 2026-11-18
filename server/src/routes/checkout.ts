@@ -1185,6 +1185,16 @@ const resolveCheckoutCartLineSnapshot = (product: any) => {
     };
   }
 
+  if (variationState.hasVariants && selectedVariant && String(selectedVariant?.status || "").toLowerCase() === "inactive") {
+    return {
+      lineId: buildCheckoutLineId(productId, variantKey),
+      cartItemId: toNumber(cartItem?.id, 0) || null,
+      variantKey,
+      variantSelections,
+      invalidReason: "VARIANT_NOT_AVAILABLE",
+    };
+  }
+
   const variantSnapshot = selectedVariant
     ? resolveVariantUnitPrice(selectedVariant, product)
     : {

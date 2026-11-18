@@ -1431,6 +1431,7 @@ export default function ProductForm({ mode = "page", onClose, onSuccess, product
               price: normalizeVariantNumber(variant.price),
               salePrice: resolveSalePriceValue(variant.salePrice),
               quantity: normalizeVariantQuantity(variant.quantity),
+              status: variant.status || "active",
               image: variant.image || null,
             })),
           }

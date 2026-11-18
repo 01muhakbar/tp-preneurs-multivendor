@@ -545,6 +545,8 @@ const normalizeSellerVariationPayload = (input: unknown, hasVariantsFlag: boolea
       throw error;
     }
 
+    const status = String(entry?.status || "").trim().toLowerCase() === "inactive" ? "inactive" : "active";
+
     return {
       id: normalizeString(entry?.id) || `variant-${index + 1}`,
       combination,
@@ -557,6 +559,7 @@ const normalizeSellerVariationPayload = (input: unknown, hasVariantsFlag: boolea
         typeof salePrice === "number" ? (salePrice > 0 ? salePrice : null) : null,
       quantity: typeof quantity === "number" ? quantity : null,
       stock: typeof quantity === "number" ? quantity : null,
+      status,
       image,
     };
   });

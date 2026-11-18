@@ -1289,6 +1289,7 @@ export default function Seller2026LiveProductEditorPage({ mode = "create" }) {
             price: normalizeVariantNumber(variant.price),
             salePrice: resolveSalePriceValue(variant.salePrice),
             quantity: normalizeVariantQuantity(variant.quantity),
+            status: variant.status || "active",
             image: variant.image || null,
           })),
         }
