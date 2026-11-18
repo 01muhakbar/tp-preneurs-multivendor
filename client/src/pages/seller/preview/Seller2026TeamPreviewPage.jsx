@@ -16,6 +16,10 @@ export function Seller2026TeamPreviewPage({ productionMode = false }) {
     refetch
   } = useSellerWorkspace2026Team(storeSlug);
 
+  const selectedMember = useMemo(() => {
+    return data?.members?.find(m => m.id === selectedMemberId) || null;
+  }, [data?.members, selectedMemberId]);
+
   if (error && !data) {
     return (
       <Seller2026Shell section="team">
@@ -26,10 +30,6 @@ export function Seller2026TeamPreviewPage({ productionMode = false }) {
       </Seller2026Shell>
     );
   }
-
-  const selectedMember = useMemo(() => {
-    return data?.members?.find(m => m.id === selectedMemberId) || null;
-  }, [data?.members, selectedMemberId]);
 
   return (
     <Seller2026Shell section="team">

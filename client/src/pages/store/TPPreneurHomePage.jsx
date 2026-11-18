@@ -541,11 +541,11 @@ function CompactHeroCouponCard({
   copiedCode,
   onCopy,
 }) {
+  const { i18n } = useTranslation();
   if (!discountCouponBox?.enabled) return null;
 
   const safeCoupons = Array.isArray(couponList) ? couponList.filter((coupon) => toText(coupon?.code)) : [];
   const primaryCoupon = safeCoupons[0] || null;
-  const { i18n } = useTranslation();
   const isIndo = i18n.language === 'id' || i18n.language === 'id-ID';
   const title = toText(discountCouponBox.title, "Latest Super Discount Active Coupon Code");
   const displayTitle = isIndo && title === "Latest Super Discount Active Coupon Code" ? "Kode Kupon Diskon Super Terbaru" : title;

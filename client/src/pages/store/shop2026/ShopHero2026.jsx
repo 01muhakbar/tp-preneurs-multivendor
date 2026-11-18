@@ -74,14 +74,11 @@ export default function ShopHero2026({ query, onSearch, shopConfig }) {
     setDraft(query || "");
   }, [query]);
 
-  if (shopConfig && shopConfig.enabled === false) {
-    return null;
-  }
-
   // Fetch real popular products from DB for chips
   const { data: popularProductsData } = useQuery({
     queryKey: ["storefront", "shop-hero-popular-products"],
     queryFn: () => fetchStoreProducts({ limit: 8, sort: "top_sales" }),
+    enabled: !(shopConfig && shopConfig.enabled === false),
     staleTime: 5 * 60 * 1000,
   });
 
@@ -158,6 +155,10 @@ export default function ShopHero2026({ query, onSearch, shopConfig }) {
     }
     return raw;
   }, [shopConfig?.searchPlaceholder, isIndo]);
+
+  if (shopConfig && shopConfig.enabled === false) {
+    return null;
+  }
 
   const submit = (event) => {
     event?.preventDefault();

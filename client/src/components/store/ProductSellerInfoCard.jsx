@@ -138,22 +138,39 @@ function SellerLogo({ logoUrl, name, isVerified }) {
 export default function ProductSellerInfoCard({ sellerInfo, product }) {
   const { t, i18n } = useTranslation();
   const auth = useAuth();
-  if (!sellerInfo?.name) return null;
   const locale = resolveLocale(i18n.resolvedLanguage || i18n.language);
 
   const storeId = sellerInfo?.slug || sellerInfo?.id;
   const { data: kycData } = useQuery({
     queryKey: ["seller-kyc", storeId],
     queryFn: () => fetchSellerKycRequest(storeId),
-    enabled: !!storeId,
+    enabled: Boolean(sellerInfo?.name && storeId),
   });
   const isKycVerified = kycData?.status === "approved";
 
   const { data: identityResponse } = useQuery({
     queryKey: ["storefront", "identity", sellerInfo?.slug],
     queryFn: () => getStorePublicIdentityBySlug(sellerInfo?.slug),
-    enabled: !!sellerInfo?.slug,
+    enabled: Boolean(sellerInfo?.name && sellerInfo?.slug),
   });
+
+  const rawWhatsApp = toText(
+    sellerInfo?.whatsapp ||
+    sellerInfo?.whatsappNumber ||
+    sellerInfo?.phone ||
+    identityResponse?.data?.whatsapp ||
+    identityResponse?.data?.phone
+  );
+
+  const defaultChatText = product?.name
+    ? `Halo ${sellerInfo?.name || "Seller"}, saya tertarik dengan produk "${product.name}" di TP Preneurs.`
+    : "";
+
+  const computedChatHref = rawWhatsApp
+    ? toPreferredWhatsAppLink(rawWhatsApp, "", defaultChatText)
+    : null;
+
+  if (!sellerInfo?.name) return null;
   
   const displayCity = toText(identityResponse?.data?.city || sellerInfo?.city || sellerInfo?.location);
 
@@ -189,7 +206,7 @@ export default function ProductSellerInfoCard({ sellerInfo, product }) {
   const statusDisplayLabel = translateStatusLabel(statusLabel, t);
   const reviewLabel = t("productDetail.reviewsCount", { count: ratingCount });
 
-  const rawWhatsApp =
+  const rawWhatsAppFinal =
     sellerInfo.chatHref ||
     identityResponse?.data?.whatsapp ||
     sellerInfo.publicContact?.whatsapp ||
@@ -197,16 +214,10 @@ export default function ProductSellerInfoCard({ sellerInfo, product }) {
     identityResponse?.data?.phone ||
     sellerInfo.phone;
 
-  const defaultChatText = product?.name
-    ? `Halo ${sellerInfo.name || "Seller"}, saya tertarik dengan produk "${product.name}" di TP Preneurs.`
-    : "";
-
-  const computedChatHref = useMemo(() => {
-    if (!rawWhatsApp) return null;
-    return toPreferredWhatsAppLink(rawWhatsApp, "", defaultChatText);
-  }, [rawWhatsApp, defaultChatText]);
-
-  const effectiveChatHref = computedChatHref || sellerInfo.chatHref;
+  const effectiveChatHref =
+    (rawWhatsAppFinal ? toPreferredWhatsAppLink(rawWhatsAppFinal, "", defaultChatText) : null) ||
+    computedChatHref ||
+    sellerInfo.chatHref;
   const isChatEnabled =
     (sellerInfo.chatMode === "enabled" || Boolean(computedChatHref)) &&
     Boolean(effectiveChatHref);

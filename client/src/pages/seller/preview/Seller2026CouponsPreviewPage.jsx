@@ -20,17 +20,6 @@ export function Seller2026CouponsPreviewPage({ productionMode = false }) {
     actionState
   } = useSellerWorkspace2026Coupons(storeSlug);
 
-  if (error && !data) {
-    return (
-      <Seller2026Shell section="taxonomy">
-        <div style={{ padding: "48px", textAlign: "center", color: "#ef4444" }}>
-          <h2>Error Loading Coupons</h2>
-          <p>{error.message || "Failed to load coupon information."}</p>
-        </div>
-      </Seller2026Shell>
-    );
-  }
-
   const filteredCoupons = useMemo(() => {
     let result = data?.coupons || [];
     if (filters.search) {
@@ -45,6 +34,17 @@ export function Seller2026CouponsPreviewPage({ productionMode = false }) {
     }
     return result;
   }, [data?.coupons, filters]);
+
+  if (error && !data) {
+    return (
+      <Seller2026Shell section="taxonomy">
+        <div style={{ padding: "48px", textAlign: "center", color: "#ef4444" }}>
+          <h2>Error Loading Coupons</h2>
+          <p>{error.message || "Failed to load coupon information."}</p>
+        </div>
+      </Seller2026Shell>
+    );
+  }
 
   const selectedCoupon = data?.coupons?.find(c => c.id === selectedCouponId);
 

@@ -780,18 +780,15 @@ export default function SellerSuborderDetail2026PageView({
   const isTrackingUrl = (val) => /^https?:\/\//i.test(String(val || "").trim());
   const isCurrentDraftUrl = isTrackingUrl(currentTrackingVal);
 
-  const officialDirectTrackingUrl = useMemo(() => {
-    const rawNo = order?.shipping?.trackingNo;
-    const courier = order?.shipping?.courier || order?.shipping?.courierService || fulfillmentDraft.shippingProvider;
-    if (rawNo && !isTrackingUrl(rawNo)) {
-      const generated = buildOfficialCourierTrackingUrl(courier, rawNo);
-      if (generated) return generated;
-    }
-    if (order?.shipping?.trackingUrl && isTrackingUrl(order.shipping.trackingUrl)) {
-      return order.shipping.trackingUrl;
-    }
-    return null;
-  }, [order?.shipping?.trackingNo, order?.shipping?.courier, order?.shipping?.courierService, order?.shipping?.trackingUrl, fulfillmentDraft.shippingProvider]);
+  const rawTrackingNo = order?.shipping?.trackingNo;
+  const trackingCourier = order?.shipping?.courier || order?.shipping?.courierService || fulfillmentDraft.shippingProvider;
+  let officialDirectTrackingUrl = null;
+  if (rawTrackingNo && !isTrackingUrl(rawTrackingNo)) {
+    officialDirectTrackingUrl = buildOfficialCourierTrackingUrl(trackingCourier, rawTrackingNo);
+  }
+  if (!officialDirectTrackingUrl && order?.shipping?.trackingUrl && isTrackingUrl(order.shipping.trackingUrl)) {
+    officialDirectTrackingUrl = order.shipping.trackingUrl;
+  }
 
   const isDigitalOrder = Boolean(order.isDigitalOrder);
   const isServiceOrder = Boolean(order.isServiceOrder);
