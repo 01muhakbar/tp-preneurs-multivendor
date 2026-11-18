@@ -12,6 +12,8 @@ import {
   Terminal,
   Bug,
   Globe,
+  Send,
+  Loader2,
 } from "lucide-react";
 
 export default class ErrorBoundary extends React.Component {
@@ -24,8 +26,30 @@ export default class ErrorBoundary extends React.Component {
       showDetails: false,
       copied: false,
       isIndo: this.getInitialLang(),
+      reporterEmail: this.getSavedUserEmail(),
+      userNote: "",
+      isSubmittingReport: false,
+      reportSuccessTicket: null,
+      reportErrorMsg: null,
     };
   }
+
+  getSavedUserEmail = () => {
+    try {
+      if (typeof window === "undefined") return "";
+      const rawUser =
+        localStorage.getItem("user") ||
+        localStorage.getItem("admin_user") ||
+        localStorage.getItem("auth_user");
+      if (rawUser) {
+        const parsed = JSON.parse(rawUser);
+        if (parsed?.email) return String(parsed.email);
+      }
+      return "";
+    } catch {
+      return "";
+    }
+  };
 
   getInitialLang = () => {
     try {
@@ -143,6 +167,67 @@ User-Agent: ${userAgent}`
     const subject = encodeURIComponent(`[Bug Report TP Preneurs] ${errName} di ${pathname}`);
     const body = encodeURIComponent(this.buildErrorReportText(true));
     window.location.href = `mailto:tppreneurs@gmail.com?subject=${subject}&body=${body}`;
+  };
+
+  handleSubmitInAppReport = async (e) => {
+    if (e?.preventDefault) e.preventDefault();
+    const { error, errorInfo, reporterEmail, userNote, isIndo } = this.state;
+    const finalEmail = String(reporterEmail || "").trim();
+
+    if (!finalEmail) {
+      this.setState({
+        reportErrorMsg: isIndo
+          ? "Silakan masukkan alamat email Anda untuk menerima pemberitahuan saat perbaikan selesai."
+          : "Please enter your email address to receive notification once fixed.",
+      });
+      return;
+    }
+
+    this.setState({ isSubmittingReport: true, reportErrorMsg: null });
+
+    try {
+      const pathname = typeof window !== "undefined" ? window.location.pathname : "";
+      const errorName = error?.name || "ApplicationError";
+      const errorMessage = error?.message || String(error || "Unknown Error");
+      const errorStack = errorInfo?.componentStack || error?.stack || "";
+      const userAgent = typeof navigator !== "undefined" ? navigator.userAgent : "";
+
+      const res = await fetch("/api/bug-reports", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pageUrl: pathname || "/",
+          errorName,
+          errorMessage,
+          errorStack,
+          userAgent,
+          reporterEmail: finalEmail,
+          userNote: String(userNote || "").trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data?.success) {
+        this.setState({
+          isSubmittingReport: false,
+          reportSuccessTicket: data?.data?.ticketNumber || "TERKIRIM",
+          reportErrorMsg: null,
+        });
+      } else {
+        this.setState({
+          isSubmittingReport: false,
+          reportErrorMsg: data?.message || (isIndo ? "Gagal mengirim laporan." : "Failed to submit report."),
+        });
+      }
+    } catch (err) {
+      console.error("[ErrorBoundary] Submit bug report failed:", err);
+      this.setState({
+        isSubmittingReport: false,
+        reportErrorMsg: isIndo
+          ? "Terjadi kendala koneksi saat mengirim laporan langsung. Silakan gunakan tombol email manual di bawah."
+          : "Connection error while submitting report. Please use the manual email option below.",
+      });
+    }
   };
 
   render() {
@@ -285,29 +370,96 @@ User-Agent: ${userAgent}`
                 </button>
               </div>
 
-              {/* Report Issue via Email Support TP Preneurs */}
-              <div className="rounded-2xl border border-slate-800 bg-slate-800/30 p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
-                <div>
-                  <div className="flex items-center justify-center sm:justify-start gap-1.5 text-xs font-bold text-slate-300">
-                    <Bug size={14} className="text-[#fe6f05]" />
-                    {isIndo ? "Laporkan Bug ke Pengembang" : "Report Bug to Developers"}
+              {/* In-App Direct Bug Report Box */}
+              {this.state.reportSuccessTicket ? (
+                <div className="rounded-2xl border border-emerald-500/40 bg-emerald-950/30 p-4 text-emerald-200">
+                  <div className="flex items-center gap-2 font-bold text-sm text-emerald-400 mb-1">
+                    <Check size={18} className="text-emerald-400" />
+                    <span>{isIndo ? "Laporan Berhasil Terkirim ke Developer!" : "Report Sent to Developers!"}</span>
                   </div>
-                  <p className="text-[11px] text-slate-400 mt-0.5">
+                  <p className="text-xs text-slate-300 leading-relaxed">
                     {isIndo
-                      ? "Kirim email otomatis dengan rincian error di atas ke tim support TP Preneurs."
-                      : "Send an automated diagnostic email to the TP Preneurs support team."}
+                      ? `Nomor Tiket Anda: #${this.state.reportSuccessTicket}. Tim pengembang TP Preneurs telah mencatat kendala ini. Kami akan mengirimkan email konfirmasi ke ${this.state.reporterEmail} begitu perbaikan telah berhasil dirilis ke sistem.`
+                      : `Your Ticket: #${this.state.reportSuccessTicket}. TP Preneurs technical team has logged this issue. We will notify you via email at ${this.state.reporterEmail} once this has been resolved.`}
                   </p>
                 </div>
+              ) : (
+                <div className="rounded-2xl border border-slate-800 bg-slate-800/40 p-4 sm:p-5">
+                  <div className="flex items-center gap-2 text-xs font-bold text-slate-200 mb-2">
+                    <Bug size={15} className="text-[#fe6f05]" />
+                    <span>{isIndo ? "Kirim Laporan Kendala Langsung ke Developer" : "Submit Issue Directly to Developers"}</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 mb-3">
+                    {isIndo
+                      ? "Laporan Anda akan langsung masuk ke antrean perbaikan sistem Admin. Kami akan mengabari Anda melalui email saat perbaikan selesai."
+                      : "Your report will be sent directly to the Admin bug tracker. We will notify you via email when it's resolved."}
+                  </p>
 
-                <button
-                  type="button"
-                  onClick={this.handleReportEmail}
-                  className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-[#fe6f05]/40 bg-[#fe6f05]/15 px-4 text-xs font-bold text-[#fe6f05] hover:bg-[#fe6f05]/25 transition"
-                >
-                  <Mail size={14} />
-                  {isIndo ? "Lapor via Email Support" : "Report via Support Email"}
-                </button>
-              </div>
+                  <form onSubmit={this.handleSubmitInAppReport} className="space-y-3">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                        {isIndo ? "Alamat Email Anda (untuk update perbaikan) *" : "Your Email Address (for resolution update) *"}
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        value={this.state.reporterEmail}
+                        onChange={(e) => this.setState({ reporterEmail: e.target.value })}
+                        placeholder="contoh: nama@email.com"
+                        className="w-full h-10 px-3 rounded-xl bg-[#081424] border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#38bdf8] transition"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                        {isIndo ? "Catatan Tambahan (Opsional)" : "Optional User Note"}
+                      </label>
+                      <input
+                        type="text"
+                        value={this.state.userNote}
+                        onChange={(e) => this.setState({ userNote: e.target.value })}
+                        placeholder={isIndo ? "Contoh: Muncul saat saya membuka halaman pesanan" : "e.g., Occurred while opening order page"}
+                        className="w-full h-10 px-3 rounded-xl bg-[#081424] border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#38bdf8] transition"
+                      />
+                    </div>
+
+                    {this.state.reportErrorMsg && (
+                      <p className="text-xs text-rose-400 font-medium">
+                        {this.state.reportErrorMsg}
+                      </p>
+                    )}
+
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-1">
+                      <button
+                        type="submit"
+                        disabled={this.state.isSubmittingReport}
+                        className="w-full sm:w-auto inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-[#fe6f05] to-[#e05e00] px-5 text-xs font-bold text-white shadow-md shadow-[#fe6f05]/20 hover:opacity-95 disabled:opacity-50 transition"
+                      >
+                        {this.state.isSubmittingReport ? (
+                          <>
+                            <Loader2 size={13} className="animate-spin" />
+                            <span>{isIndo ? "Mengirim Laporan..." : "Sending..."}</span>
+                          </>
+                        ) : (
+                          <>
+                            <Send size={13} />
+                            <span>{isIndo ? "Kirim Laporan Otomatis" : "Send Report Automatically"}</span>
+                          </>
+                        )}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={this.handleReportEmail}
+                        className="text-[11px] text-slate-400 hover:text-slate-200 underline transition inline-flex items-center gap-1"
+                      >
+                        <Mail size={12} />
+                        <span>{isIndo ? "Atau kirim via email manual" : "Or send via manual email"}</span>
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
             </div>
           </div>
         </div>

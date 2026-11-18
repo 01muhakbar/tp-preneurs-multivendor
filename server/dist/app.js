@@ -55,6 +55,8 @@ import adminStorePaymentProfilesRouter from "./routes/admin.storePaymentProfiles
 import adminStoreApplicationsRouter from "./routes/admin.storeApplications.js";
 import adminPaymentsAuditRouter from "./routes/admin.payments.audit.js";
 import adminWithdrawalsRouter from "./routes/admin.withdrawals.js";
+import adminBugReportsRouter from "./routes/admin.bugReports.js";
+import bugReportsRouter from "./routes/bugReports.js";
 import storeRouter from "./routes/store.js";
 import storesRouter from "./routes/stores.js";
 import storeCouponsRouter from "./routes/store.coupons.js";
@@ -324,6 +326,7 @@ app.use("/api/store/coupons", storeCouponsRouter);
 app.use("/api/store/customization", storeCustomizationRouter);
 app.use("/api/store/settings", storeSettingsRouter);
 app.use("/api/user", userStoreApplicationsRouter);
+app.use("/api/bug-reports", bugReportsRouter);
 // serve uploaded files from all known locations (priority: configured runtime uploads first)
 const uploadsCandidates = Array.from(new Set([
     path.resolve(process.cwd(), process.env.UPLOAD_DIR || "uploads"),
@@ -416,6 +419,7 @@ app.use("/api/admin/orders", requireStaffOrAdmin, adminOrdersRouter);
 app.use("/api/admin/customers", requireStaffOrAdmin, adminCustomersRouter);
 app.use("/api/admin/notifications", requireStaffOrAdmin, adminNotificationsRouter);
 app.use("/api/admin/payments/audit", requireStaffOrAdmin, adminPaymentsAuditRouter);
+app.use("/api/admin/bug-reports", requireStaffOrAdmin, adminBugReportsRouter);
 app.use("/api/admin/categories", requireAdmin, adminCategoriesRouter);
 app.use("/api/admin/store-customization", requireStaffOrAdmin, adminStoreCustomizationRouter);
 app.use("/api/admin/store-applications", requireStaffOrAdmin, adminStoreApplicationsRouter);

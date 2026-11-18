@@ -221,6 +221,9 @@ const AdminShippingReconciliationPage = lazy(() =>
 const AdminStorePaymentProfilesPage = lazy(() =>
   import("./pages/admin/AdminStorePaymentProfilesPage.jsx")
 );
+const AdminBugReportsPage = lazy(() =>
+  import("./pages/admin/AdminBugReportsPage.jsx")
+);
 
 function LegacyAccountOrderDetailRedirect() {
   const { id } = useParams();
@@ -1110,6 +1113,14 @@ export default function App() {
                 element={
                   <RequirePerm perm="SETTINGS_MANAGE">
                     <Settings />
+                  </RequirePerm>
+                }
+              />
+              <Route
+                path="bug-reports"
+                element={
+                  <RequirePerm perm="SETTINGS_MANAGE">
+                    <AdminBugReportsPage />
                   </RequirePerm>
                 }
               />
