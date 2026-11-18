@@ -16,6 +16,7 @@ import {
   ChevronRight,
   CreditCard,
   History,
+  Layers,
   LayoutDashboard,
   LogOut,
   Menu,
