@@ -1,36 +1,27 @@
 import { useMemo, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   AlertTriangle,
   Check,
-  ChevronRight,
+  CheckCircle2,
   Eye,
   EyeOff,
   FolderTree,
-  Layers,
-  MoreVertical,
   Package,
   Pencil,
   Plus,
   RotateCcw,
   Search,
-  SlidersHorizontal,
+  Sparkles,
   Trash2,
   X,
-  Sparkles,
-  ShoppingBag,
 } from "lucide-react";
 import { useSellerShowcases } from "../../../hooks/seller2026/useSellerShowcases.ts";
-import { resolveAssetUrl } from "../../../lib/assetUrl.js";
 import { resolveProductImageUrl } from "../../../utils/productImage.js";
 import { formatCurrency } from "../../../utils/format.js";
 import { useSellerWorkspaceRoute } from "../../../utils/sellerWorkspaceRoute.js";
-import "../../../features/sellerWorkspace2026/SellerWorkspace2026.css";
-
-function Pill({ tone = "neutral", children }) {
-  return <span className={`seller2026-category-pill is-${tone}`}>{children}</span>;
-}
+import "./Seller2026LiveCategoriesPage.css";
 
 function ShowcaseModal({
   open,
@@ -51,11 +42,11 @@ function ShowcaseModal({
     ? (isId ? "Edit Etalase Toko" : "Edit Store Showcase")
     : (isId ? "Tambah Etalase Baru" : "Add New Showcase");
   const subtitle = isEdit
-    ? (isId ? "Perbarui nama, deskripsi, dan produk dalam etalase ini." : "Update showcase name, description, and assigned products.")
-    : (isId ? "Buat pengelompokan produk baru untuk memikat pembeli." : "Create a new product showcase to organize your storefront.");
+    ? (isId ? "Perbarui nama, deskripsi, dan produk di etalase ini." : "Update showcase details and assigned products.")
+    : (isId ? "Atur kelompok produk khusus untuk memikat pembeli di toko Anda." : "Create a curated collection for your storefront.");
   const actionLabel = isEdit
     ? (isId ? "Simpan Perubahan" : "Save Changes")
-    : (isId ? "Simpan Etalase" : "Create Showcase");
+    : (isId ? "Simpan Etalase" : "Save Showcase");
 
   const selectedIds = new Set(form.productIds || []);
 
@@ -85,234 +76,225 @@ function ShowcaseModal({
   });
 
   return (
-    <div className="seller2026-category-modal" role="dialog" aria-modal="true" aria-labelledby="showcase-modal-title">
-      <button className="seller2026-category-modal__backdrop" type="button" aria-label="Close modal" onClick={onClose} />
-      <form
-        className="seller2026-category-modal__panel"
-        style={{ maxWidth: "680px", width: "95vw" }}
-        onSubmit={(e) => {
-          e.preventDefault();
-          onSubmit();
-        }}
-      >
-        <header>
-          <div>
-            <h2 id="showcase-modal-title">{title}</h2>
-            <p>{subtitle}</p>
+    <div className="seller2026-showcase-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="showcase-modal-title">
+      <div className="seller2026-showcase-modal-panel">
+        <header className="seller2026-modal-header">
+          <div className="seller2026-modal-header-info">
+            <h2 id="showcase-modal-title" className="seller2026-modal-title">{title}</h2>
+            <p className="seller2026-modal-subtitle">{subtitle}</p>
           </div>
-          <button type="button" onClick={onClose} aria-label="Close">
-            <X size={20} />
+          <button type="button" className="seller2026-modal-btn-close" onClick={onClose} aria-label={isId ? "Tutup" : "Close"}>
+            <X size={18} />
           </button>
         </header>
 
-        <div className="seller2026-category-form" style={{ maxHeight: "65vh", overflowY: "auto", paddingRight: "4px" }}>
-          <label>
-            <span>{isId ? "Nama Etalase *" : "Showcase Name *"}</span>
-            <input
-              type="text"
-              required
-              placeholder={isId ? "Contoh: Aneka Keripik Gurih, Best Seller, Paket Hemat" : "e.g. Best Sellers, Crispy Snacks"}
-              value={form.name || ""}
-              onChange={(e) => onChange({ name: e.target.value })}
-            />
-          </label>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            onSubmit();
+          }}
+          style={{ display: "flex", flexDirection: "column", minHeight: 0 }}
+        >
+          <div className="seller2026-modal-body">
+            {/* Showcase Name */}
+            <div className="seller2026-form-group">
+              <label htmlFor="showcase-name-input" className="seller2026-form-label">
+                <span>{isId ? "Nama Etalase *" : "Showcase Name *"}</span>
+              </label>
+              <input
+                id="showcase-name-input"
+                type="text"
+                required
+                className="seller2026-form-input"
+                placeholder={isId ? "Contoh: Best Seller, Cemilan Renyah, Paket Hemat" : "e.g. Best Sellers, Crispy Snacks"}
+                value={form.name || ""}
+                onChange={(e) => onChange({ name: e.target.value })}
+                autoFocus
+              />
+            </div>
 
-          <label>
-            <span>{isId ? "Deskripsi Singkat (Opsional)" : "Short Description (Optional)"}</span>
-            <input
-              type="text"
-              placeholder={isId ? "Jelaskan keistimewaan koleksi produk ini..." : "Describe this collection..."}
-              value={form.description || ""}
-              onChange={(e) => onChange({ description: e.target.value })}
-            />
-          </label>
+            {/* Showcase Description */}
+            <div className="seller2026-form-group">
+              <label htmlFor="showcase-desc-input" className="seller2026-form-label">
+                <span>{isId ? "Deskripsi Singkat (Opsional)" : "Description (Optional)"}</span>
+              </label>
+              <input
+                id="showcase-desc-input"
+                type="text"
+                className="seller2026-form-input"
+                placeholder={isId ? "Jelaskan keunggulan koleksi produk ini..." : "Brief description of this collection..."}
+                value={form.description || ""}
+                onChange={(e) => onChange({ description: e.target.value })}
+              />
+            </div>
 
-          {/* Product Checklist Section */}
-          <div style={{ marginTop: "1rem" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-              <span style={{ fontWeight: 600, fontSize: "0.875rem", color: "var(--seller2026-text, #fff)" }}>
-                {isId ? "Pilih Produk untuk Etalase Ini" : "Select Products for this Showcase"}
-                <span style={{ marginLeft: "6px", color: "var(--seller2026-primary, #3b82f6)", fontWeight: 700 }}>
-                  ({selectedIds.size} {isId ? "produk terpilih" : "products selected"})
+            {/* Product Picker Checklist */}
+            <div className="seller2026-form-group">
+              <div className="seller2026-product-picker-header">
+                <span className="seller2026-form-label">
+                  {isId ? "Pilih Produk" : "Select Products"}
+                  <span style={{ marginLeft: "6px", color: "var(--ssc-accent)", fontWeight: 700 }}>
+                    ({selectedIds.size} {isId ? "terpilih" : "selected"})
+                  </span>
                 </span>
-              </span>
-              <div style={{ display: "flex", gap: "8px" }}>
-                <button
-                  type="button"
-                  onClick={selectAllProducts}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "#38bdf8",
-                    fontSize: "0.75rem",
-                    cursor: "pointer",
-                    textDecoration: "underline",
-                  }}
-                >
-                  {isId ? "Pilih Semua" : "Select All"}
-                </button>
-                <span style={{ color: "#64748b" }}>•</span>
-                <button
-                  type="button"
-                  onClick={clearAllProducts}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "#94a3b8",
-                    fontSize: "0.75rem",
-                    cursor: "pointer",
-                    textDecoration: "underline",
-                  }}
-                >
-                  {isId ? "Kosongkan" : "Clear"}
-                </button>
+                <div className="seller2026-product-picker-actions">
+                  <button type="button" className="seller2026-btn-link-action" onClick={selectAllProducts}>
+                    {isId ? "Pilih Semua" : "Select All"}
+                  </button>
+                  <span style={{ color: "var(--ssc-text-muted)", fontSize: "0.75rem" }}>•</span>
+                  <button type="button" className="seller2026-btn-link-action" onClick={clearAllProducts} style={{ color: "var(--ssc-text-muted)" }}>
+                    {isId ? "Kosongkan" : "Clear"}
+                  </button>
+                </div>
+              </div>
+
+              {storeProducts.length > 4 && (
+                <div style={{ position: "relative", marginBottom: "6px" }}>
+                  <Search size={14} style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: "var(--ssc-text-muted)" }} />
+                  <input
+                    type="text"
+                    className="seller2026-form-input"
+                    style={{ paddingLeft: "30px", fontSize: "0.8rem", padding: "6px 10px 6px 30px" }}
+                    placeholder={isId ? "Cari produk toko..." : "Search products..."}
+                    value={productSearch}
+                    onChange={(e) => setProductSearch(e.target.value)}
+                  />
+                </div>
+              )}
+
+              <div className="seller2026-product-picker-list">
+                {filteredStoreProducts.length === 0 ? (
+                  <div style={{ padding: "1.25rem", textAlign: "center", color: "var(--ssc-text-muted)", fontSize: "0.825rem" }}>
+                    {storeProducts.length === 0
+                      ? (isId ? "Toko belum memiliki produk aktif." : "No active products in your store.")
+                      : (isId ? "Tidak ada produk yang cocok." : "No matching products found.")}
+                  </div>
+                ) : (
+                  filteredStoreProducts.map((product) => {
+                    const pId = Number(product.id);
+                    const isChecked = selectedIds.has(pId);
+                    const imageUrl = resolveProductImageUrl(product);
+                    const price = Number(product.price ?? product.salePrice ?? 0);
+
+                    return (
+                      <div
+                        key={pId}
+                        className={`seller2026-product-item-row ${isChecked ? "is-selected" : ""}`}
+                        onClick={() => toggleProduct(pId)}
+                        role="checkbox"
+                        aria-checked={isChecked}
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === " " || e.key === "Enter") {
+                            e.preventDefault();
+                            toggleProduct(pId);
+                          }
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          className="seller2026-checkbox-custom"
+                          checked={isChecked}
+                          onChange={() => {}} // handled by parent div onClick
+                          tabIndex={-1}
+                        />
+                        {imageUrl ? (
+                          <img src={imageUrl} alt="" className="seller2026-product-thumb" />
+                        ) : (
+                          <div className="seller2026-product-thumb" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <Package size={16} color="var(--ssc-text-muted)" />
+                          </div>
+                        )}
+                        <div className="seller2026-product-info">
+                          <span className="seller2026-product-name">{product.name || product.title}</span>
+                          <span className="seller2026-product-sub">
+                            {formatCurrency(price)}
+                            {product.stock != null && <span> · {isId ? "Stok" : "Stock"}: {product.stock}</span>}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </div>
 
-            {storeProducts.length > 5 && (
-              <div style={{ position: "relative", marginBottom: "0.5rem" }}>
-                <Search size={14} style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: "#64748b" }} />
-                <input
-                  type="text"
-                  placeholder={isId ? "Cari produk toko..." : "Search products..."}
-                  value={productSearch}
-                  onChange={(e) => setProductSearch(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "6px 10px 6px 30px",
-                    fontSize: "0.8rem",
-                    borderRadius: "8px",
-                    border: "1px solid rgba(255,255,255,0.12)",
-                    background: "rgba(0,0,0,0.2)",
-                    color: "inherit",
-                  }}
-                />
-              </div>
-            )}
-
+            {/* Visibility Switch Card (Interactive & Accessible) */}
             <div
-              style={{
-                maxHeight: "220px",
-                overflowY: "auto",
-                border: "1px solid rgba(255,255,255,0.1)",
-                borderRadius: "10px",
-                padding: "6px",
-                background: "rgba(15, 23, 42, 0.4)",
-                display: "flex",
-                flexDirection: "column",
-                gap: "4px",
+              className="seller2026-visibility-card"
+              onClick={() => onChange({ isActive: form.isActive === false ? true : false })}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === " " || e.key === "Enter") {
+                  e.preventDefault();
+                  onChange({ isActive: form.isActive === false ? true : false });
+                }
               }}
             >
-              {filteredStoreProducts.length === 0 ? (
-                <div style={{ padding: "16px", textAlign: "center", color: "#94a3b8", fontSize: "0.85rem" }}>
-                  {storeProducts.length === 0
-                    ? (isId ? "Toko Anda belum memiliki produk aktif." : "No active products in your store.")
-                    : (isId ? "Tidak ada produk yang cocok dengan pencarian." : "No matching products found.")}
+              <div className="seller2026-visibility-card-left">
+                <div className="seller2026-visibility-card-icon">
+                  {form.isActive !== false ? <Eye size={20} /> : <EyeOff size={20} />}
                 </div>
-              ) : (
-                filteredStoreProducts.map((product) => {
-                  const pId = Number(product.id);
-                  const isChecked = selectedIds.has(pId);
-                  const imageUrl = resolveProductImageUrl(product);
-                  const price = Number(product.price ?? product.salePrice ?? 0);
-
-                  return (
-                    <label
-                      key={pId}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "10px",
-                        padding: "8px 10px",
-                        borderRadius: "8px",
-                        background: isChecked ? "rgba(59, 130, 246, 0.12)" : "transparent",
-                        border: isChecked ? "1px solid rgba(59, 130, 246, 0.3)" : "1px solid transparent",
-                        cursor: "pointer",
-                        transition: "all 0.15s ease",
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => toggleProduct(pId)}
-                        style={{ cursor: "pointer", width: "16px", height: "16px" }}
-                      />
-                      <div
-                        style={{
-                          width: "36px",
-                          height: "36px",
-                          borderRadius: "6px",
-                          overflow: "hidden",
-                          background: "#1e293b",
-                          flexShrink: 0,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        {imageUrl ? (
-                          <img src={imageUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                        ) : (
-                          <Package size={16} color="#64748b" />
-                        )}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 600, fontSize: "0.85rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                          {product.name || product.title}
-                        </div>
-                        <div style={{ fontSize: "0.75rem", color: "#94a3b8" }}>
-                          {formatCurrency(price)}
-                          {product.stock != null && <span> · Stok: {product.stock}</span>}
-                        </div>
-                      </div>
-                    </label>
-                  );
-                })
-              )}
+                <div>
+                  <div className="seller2026-visibility-card-title">
+                    {isId ? "Tampilkan Etalase di Halaman Toko" : "Display Showcase on Storefront"}
+                  </div>
+                  <div className="seller2026-visibility-card-desc">
+                    {form.isActive !== false
+                      ? (isId ? "Etalase dapat dilihat oleh pengunjung toko Anda." : "Showcase is visible to storefront visitors.")
+                      : (isId ? "Etalase disembunyikan sementara dari pembeli." : "Showcase is temporarily hidden from buyers.")}
+                  </div>
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                className="seller2026-checkbox-custom"
+                checked={form.isActive !== false}
+                onChange={() => {}} // handled by parent container
+                tabIndex={-1}
+              />
             </div>
           </div>
 
-          <label style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "1rem", cursor: "pointer" }}>
-            <input
-              type="checkbox"
-              checked={form.isActive !== false}
-              onChange={(e) => onChange({ isActive: e.target.checked })}
-              style={{ width: "18px", height: "18px" }}
-            />
-            <span style={{ fontWeight: 600, fontSize: "0.875rem" }}>
-              {isId ? "Tampilkan Etalase di Halaman Toko" : "Display Showcase on Storefront"}
-            </span>
-          </label>
-        </div>
-
-        <footer>
-          <button type="button" onClick={onClose}>
-            {isId ? "Batal" : "Cancel"}
-          </button>
-          <button type="submit" className="is-primary" disabled={isSubmitting || !form.name?.trim()}>
-            {isSubmitting ? (isId ? "Menyimpan..." : "Saving...") : actionLabel}
-          </button>
-        </footer>
-      </form>
+          <footer className="seller2026-modal-footer">
+            <button type="button" className="seller2026-btn-modal-cancel" onClick={onClose}>
+              {isId ? "Batal" : "Cancel"}
+            </button>
+            <button
+              type="submit"
+              className="seller2026-btn-cta-orange"
+              disabled={isSubmitting || !form.name?.trim()}
+            >
+              {isSubmitting ? (isId ? "Menyimpan..." : "Saving...") : actionLabel}
+            </button>
+          </footer>
+        </form>
+      </div>
     </div>
   );
 }
 
 export default function Seller2026LiveCategoriesPage({ initialCreateOpen = false }) {
-  const { workspaceStoreId: storeId, workspaceRoutes, isId: outletIsId = false } = useSellerWorkspaceRoute();
+  const { workspaceStoreId: storeId, workspaceRoutes, isId: outletIsId, selectedLanguage } = useSellerWorkspaceRoute();
   const location = useLocation();
   const navigate = useNavigate();
   const { i18n } = useTranslation();
-  const isId = Boolean(outletIsId || String(i18n.language || "").toLowerCase().startsWith("id"));
+
+  const isId = Boolean(
+    outletIsId !== undefined
+      ? outletIsId
+      : String(selectedLanguage?.isoCode || "").toLowerCase() === "id" ||
+        String(i18n?.language || "").toLowerCase().startsWith("id") ||
+        String(localStorage.getItem("seller_language") || "").toLowerCase().includes("id")
+  );
 
   const {
     showcases,
-    allShowcases,
     storeProducts,
     stats,
     filters,
     setFilters,
-    isLoading,
     createShowcase,
     updateShowcase,
     deleteShowcase,
@@ -324,7 +306,6 @@ export default function Seller2026LiveCategoriesPage({ initialCreateOpen = false
   const [modalOpen, setModalOpen] = useState(initialCreateOpen || location.pathname.endsWith("/categories/new"));
   const [modalMode, setModalMode] = useState("create");
   const [form, setForm] = useState({ name: "", description: "", isActive: true, productIds: [] });
-  const [activeMenuId, setActiveMenuId] = useState(null);
 
   const openCreate = () => {
     setModalMode("create");
@@ -379,7 +360,7 @@ export default function Seller2026LiveCategoriesPage({ initialCreateOpen = false
         });
         setNotice({
           type: "success",
-          text: isId ? "Etalase toko baru berhasil dibuat" : "New showcase created successfully",
+          text: isId ? "Etalase baru berhasil dibuat" : "New showcase created successfully",
         });
       }
       closeModal();
@@ -426,217 +407,227 @@ export default function Seller2026LiveCategoriesPage({ initialCreateOpen = false
     }
   };
 
-  const summaryCards = [
-    [isId ? "Total Etalase" : "Total Showcases", stats.total, Layers, "blue"],
-    [isId ? "Etalase Aktif" : "Active Showcases", stats.active, Check, "green"],
-    [isId ? "Produk Masuk Etalase" : "Curated Products", stats.totalAssigned, Sparkles, "mint"],
-    [isId ? "Produk Tanpa Etalase" : "Uncategorized", stats.unassigned, Package, "orange"],
-  ];
+  const summaryCards = useMemo(
+    () => [
+      {
+        label: isId ? "Total Etalase" : "Total Showcases",
+        value: stats.total,
+        Icon: FolderTree,
+        tone: "blue",
+      },
+      {
+        label: isId ? "Etalase Aktif" : "Active Showcases",
+        value: stats.active,
+        Icon: CheckCircle2,
+        tone: "green",
+      },
+      {
+        label: isId ? "Produk Masuk Etalase" : "Curated Items",
+        value: stats.totalAssigned,
+        Icon: Sparkles,
+        tone: "orange",
+      },
+      {
+        label: isId ? "Tanpa Etalase" : "Unassigned",
+        value: stats.unassigned,
+        Icon: Package,
+        tone: "slate",
+      },
+    ],
+    [isId, stats]
+  );
 
   return (
-    <div className="seller2026-categories">
+    <div className="seller2026-categories-container">
+      {/* Header */}
       <header className="seller2026-categories-header">
-        <div>
-          <h1>{isId ? "Etalase Toko" : "Store Showcases"}</h1>
-          <p>
+        <div className="seller2026-categories-header-left">
+          <div className="seller2026-categories-eyebrow">
+            <Sparkles size={13} />
+            <span>{isId ? "Katalog Toko" : "Store Catalog"}</span>
+          </div>
+          <h1 className="seller2026-categories-title">{isId ? "Etalase Toko" : "Store Showcases"}</h1>
+          <p className="seller2026-categories-desc">
             {isId
-              ? "Kelola pengelompokan produk khusus untuk beranda dan etalase toko Anda agar pembeli mudah berbelanja."
-              : "Organize products into curated showcases and collections for your storefront visitors."}
+              ? "Kelola etalase produk untuk mengatur tampilan beranda dan memudahkan pembeli berbelanja."
+              : "Manage curated collections to organize your storefront and boost buyer navigation."}
           </p>
         </div>
-        <div className="seller2026-categories-actions">
-          <button className="is-primary" onClick={openCreate}>
-            <Plus size={17} />
-            {isId ? "Tambah Etalase" : "Add Showcase"}
+        <div className="seller2026-categories-header-actions">
+          <button type="button" className="seller2026-btn-cta-orange" onClick={openCreate}>
+            <Plus size={18} />
+            <span>{isId ? "Tambah Etalase" : "Add Showcase"}</span>
           </button>
         </div>
       </header>
 
+      {/* Notifications */}
       {notice && (
-        <div className={`seller2026-profile__notice seller2026-profile__notice--${notice.type}`}>
-          {notice.type === "success" ? <Check size={16} /> : <AlertTriangle size={16} />}
-          {notice.text}
+        <div className={`seller2026-notice-banner seller2026-notice-banner--${notice.type}`}>
+          {notice.type === "success" ? <Check size={18} /> : <AlertTriangle size={18} />}
+          <span>{notice.text}</span>
         </div>
       )}
 
-      {/* KPI Cards */}
-      <section className="seller2026-categories-summary">
-        {summaryCards.map(([label, value, IconComponent, tone]) => (
-          <article key={label}>
-            <span className={`is-${tone}`}>
-              <IconComponent size={23} />
-            </span>
-            <div>
-              <small>{label}</small>
-              <strong>{value}</strong>
+      {/* KPI Cards Grid */}
+      <section className="seller2026-kpi-grid">
+        {summaryCards.map(({ label, value, Icon, tone }) => (
+          <article className="seller2026-kpi-card" key={label}>
+            <div className={`seller2026-kpi-icon-wrap is-${tone}`}>
+              <Icon size={22} />
+            </div>
+            <div className="seller2026-kpi-data">
+              <span className="seller2026-kpi-label">{label}</span>
+              <strong className="seller2026-kpi-value">{value}</strong>
             </div>
           </article>
         ))}
       </section>
 
-      {/* Table Section */}
-      <section className="seller2026-categories-table">
-        <div className="seller2026-categories-toolbar">
-          <label>
-            <Search size={17} />
-            <input
-              placeholder={isId ? "Cari etalase toko..." : "Search showcases..."}
-              value={filters.search}
-              onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
-            />
-          </label>
-          <span>{isId ? "Status" : "Status"}</span>
-          <select
-            value={filters.status}
-            onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value }))}
-          >
-            <option value="all">{isId ? "Semua Status" : "All Status"}</option>
-            <option value="active">{isId ? "Aktif" : "Active"}</option>
-            <option value="inactive">{isId ? "Nonaktif" : "Inactive"}</option>
-          </select>
-          <button
-            type="button"
-            onClick={() => setFilters({ search: "", status: "all" })}
-            title={isId ? "Reset filter" : "Reset filter"}
-          >
-            <RotateCcw size={16} />
-            {isId ? "Atur Ulang" : "Reset"}
-          </button>
+      {/* Main Table Card */}
+      <section className="seller2026-table-card">
+        {/* Toolbar */}
+        <div className="seller2026-toolbar">
+          <div className="seller2026-toolbar-left">
+            <div className="seller2026-search-box">
+              <Search size={16} className="seller2026-search-icon" />
+              <input
+                className="seller2026-search-input"
+                placeholder={isId ? "Cari etalase toko..." : "Search showcases..."}
+                value={filters.search}
+                onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
+              />
+            </div>
+            <select
+              className="seller2026-select-filter"
+              value={filters.status}
+              onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value }))}
+            >
+              <option value="all">{isId ? "Semua Status" : "All Status"}</option>
+              <option value="active">{isId ? "Aktif di Toko" : "Active"}</option>
+              <option value="inactive">{isId ? "Disembunyikan" : "Hidden"}</option>
+            </select>
+          </div>
+          <div>
+            <button
+              type="button"
+              className="seller2026-btn-reset"
+              onClick={() => setFilters({ search: "", status: "all" })}
+              title={isId ? "Atur ulang filter" : "Reset filter"}
+            >
+              <RotateCcw size={14} />
+              <span>{isId ? "Atur Ulang" : "Reset"}</span>
+            </button>
+          </div>
         </div>
 
+        {/* Table Content or Empty State */}
         {showcases.length === 0 ? (
-          <div className="seller2026-categories-empty">
-            <Layers size={36} color="#64748b" />
-            <h2>{isId ? "Belum ada etalase toko" : "No showcases yet"}</h2>
-            <p>
+          <div className="seller2026-empty-state">
+            <div className="seller2026-empty-icon-wrap">
+              <FolderTree size={30} />
+            </div>
+            <h2 className="seller2026-empty-title">
+              {isId ? "Belum Ada Etalase Toko" : "No Store Showcases Yet"}
+            </h2>
+            <p className="seller2026-empty-text">
               {isId
-                ? "Etalase toko mempermudah pembeli menemukan produk favorit Anda (misal: 'Best Seller', 'Aneka Keripik', 'Promo Kampus')."
-                : "Create showcases to help buyers navigate your products by themes and collections."}
+                ? "Kelompokkan produk Anda ke dalam etalase seperti 'Menu Favorit', 'Produk Baru', atau 'Promo Kampus' agar pembeli lebih mudah menemukan apa yang mereka cari."
+                : "Curate your products into collections like 'Best Sellers' or 'New Arrivals' to help buyers find what they want faster."}
             </p>
-            <button type="button" onClick={openCreate} className="is-primary">
+            <button type="button" className="seller2026-btn-cta-orange" onClick={openCreate}>
               <Plus size={16} />
-              {isId ? "Tambah Etalase Pertama" : "Create First Showcase"}
+              <span>{isId ? "Tambah Etalase Pertama" : "Create First Showcase"}</span>
             </button>
           </div>
         ) : (
-          <>
-            <div className="seller2026-categories-grid seller2026-categories-grid--head">
-              <span>#</span>
-              <span>{isId ? "Nama Etalase" : "Showcase Name"}</span>
-              <span>{isId ? "Deskripsi" : "Description"}</span>
-              <span>{isId ? "Jumlah Produk" : "Products"}</span>
-              <span>{isId ? "Status Tampil" : "Visibility"}</span>
-              <span>{isId ? "Aksi" : "Actions"}</span>
-            </div>
-
-            <div className="seller2026-categories-grid seller2026-categories-grid--body">
-              {showcases.map((sc, idx) => (
-                <article className="seller2026-category-row" key={sc.id}>
-                  <div style={{ color: "#64748b", fontWeight: 700, paddingLeft: "8px" }}>
-                    {idx + 1}
-                  </div>
-
-                  <div className="seller2026-category-row__identity" data-label={isId ? "Nama Etalase" : "Showcase"}>
-                    <span className="seller2026-category-icon is-blue">
-                      <FolderTree size={18} />
-                    </span>
-                    <div>
-                      <strong
-                        className="is-clickable"
-                        onClick={() => openEdit(sc)}
-                        title={isId ? "Klik untuk mengedit etalase" : "Click to edit"}
-                      >
-                        {sc.name}
-                      </strong>
-                      <small style={{ color: "#64748b" }}>slug: {sc.slug}</small>
-                    </div>
-                  </div>
-
-                  <div data-label={isId ? "Deskripsi" : "Description"} style={{ color: "#94a3b8", fontSize: "0.85rem" }}>
-                    {sc.description || "-"}
-                  </div>
-
-                  <div data-label={isId ? "Jumlah Produk" : "Products"}>
-                    <Pill tone={sc.productCount > 0 ? "mint" : "orange"}>
-                      <Package size={12} style={{ marginRight: "4px" }} />
-                      {sc.productCount} {isId ? "Produk" : "Items"}
-                    </Pill>
-                  </div>
-
-                  <div data-label={isId ? "Status" : "Status"} className="seller2026-category-row__status">
-                    <Pill tone={sc.isActive ? "green" : "slate"}>
-                      {sc.isActive ? (isId ? "Aktif di Toko" : "Active") : (isId ? "Disembunyikan" : "Hidden")}
-                    </Pill>
-                  </div>
-
-                  <div className="seller2026-category-row__menu" data-label={isId ? "Aksi" : "Actions"}>
-                    <button
-                      type="button"
-                      aria-label="Actions"
-                      onClick={() => setActiveMenuId(activeMenuId === sc.id ? null : sc.id)}
-                    >
-                      <MoreVertical size={18} />
-                    </button>
-                    {activeMenuId === sc.id && (
-                      <div
-                        style={{
-                          display: "block",
-                          position: "absolute",
-                          right: 0,
-                          top: "100%",
-                          zIndex: 40,
-                          background: "#0f172a",
-                          border: "1px solid rgba(255,255,255,0.15)",
-                          borderRadius: "10px",
-                          boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
-                          padding: "6px",
-                          minWidth: "160px",
-                        }}
-                      >
+          <div className="seller2026-table-wrap">
+            <table className="seller2026-table">
+              <thead>
+                <tr>
+                  <th style={{ width: "45%" }}>{isId ? "Etalase Toko" : "Store Showcase"}</th>
+                  <th style={{ width: "20%" }}>{isId ? "Produk" : "Products"}</th>
+                  <th style={{ width: "20%" }}>{isId ? "Status Tampil" : "Visibility"}</th>
+                  <th style={{ width: "15%", textAlign: "right" }}>{isId ? "Aksi" : "Actions"}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {showcases.map((sc) => (
+                  <tr key={sc.id}>
+                    <td>
+                      <div className="seller2026-td-identity">
+                        <div className="seller2026-showcase-icon-badge">
+                          <FolderTree size={18} />
+                        </div>
+                        <div className="seller2026-showcase-meta">
+                          <button
+                            type="button"
+                            className="seller2026-showcase-title-link"
+                            onClick={() => openEdit(sc)}
+                            title={isId ? "Klik untuk mengedit" : "Click to edit"}
+                          >
+                            {sc.name}
+                          </button>
+                          <span className="seller2026-showcase-desc-sub">
+                            {sc.description || (isId ? "Tanpa deskripsi" : "No description")}
+                          </span>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <span className={`seller2026-pill-count ${sc.productCount > 0 ? "has-items" : ""}`}>
+                        <Package size={13} />
+                        <span>{sc.productCount || 0} {isId ? "Produk" : "Items"}</span>
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`seller2026-status-badge ${sc.isActive ? "is-active" : "is-hidden"}`}>
+                        <span className="seller2026-status-dot" />
+                        <span>
+                          {sc.isActive ? (isId ? "Aktif di Toko" : "Active") : (isId ? "Disembunyikan" : "Hidden")}
+                        </span>
+                      </span>
+                    </td>
+                    <td>
+                      <div className="seller2026-actions-cell">
                         <button
                           type="button"
-                          onClick={() => {
-                            setActiveMenuId(null);
-                            openEdit(sc);
-                          }}
+                          className="seller2026-btn-icon-action"
+                          onClick={() => openEdit(sc)}
+                          title={isId ? "Edit Etalase" : "Edit Showcase"}
+                          aria-label={isId ? "Edit Etalase" : "Edit Showcase"}
                         >
-                          <Pencil size={14} />
-                          {isId ? "Edit Etalase" : "Edit Showcase"}
+                          <Pencil size={15} />
                         </button>
                         <button
                           type="button"
-                          onClick={() => {
-                            setActiveMenuId(null);
-                            handleToggleActive(sc);
-                          }}
+                          className="seller2026-btn-icon-action"
+                          onClick={() => handleToggleActive(sc)}
+                          title={sc.isActive ? (isId ? "Sembunyikan" : "Hide") : (isId ? "Tampilkan" : "Show")}
+                          aria-label={sc.isActive ? (isId ? "Sembunyikan" : "Hide") : (isId ? "Tampilkan" : "Show")}
                         >
-                          {sc.isActive ? <EyeOff size={14} /> : <Eye size={14} />}
-                          {sc.isActive
-                            ? (isId ? "Sembunyikan" : "Hide")
-                            : (isId ? "Tampilkan di Toko" : "Show on Store")}
+                          {sc.isActive ? <EyeOff size={15} /> : <Eye size={15} />}
                         </button>
                         <button
                           type="button"
-                          style={{ color: "#ef4444" }}
-                          onClick={() => {
-                            setActiveMenuId(null);
-                            handleDelete(sc);
-                          }}
+                          className="seller2026-btn-icon-action is-danger"
+                          onClick={() => handleDelete(sc)}
+                          title={isId ? "Hapus Etalase" : "Delete Showcase"}
+                          aria-label={isId ? "Hapus Etalase" : "Delete Showcase"}
                         >
-                          <Trash2 size={14} />
-                          {isId ? "Hapus Etalase" : "Delete"}
+                          <Trash2 size={15} />
                         </button>
                       </div>
-                    )}
-                  </div>
-                </article>
-              ))}
-            </div>
-          </>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
 
-      {/* Add / Edit Modal */}
+      {/* Modernized Showcase Modal */}
       <ShowcaseModal
         open={modalOpen}
         mode={modalMode}
