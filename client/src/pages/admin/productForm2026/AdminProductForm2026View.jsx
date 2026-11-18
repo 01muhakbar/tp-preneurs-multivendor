@@ -35,6 +35,7 @@ import {
   getProductForm2026Checklist,
   getSellerProductForm2026Checklist,
 } from "./adminProductForm2026Adapter.js";
+import ProductDescriptionEditor from "./ProductDescriptionEditor.jsx";
 import { resolveAssetUrl } from "../../../lib/assetUrl.js";
 import "./admin-product-form-2026.css";
 
@@ -218,16 +219,10 @@ function BasicStep({
               value={form.name}
               onChange={(event) => onNameChange(event.target.value)}
             />
-            <TextField
-              id="product-description"
-              name="description"
-              label={t("productForm.Short Description")}
-              as="textarea"
-              maxLength={300}
-              placeholder={t("productForm.Enter a short description about this product...")}
+            <ProductDescriptionEditor
               value={form.description}
-              onChange={(event) => onFormChange({ description: event.target.value })}
-              helper={`${String(form.description || "").length} / 300`}
+              onChange={(description) => onFormChange({ description })}
+              label={t("productForm.Product Description") || "Deskripsi Produk"}
             />
             <div className="apf26-grid apf26-grid--3">
               <TextField
@@ -1636,7 +1631,7 @@ function ReviewStep({
         <section className="apf26-review-card">
           <h3>{t("productForm.Product Identity")}</h3>
           <ReviewRow label={t("productForm.Product Name")} value={review.productName} />
-          <ReviewRow label={t("productForm.Short Description")} value={review.description} multiline />
+          <ReviewRow label={t("productForm.Product Description") || t("productForm.Short Description")} value={review.description} multiline />
           <ReviewRow label="SKU" value={review.sku} />
           <ReviewRow label="Barcode" value={review.barcode} />
           <ReviewRow label={t("productForm.Brand")} value={review.brand} />

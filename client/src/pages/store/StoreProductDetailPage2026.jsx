@@ -45,6 +45,10 @@ import { toPreferredWhatsAppLink } from "../../utils/storePublicIdentity.ts";
 import { getStorePublicIdentityBySlug } from "../../api/storePublicIdentity.ts";
 import { fetchStoreCoupons } from "../../api/storeCoupons.ts";
 import { getStoreCustomization } from "../../api/public/storeCustomizationPublic.ts";
+import {
+  parseProductDescription,
+  isDescriptionCollapsible,
+} from "../../utils/productDescriptionParser.js";
 import "./store-product-detail-2026.css";
 
 const BENEFIT_ICON_MAP = {
@@ -731,6 +735,16 @@ export default function StoreProductDetailPage2026() {
     return all.length > 0 ? all : [""];
   }, [product, selectedVariant]);
 
+  const rawDescription = useMemo(() => getProductDescription(product), [product]);
+  const parsedDescriptionHtml = useMemo(
+    () => parseProductDescription(rawDescription),
+    [rawDescription]
+  );
+  const isDescCollapsible = useMemo(
+    () => isDescriptionCollapsible(rawDescription),
+    [rawDescription]
+  );
+
   const {
     dragOffset: heroDragOffset,
     isDragging: isHeroDragging,
@@ -1082,7 +1096,6 @@ export default function StoreProductDetailPage2026() {
 
   const categoryName = getCategoryName(product);
   const categorySlug = text(product?.category?.slug, product?.category?.code, categoryName);
-  const rawDescription = getProductDescription(product);
 
   return (
     <div className="pdp26-container space-y-0 sm:space-y-4 px-0 sm:px-4 lg:px-6">
@@ -1731,27 +1744,32 @@ export default function StoreProductDetailPage2026() {
           </div>
         </div>
 
-        {/* Description Accordion with "Selengkapnya / Show More" */}
+        {/* Description Section with Adaptive "Selengkapnya / Show More" */}
         <div className="space-y-2 border-t border-slate-200 pt-3 dark:border-white/10">
           <h2 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
             {t("productDetail.description")}
           </h2>
-          <div className={`pdp26-desc-box ${!isDescExpanded ? "is-collapsed" : ""}`}>
-            <p className="text-xs sm:text-sm leading-relaxed text-slate-700 whitespace-pre-line dark:text-slate-300">
-              {rawDescription ||
-                (isIndo
-                  ? "Layanan penyediaan produk berkualitas pilihan seller terpercaya."
-                  : "High quality product provided by verified store.")}
-            </p>
+          <div className={`pdp26-desc-box ${isDescCollapsible && !isDescExpanded ? "is-collapsed" : ""}`}>
+            <div
+              className="pdp26-desc-content"
+              dangerouslySetInnerHTML={{
+                __html:
+                  parsedDescriptionHtml ||
+                  (isIndo
+                    ? "<p class='pdp26-desc-p'>Layanan penyediaan produk berkualitas pilihan seller terpercaya.</p>"
+                    : "<p class='pdp26-desc-p'>High quality product provided by verified store.</p>"),
+              }}
+            />
           </div>
 
-          {rawDescription && rawDescription.length > 100 && (
+          {isDescCollapsible && (
             <button
               type="button"
               onClick={() => setIsDescExpanded((expanded) => !expanded)}
               className="pdp26-toggle-btn"
+              aria-expanded={isDescExpanded}
             >
-              <span>{isDescExpanded ? t("productDetail.showLess") : t("productDetail.showMore")}</span>
+              <span>{isDescExpanded ? (isIndo ? "Tampilkan Lebih Sedikit" : t("productDetail.showLess")) : (isIndo ? "Selengkapnya" : t("productDetail.showMore"))}</span>
               {isDescExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
             </button>
           )}

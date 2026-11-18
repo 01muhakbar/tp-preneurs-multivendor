@@ -239,6 +239,7 @@
     "Product Name": "Product Name",
     "Enter product name": "Enter product name",
     "Short Description": "Short Description",
+    "Product Description": "Product Description",
     "Enter a short description about this product...": "Enter a short description about this product...",
     "Store Ownership": "Store Ownership",
     "Product ownership uses storeId as the source of truth.": "Product ownership uses storeId as the source of truth.",

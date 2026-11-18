@@ -239,6 +239,7 @@
     "Product Name": "Nama Produk",
     "Enter product name": "Masukkan nama produk",
     "Short Description": "Deskripsi Singkat",
+    "Product Description": "Deskripsi Produk",
     "Enter a short description about this product...": "Masukkan deskripsi singkat tentang produk ini...",
     "Store Ownership": "Kepemilikan Toko",
     "Product ownership uses storeId as the source of truth.": "Kepemilikan produk menggunakan ID toko sebagai acuan utama.",
