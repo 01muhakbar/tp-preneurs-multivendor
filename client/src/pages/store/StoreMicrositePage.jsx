@@ -15,6 +15,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { fetchStoreProducts } from "../../api/public/storeProducts.ts";
+import { fetchStoreShowcases } from "../../api/storeShowcases.ts";
 import { getStoreMicrositeRichAboutBySlug } from "../../api/public/storeCustomizationPublic.ts";
 import { getStorePublicIdentityBySlug } from "../../api/public/storePublicIdentity.ts";
 import { toPreferredWhatsAppLink } from "../../utils/storePublicIdentity.ts";
@@ -111,6 +112,14 @@ export default function StoreMicrositePage() {
     retry: 1,
   });
 
+  const showcasesQuery = useQuery({
+    queryKey: ["storefront", "showcases", safeSlug],
+    queryFn: () => fetchStoreShowcases(safeSlug),
+    enabled: Boolean(safeSlug),
+    staleTime: 60_000,
+    retry: 1,
+  });
+
   // 2. Unconditional Effects
   useEffect(() => {
     if (activeTabFromQuery !== activeTab) {
@@ -177,6 +186,7 @@ export default function StoreMicrositePage() {
       identity: micrositeQuery.data,
       productsPayload: productsQuery.data,
       richAbout: richAboutQuery.data,
+      showcases: showcasesQuery.data || [],
       slug: safeSlug,
     });
 

@@ -39,6 +39,8 @@ import { UserRegistrationVerification } from "./UserRegistrationVerification.js"
 import { StoreWithdrawal, initStoreWithdrawal } from "./StoreWithdrawal.js";
 import { NewsletterSubscriber } from "./NewsletterSubscriber.js";
 import { BugReport } from "./BugReport.js";
+import { StoreShowcase } from "./StoreShowcase.js";
+import { StoreShowcaseProduct } from "./StoreShowcaseProduct.js";
 import { ensureSystemStoreRoles } from "../services/seller/storeRoles.js";
 
 type ProductUserIdFkRow = {
@@ -145,6 +147,8 @@ function initModels() {
   UserRegistrationVerification.initModel(sequelize);
   NewsletterSubscriber.initModel(sequelize);
   BugReport.initModel(sequelize);
+  StoreShowcase.initModel(sequelize);
+  StoreShowcaseProduct.initModel(sequelize);
   initStoreWithdrawal(sequelize);
 
   const models: any = {
@@ -186,6 +190,8 @@ function initModels() {
     UserRegistrationVerification,
     NewsletterSubscriber,
     BugReport,
+    StoreShowcase,
+    StoreShowcaseProduct,
   };
 
   Object.values(models).forEach((model: any) => {
@@ -571,4 +577,6 @@ export {
   StoreWithdrawal,
   NewsletterSubscriber,
   BugReport,
+  StoreShowcase,
+  StoreShowcaseProduct,
 };

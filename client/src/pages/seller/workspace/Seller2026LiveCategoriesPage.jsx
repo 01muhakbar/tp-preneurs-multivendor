@@ -3,16 +3,11 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   AlertTriangle,
-  Archive,
   Check,
-  ChevronLeft,
   ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
   Eye,
   EyeOff,
   FolderTree,
-  Image as ImageIcon,
   Layers,
   MoreVertical,
   Package,
@@ -21,168 +16,282 @@ import {
   RotateCcw,
   Search,
   SlidersHorizontal,
-  Upload,
+  Trash2,
   X,
+  Sparkles,
+  ShoppingBag,
 } from "lucide-react";
-import { uploadSellerCategoryImage } from "../../../api/sellerCategories.ts";
-import {
-  createSeller2026CategoryForm,
-  formatSeller2026CategoryDate,
-  seller2026CategoryLabels,
-  slugifySeller2026Category,
-  validateSeller2026CategoryForm,
-} from "../../../api/seller2026/categories.adapter.ts";
-import { hasSeller2026Permission } from "../../../api/seller2026/permissions.ts";
-import { useSeller2026Categories } from "../../../hooks/seller2026/useSeller2026Categories.ts";
+import { useSellerShowcases } from "../../../hooks/seller2026/useSellerShowcases.ts";
 import { resolveAssetUrl } from "../../../lib/assetUrl.js";
+import { resolveProductImageUrl } from "../../../utils/productImage.js";
+import { formatCurrency } from "../../../utils/format.js";
 import { useSellerWorkspaceRoute } from "../../../utils/sellerWorkspaceRoute.js";
-import { getSeller2026PagePermissions } from "./seller2026PagePermissions.js";
 import "../../../features/sellerWorkspace2026/SellerWorkspace2026.css";
-
-const toErrorMessage = (error, fallback) =>
-  error?.response?.data?.message || error?.message || fallback;
 
 function Pill({ tone = "neutral", children }) {
   return <span className={`seller2026-category-pill is-${tone}`}>{children}</span>;
 }
 
-function CategoryIcon({ category }) {
-  const imageUrl = resolveAssetUrl(category?.imageUrl || "");
-  if (imageUrl) {
-    return <img src={imageUrl} alt="" />;
-  }
-  const palette = ["mint", "blue", "violet", "amber"];
-  const tone = palette[Math.abs(Number(category?.numericId || 0)) % palette.length];
-  return <span className={`seller2026-category-icon is-${tone}`}><Layers size={19} /></span>;
-}
-
-function CategoryModal({
+function ShowcaseModal({
   open,
   mode,
   form,
-  errors,
-  parentOptions,
+  storeProducts = [],
   onChange,
   onClose,
   onSubmit,
-  onImageUpload,
   isSubmitting,
-  isUploading,
-  canUpload,
-  isId = false,
+  isId = true,
 }) {
+  const [productSearch, setProductSearch] = useState("");
+
   if (!open) return null;
   const isEdit = mode === "edit";
-  const title = isEdit ? (isId ? "Edit Kategori" : "Edit Category") : (isId ? "Tambah Kategori" : "Add Category");
+  const title = isEdit
+    ? (isId ? "Edit Etalase Toko" : "Edit Store Showcase")
+    : (isId ? "Tambah Etalase Baru" : "Add New Showcase");
   const subtitle = isEdit
-    ? (isId ? "Perbarui detail kategori." : "Update category details.")
-    : (isId ? "Buat kategori katalog baru." : "Create new catalog category.");
+    ? (isId ? "Perbarui nama, deskripsi, dan produk dalam etalase ini." : "Update showcase name, description, and assigned products.")
+    : (isId ? "Buat pengelompokan produk baru untuk memikat pembeli." : "Create a new product showcase to organize your storefront.");
   const actionLabel = isEdit
     ? (isId ? "Simpan Perubahan" : "Save Changes")
-    : (isId ? "Tambah Kategori" : "Add Category");
-  const imageUrl = resolveAssetUrl(form.imageUrl);
+    : (isId ? "Simpan Etalase" : "Create Showcase");
+
+  const selectedIds = new Set(form.productIds || []);
+
+  const toggleProduct = (productId) => {
+    const next = new Set(selectedIds);
+    if (next.has(productId)) {
+      next.delete(productId);
+    } else {
+      next.add(productId);
+    }
+    onChange({ productIds: Array.from(next) });
+  };
+
+  const selectAllProducts = () => {
+    const allIds = storeProducts.map((p) => Number(p.id));
+    onChange({ productIds: allIds });
+  };
+
+  const clearAllProducts = () => {
+    onChange({ productIds: [] });
+  };
+
+  const filteredStoreProducts = storeProducts.filter((p) => {
+    if (!productSearch.trim()) return true;
+    const name = String(p.name || p.title || "").toLowerCase();
+    return name.includes(productSearch.toLowerCase().trim());
+  });
 
   return (
-    <div className="seller2026-category-modal" role="dialog" aria-modal="true" aria-labelledby="category-modal-title">
+    <div className="seller2026-category-modal" role="dialog" aria-modal="true" aria-labelledby="showcase-modal-title">
       <button className="seller2026-category-modal__backdrop" type="button" aria-label="Close modal" onClick={onClose} />
-      <form className="seller2026-category-modal__panel" onSubmit={(event) => { event.preventDefault(); onSubmit(); }}>
+      <form
+        className="seller2026-category-modal__panel"
+        style={{ maxWidth: "680px", width: "95vw" }}
+        onSubmit={(e) => {
+          e.preventDefault();
+          onSubmit();
+        }}
+      >
         <header>
           <div>
-            <h2 id="category-modal-title">{title}</h2>
+            <h2 id="showcase-modal-title">{title}</h2>
             <p>{subtitle}</p>
           </div>
-          <button type="button" onClick={onClose} aria-label="Close"><X size={20} /></button>
+          <button type="button" onClick={onClose} aria-label="Close">
+            <X size={20} />
+          </button>
         </header>
 
-        <div className="seller2026-category-form">
-          <label className={errors.name ? "has-error" : ""}>
-            <span>{isId ? "Nama Kategori *" : "Category Name *"}</span>
+        <div className="seller2026-category-form" style={{ maxHeight: "65vh", overflowY: "auto", paddingRight: "4px" }}>
+          <label>
+            <span>{isId ? "Nama Etalase *" : "Showcase Name *"}</span>
             <input
-              id="seller-category-name"
-              name="name"
-              value={form.name}
-              placeholder={isId ? "Nama kategori..." : "Category name..."}
-              onChange={(event) => {
-                const name = event.target.value;
-                onChange({ name, slug: slugifySeller2026Category(name) });
+              type="text"
+              required
+              placeholder={isId ? "Contoh: Aneka Keripik Gurih, Best Seller, Paket Hemat" : "e.g. Best Sellers, Crispy Snacks"}
+              value={form.name || ""}
+              onChange={(e) => onChange({ name: e.target.value })}
+            />
+          </label>
+
+          <label>
+            <span>{isId ? "Deskripsi Singkat (Opsional)" : "Short Description (Optional)"}</span>
+            <input
+              type="text"
+              placeholder={isId ? "Jelaskan keistimewaan koleksi produk ini..." : "Describe this collection..."}
+              value={form.description || ""}
+              onChange={(e) => onChange({ description: e.target.value })}
+            />
+          </label>
+
+          {/* Product Checklist Section */}
+          <div style={{ marginTop: "1rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+              <span style={{ fontWeight: 600, fontSize: "0.875rem", color: "var(--seller2026-text, #fff)" }}>
+                {isId ? "Pilih Produk untuk Etalase Ini" : "Select Products for this Showcase"}
+                <span style={{ marginLeft: "6px", color: "var(--seller2026-primary, #3b82f6)", fontWeight: 700 }}>
+                  ({selectedIds.size} {isId ? "produk terpilih" : "products selected"})
+                </span>
+              </span>
+              <div style={{ display: "flex", gap: "8px" }}>
+                <button
+                  type="button"
+                  onClick={selectAllProducts}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#38bdf8",
+                    fontSize: "0.75rem",
+                    cursor: "pointer",
+                    textDecoration: "underline",
+                  }}
+                >
+                  {isId ? "Pilih Semua" : "Select All"}
+                </button>
+                <span style={{ color: "#64748b" }}>•</span>
+                <button
+                  type="button"
+                  onClick={clearAllProducts}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#94a3b8",
+                    fontSize: "0.75rem",
+                    cursor: "pointer",
+                    textDecoration: "underline",
+                  }}
+                >
+                  {isId ? "Kosongkan" : "Clear"}
+                </button>
+              </div>
+            </div>
+
+            {storeProducts.length > 5 && (
+              <div style={{ position: "relative", marginBottom: "0.5rem" }}>
+                <Search size={14} style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: "#64748b" }} />
+                <input
+                  type="text"
+                  placeholder={isId ? "Cari produk toko..." : "Search products..."}
+                  value={productSearch}
+                  onChange={(e) => setProductSearch(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "6px 10px 6px 30px",
+                    fontSize: "0.8rem",
+                    borderRadius: "8px",
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    background: "rgba(0,0,0,0.2)",
+                    color: "inherit",
+                  }}
+                />
+              </div>
+            )}
+
+            <div
+              style={{
+                maxHeight: "220px",
+                overflowY: "auto",
+                border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: "10px",
+                padding: "6px",
+                background: "rgba(15, 23, 42, 0.4)",
+                display: "flex",
+                flexDirection: "column",
+                gap: "4px",
               }}
-            />
-            {errors.name ? <small>{errors.name}</small> : null}
-          </label>
-
-          <label>
-            <span>{isId ? "Kategori Induk" : "Parent Category"}</span>
-            <select id="seller-category-parent" name="parentId" value={form.parentId} onChange={(event) => onChange({ parentId: event.target.value })}>
-              {parentOptions.map((option) => <option value={option.value} key={option.value || "root"}>{option.label}</option>)}
-            </select>
-          </label>
-
-          <label className={errors.description ? "has-error" : ""}>
-            <span>{isId ? "Deskripsi" : "Description"}</span>
-            <textarea
-              id="seller-category-description"
-              name="description"
-              rows={5}
-              value={form.description}
-              maxLength={160}
-              placeholder={isId ? "Deskripsi singkat..." : "Short description..."}
-              onChange={(event) => onChange({ description: event.target.value })}
-            />
-            <em>{form.description.length}/160</em>
-            {errors.description ? <small>{errors.description}</small> : null}
-          </label>
-
-          <div className="seller2026-category-form__image">
-            <span>{isId ? "Gambar" : "Image"}</span>
-            <button type="button" disabled={!canUpload || isUploading} onClick={onImageUpload}>
-              {imageUrl ? <img src={imageUrl} alt="" /> : <ImageIcon size={24} />}
-              <strong>{isUploading ? (isId ? "Mengunggah gambar..." : "Uploading image...") : (isId ? "Unggah gambar" : "Upload an image")}</strong>
-              <small>{canUpload ? "PNG, JPG, WEBP (Maks 2MB)" : (isId ? "Belum tersedia" : "Not available")}</small>
-            </button>
-            {form.imageUrl ? (
-              <button
-                className="seller2026-category-form__remove"
-                type="button"
-                onClick={() => window.confirm(isId ? "Hapus gambar ini dari draf?" : "Remove this image from the draft?") && onChange({ imageUrl: "" })}
-              >
-                {isId ? "Hapus gambar" : "Remove image"}
-              </button>
-            ) : null}
-          </div>
-
-          <label>
-            <span>{isId ? "Slug (Tautan)" : "Slug (Handle)"}</span>
-            <div className="seller2026-category-form__slug">
-              <span>/categories/</span>
-              <input
-                id="seller-category-slug"
-                name="slug"
-                value={form.slug}
-                placeholder={isId ? "tautan-kategori" : "category-handle"}
-                onChange={(event) => onChange({ slug: slugifySeller2026Category(event.target.value) })}
-              />
-            </div>
-            <small>{isId ? "Huruf kecil & tanda hubung." : "Lowercase letters and hyphens."}</small>
-          </label>
-
-          <div className="seller2026-category-form__visibility">
-            <div>
-              <strong>{isId ? "Tampilkan di etalase" : "Visible in storefront"}</strong>
-              <span>{isId ? "Tampil di katalog pembeli." : "Visible in customer catalog."}</span>
-            </div>
-            <button
-              type="button"
-              className={`seller2026-switch${form.isPublished ? " is-on" : ""}`}
-              onClick={() => onChange({ isPublished: !form.isPublished })}
             >
-              <i />
-            </button>
+              {filteredStoreProducts.length === 0 ? (
+                <div style={{ padding: "16px", textAlign: "center", color: "#94a3b8", fontSize: "0.85rem" }}>
+                  {storeProducts.length === 0
+                    ? (isId ? "Toko Anda belum memiliki produk aktif." : "No active products in your store.")
+                    : (isId ? "Tidak ada produk yang cocok dengan pencarian." : "No matching products found.")}
+                </div>
+              ) : (
+                filteredStoreProducts.map((product) => {
+                  const pId = Number(product.id);
+                  const isChecked = selectedIds.has(pId);
+                  const imageUrl = resolveProductImageUrl(product);
+                  const price = Number(product.price ?? product.salePrice ?? 0);
+
+                  return (
+                    <label
+                      key={pId}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "10px",
+                        padding: "8px 10px",
+                        borderRadius: "8px",
+                        background: isChecked ? "rgba(59, 130, 246, 0.12)" : "transparent",
+                        border: isChecked ? "1px solid rgba(59, 130, 246, 0.3)" : "1px solid transparent",
+                        cursor: "pointer",
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => toggleProduct(pId)}
+                        style={{ cursor: "pointer", width: "16px", height: "16px" }}
+                      />
+                      <div
+                        style={{
+                          width: "36px",
+                          height: "36px",
+                          borderRadius: "6px",
+                          overflow: "hidden",
+                          background: "#1e293b",
+                          flexShrink: 0,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        {imageUrl ? (
+                          <img src={imageUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        ) : (
+                          <Package size={16} color="#64748b" />
+                        )}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 600, fontSize: "0.85rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {product.name || product.title}
+                        </div>
+                        <div style={{ fontSize: "0.75rem", color: "#94a3b8" }}>
+                          {formatCurrency(price)}
+                          {product.stock != null && <span> · Stok: {product.stock}</span>}
+                        </div>
+                      </div>
+                    </label>
+                  );
+                })
+              )}
+            </div>
           </div>
+
+          <label style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "1rem", cursor: "pointer" }}>
+            <input
+              type="checkbox"
+              checked={form.isActive !== false}
+              onChange={(e) => onChange({ isActive: e.target.checked })}
+              style={{ width: "18px", height: "18px" }}
+            />
+            <span style={{ fontWeight: 600, fontSize: "0.875rem" }}>
+              {isId ? "Tampilkan Etalase di Halaman Toko" : "Display Showcase on Storefront"}
+            </span>
+          </label>
         </div>
 
         <footer>
-          <button type="button" onClick={onClose}>{isId ? "Batal" : "Cancel"}</button>
-          <button type="submit" className="is-primary" disabled={isSubmitting}>{isSubmitting ? (isId ? "Menyimpan..." : "Saving...") : actionLabel}</button>
+          <button type="button" onClick={onClose}>
+            {isId ? "Batal" : "Cancel"}
+          </button>
+          <button type="submit" className="is-primary" disabled={isSubmitting || !form.name?.trim()}>
+            {isSubmitting ? (isId ? "Menyimpan..." : "Saving...") : actionLabel}
+          </button>
         </footer>
       </form>
     </div>
@@ -190,353 +299,353 @@ function CategoryModal({
 }
 
 export default function Seller2026LiveCategoriesPage({ initialCreateOpen = false }) {
-  const { sellerContext, workspaceStoreId: storeId, workspaceRoutes, isId: outletIsId = false } = useSellerWorkspaceRoute();
-  const navigate = useNavigate();
+  const { workspaceStoreId: storeId, workspaceRoutes, isId: outletIsId = false } = useSellerWorkspaceRoute();
   const location = useLocation();
-  const isCreateRoute = initialCreateOpen || location.pathname.endsWith("/categories/new");
+  const navigate = useNavigate();
   const { i18n } = useTranslation();
   const isId = Boolean(outletIsId || String(i18n.language || "").toLowerCase().startsWith("id"));
 
-  const { can, permissions, sourceAvailable } = getSeller2026PagePermissions(sellerContext);
-  const canView = can("CATALOG_CATEGORY_READ");
-  const canCreate = !sourceAvailable || hasSeller2026Permission(permissions, "CATALOG_CATEGORY_CREATE");
-  const canUpdate = !sourceAvailable || hasSeller2026Permission(permissions, "CATALOG_CATEGORY_UPDATE");
-  const canManageStatus = !sourceAvailable || hasSeller2026Permission(permissions, "CATALOG_CATEGORY_STATUS_MANAGE");
-  const canArchive = !sourceAvailable || hasSeller2026Permission(permissions, "CATALOG_CATEGORY_DELETE");
-  const categories = useSeller2026Categories(storeId, {
-    enabled: canView,
-    permissions: {
-      canEdit: canUpdate,
-      canPublish: canManageStatus,
-      canUnpublish: canManageStatus,
-      canArchive,
-    },
-  });
-  const [notice, setNotice] = useState(null);
-  const [modalMode, setModalMode] = useState("create");
-  const [modalOpen, setModalOpen] = useState(isCreateRoute);
-  const [form, setForm] = useState(createSeller2026CategoryForm());
-  const [formErrors, setFormErrors] = useState({});
-  const [uploading, setUploading] = useState(false);
-  const [imageInputKey, setImageInputKey] = useState(0);
-  const allPageSelected = categories.categories.length > 0 && categories.categories.every((item) => categories.selectedIds.includes(item.id));
+  const {
+    showcases,
+    allShowcases,
+    storeProducts,
+    stats,
+    filters,
+    setFilters,
+    isLoading,
+    createShowcase,
+    updateShowcase,
+    deleteShowcase,
+    toggleActive,
+    isMutating,
+  } = useSellerShowcases(storeId);
 
-  const inputId = useMemo(() => `seller2026-category-image-${imageInputKey}`, [imageInputKey]);
+  const [notice, setNotice] = useState(null);
+  const [modalOpen, setModalOpen] = useState(initialCreateOpen || location.pathname.endsWith("/categories/new"));
+  const [modalMode, setModalMode] = useState("create");
+  const [form, setForm] = useState({ name: "", description: "", isActive: true, productIds: [] });
+  const [activeMenuId, setActiveMenuId] = useState(null);
 
   const openCreate = () => {
     setModalMode("create");
-    setForm(createSeller2026CategoryForm());
-    setFormErrors({});
+    setForm({ name: "", description: "", isActive: true, productIds: [] });
     setNotice(null);
     setModalOpen(true);
   };
 
-  const openEdit = (category) => {
+  const openEdit = (showcase) => {
     setModalMode("edit");
-    setForm(createSeller2026CategoryForm(category));
-    setFormErrors({});
+    setForm({
+      id: showcase.id,
+      name: showcase.name,
+      description: showcase.description || "",
+      isActive: showcase.isActive,
+      productIds: showcase.productIds || [],
+    });
     setNotice(null);
     setModalOpen(true);
   };
 
   const closeModal = () => {
     setModalOpen(false);
-    setFormErrors({});
-    if (isCreateRoute) {
+    if (location.pathname.endsWith("/categories/new")) {
       navigate(workspaceRoutes.categories(), { replace: true });
     }
   };
 
-  const updateForm = (patch) => setForm((current) => ({ ...current, ...patch }));
-
-  const submitForm = async () => {
-    const errors = validateSeller2026CategoryForm(form, isId);
-    setFormErrors(errors);
-    if (Object.keys(errors).length) return;
+  const handleFormSubmit = async () => {
+    if (!form.name?.trim()) return;
     try {
       if (modalMode === "edit" && form.id) {
-        await categories.updateCategory({ id: form.id, form });
-        setNotice({ type: "success", text: isId ? "Kategori berhasil diperbarui" : "Category updated successfully" });
+        await updateShowcase({
+          id: form.id,
+          payload: {
+            name: form.name.trim(),
+            description: form.description?.trim() || null,
+            isActive: form.isActive !== false,
+            productIds: form.productIds || [],
+          },
+        });
+        setNotice({
+          type: "success",
+          text: isId ? "Etalase toko berhasil diperbarui" : "Showcase updated successfully",
+        });
       } else {
-        await categories.createCategory(form);
-        setNotice({ type: "success", text: isId ? "Kategori berhasil dibuat" : "Category created successfully" });
+        await createShowcase({
+          name: form.name.trim(),
+          description: form.description?.trim() || null,
+          isActive: form.isActive !== false,
+          productIds: form.productIds || [],
+        });
+        setNotice({
+          type: "success",
+          text: isId ? "Etalase toko baru berhasil dibuat" : "New showcase created successfully",
+        });
       }
       closeModal();
-      categories.clearSelection();
-    } catch (error) {
+    } catch (err) {
       setNotice({
         type: "error",
-        text: modalMode === "edit"
-          ? toErrorMessage(error, isId ? "Gagal memperbarui kategori" : "Unable to update category")
-          : toErrorMessage(error, isId ? "Gagal membuat kategori" : "Unable to create category"),
+        text: err?.response?.data?.message || err?.message || (isId ? "Gagal menyimpan etalase" : "Failed to save showcase"),
       });
     }
   };
 
-  const handleImageFile = async (file) => {
-    if (!file) return;
-    setUploading(true);
-    setNotice(null);
+  const handleToggleActive = async (showcase) => {
     try {
-      const data = await uploadSellerCategoryImage(file);
-      const url = data?.data?.url || data?.url;
-      if (!url) throw new Error("Upload returned no image URL.");
-      updateForm({ imageUrl: url });
-    } catch (error) {
-      setNotice({ type: "error", text: toErrorMessage(error, isId ? "Gagal mengunggah gambar" : "Unable to upload image") });
-    } finally {
-      setUploading(false);
-      setImageInputKey((current) => current + 1);
-    }
-  };
-
-  const updateVisibility = async (category) => {
-    if (!category.permissions.canPublish && !category.permissions.canUnpublish) return;
-    try {
-      await categories.updateCategoryVisibility({ id: category.id, isPublished: !category.isPublished });
+      await toggleActive({ id: showcase.id, isActive: !showcase.isActive });
       setNotice({
         type: "success",
-        text: category.isPublished
-          ? (isId ? "Kategori berhasil disembunyikan" : "Category hidden successfully")
-          : (isId ? "Kategori berhasil ditampilkan" : "Category is now visible"),
+        text: showcase.isActive
+          ? (isId ? "Etalase berhasil disembunyikan" : "Showcase hidden")
+          : (isId ? "Etalase berhasil diaktifkan" : "Showcase activated"),
       });
-    } catch (error) {
-      setNotice({ type: "error", text: toErrorMessage(error, isId ? "Gagal memperbarui visibilitas kategori" : "Unable to update category visibility") });
+    } catch (err) {
+      setNotice({
+        type: "error",
+        text: err?.message || (isId ? "Gagal mengubah status" : "Failed to update status"),
+      });
     }
   };
 
-  if (categories.isLoading) {
-    return (
-      <div className="seller2026-dashboard seller2026-categories">
-        <div className="seller2026-skeleton seller2026-skeleton--hero" />
-        <div className="seller2026-skeleton seller2026-skeleton--hero" />
-        <p className="seller2026-categories__muted">{isId ? "Memuat data kategori..." : "Loading categories..."}</p>
-      </div>
-    );
-  }
-
-  if (categories.isError) {
-    return (
-      <div className="seller2026-dashboard seller2026-categories">
-        <div className="seller2026-error"><AlertTriangle size={18} />{isId ? "Gagal memuat kategori" : "Unable to load categories"}<button onClick={() => categories.refetch()}>{isId ? "Coba Lagi" : "Retry"}</button></div>
-      </div>
-    );
-  }
+  const handleDelete = async (showcase) => {
+    if (!window.confirm(isId ? `Apakah Anda yakin ingin menghapus etalase "${showcase.name}"? (Produk tidak akan terhapus).` : `Delete showcase "${showcase.name}"? (Products will not be deleted).`)) {
+      return;
+    }
+    try {
+      await deleteShowcase(showcase.id);
+      setNotice({
+        type: "success",
+        text: isId ? "Etalase toko berhasil dihapus" : "Showcase deleted",
+      });
+    } catch (err) {
+      setNotice({
+        type: "error",
+        text: err?.message || (isId ? "Gagal menghapus etalase" : "Failed to delete showcase"),
+      });
+    }
+  };
 
   const summaryCards = [
-    [isId ? "Total Kategori" : "Total Categories", categories.summary.total, Layers, "blue"],
-    [isId ? "Dipublikasikan" : "Published", categories.summary.published, Check, "green"],
-    [isId ? "Disembunyikan" : "Hidden", categories.summary.hidden, EyeOff, "orange"],
-    [isId ? "Kategori Utama" : "Root Categories", categories.summary.rootCategories, FolderTree, "mint"],
+    [isId ? "Total Etalase" : "Total Showcases", stats.total, Layers, "blue"],
+    [isId ? "Etalase Aktif" : "Active Showcases", stats.active, Check, "green"],
+    [isId ? "Produk Masuk Etalase" : "Curated Products", stats.totalAssigned, Sparkles, "mint"],
+    [isId ? "Produk Tanpa Etalase" : "Uncategorized", stats.unassigned, Package, "orange"],
   ];
 
-  const bulkButtonLabel = categories.selectedIds.length
-    ? (isId ? `Aksi Massal (${categories.selectedIds.length})` : `Bulk Actions (${categories.selectedIds.length})`)
-    : (isId ? "Aksi Massal" : "Bulk Actions");
-
   return (
-    <div className="seller2026-dashboard seller2026-categories">
+    <div className="seller2026-categories">
       <header className="seller2026-categories-header">
         <div>
-          <h1>{isId ? "Kategori" : "Categories"}</h1>
-          <p>{isId ? "Kelola kategori produk." : "Manage product categories."}</p>
+          <h1>{isId ? "Etalase Toko" : "Store Showcases"}</h1>
+          <p>
+            {isId
+              ? "Kelola pengelompokan produk khusus untuk beranda dan etalase toko Anda agar pembeli mudah berbelanja."
+              : "Organize products into curated showcases and collections for your storefront visitors."}
+          </p>
         </div>
         <div className="seller2026-categories-actions">
-          <button disabled title={isId ? "Belum tersedia" : "Not available yet"}><Upload size={16} />{isId ? "Ekspor" : "Export"}</button>
-          <button disabled title={isId ? "Belum tersedia" : "Not available yet"}><Upload size={16} />{isId ? "Impor" : "Import"}</button>
-          <button disabled={!categories.selectedIds.length} title={categories.selectedIds.length ? (isId ? "Aksi massal membutuhkan konfirmasi." : "Bulk actions are confirmation-gated.") : (isId ? "Pilih kategori terlebih dahulu" : "Select categories first")}>
-            <SlidersHorizontal size={16} />
-            {bulkButtonLabel}
-          </button>
-          <button className="is-primary" disabled={!canCreate} title={canCreate ? (isId ? "Tambah Kategori" : "Add Category") : (isId ? "Membutuhkan izin" : "Requires permission")} onClick={openCreate}>
+          <button className="is-primary" onClick={openCreate}>
             <Plus size={17} />
-            {isId ? "Tambah Kategori" : "Add Category"}
+            {isId ? "Tambah Etalase" : "Add Showcase"}
           </button>
         </div>
       </header>
 
-      {notice ? (
+      {notice && (
         <div className={`seller2026-profile__notice seller2026-profile__notice--${notice.type}`}>
-          {notice.type === "success" ? <Check size={16} /> : <AlertTriangle size={16} />}{notice.text}
+          {notice.type === "success" ? <Check size={16} /> : <AlertTriangle size={16} />}
+          {notice.text}
         </div>
-      ) : null}
+      )}
 
+      {/* KPI Cards */}
       <section className="seller2026-categories-summary">
-        {summaryCards.map(([label, value, Icon, tone]) => (
+        {summaryCards.map(([label, value, IconComponent, tone]) => (
           <article key={label}>
-            <span className={`is-${tone}`}><Icon size={23} /></span>
-            <div><small>{label}</small><strong>{value}</strong></div>
+            <span className={`is-${tone}`}>
+              <IconComponent size={23} />
+            </span>
+            <div>
+              <small>{label}</small>
+              <strong>{value}</strong>
+            </div>
           </article>
         ))}
       </section>
 
+      {/* Table Section */}
       <section className="seller2026-categories-table">
         <div className="seller2026-categories-toolbar">
           <label>
             <Search size={17} />
-            <input placeholder={isId ? "Cari kategori..." : "Search categories..."} value={categories.filters.search} onChange={(event) => categories.setFilters({ search: event.target.value })} />
+            <input
+              placeholder={isId ? "Cari etalase toko..." : "Search showcases..."}
+              value={filters.search}
+              onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
+            />
           </label>
           <span>{isId ? "Status" : "Status"}</span>
-          <select value={categories.filters.status} onChange={(event) => categories.setFilters({ status: event.target.value })}>
-            <option value="all">{isId ? "Semua Status" : "All Statuses"}</option>
-            <option value="published">{isId ? "Dipublikasikan" : "Published"}</option>
-            <option value="draft">{isId ? "Draf" : "Draft"}</option>
+          <select
+            value={filters.status}
+            onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value }))}
+          >
+            <option value="all">{isId ? "Semua Status" : "All Status"}</option>
+            <option value="active">{isId ? "Aktif" : "Active"}</option>
+            <option value="inactive">{isId ? "Nonaktif" : "Inactive"}</option>
           </select>
-          <span>{isId ? "Visibilitas" : "Visibility"}</span>
-          <select value={categories.filters.visibility} onChange={(event) => categories.setFilters({ visibility: event.target.value })}>
-            <option value="all">{isId ? "Semua Visibilitas" : "All Visibility"}</option>
-            <option value="visible">{isId ? "Ditampilkan" : "Visible"}</option>
-            <option value="hidden">{isId ? "Disembunyikan" : "Hidden"}</option>
-          </select>
-          <button type="button" onClick={categories.resetFilters} title={isId ? "Reset filter pencarian" : "Reset search filters"}>
+          <button
+            type="button"
+            onClick={() => setFilters({ search: "", status: "all" })}
+            title={isId ? "Reset filter" : "Reset filter"}
+          >
             <RotateCcw size={16} />
             {isId ? "Atur Ulang" : "Reset"}
           </button>
         </div>
 
-        {categories.filteredCategories.length === 0 ? (
+        {showcases.length === 0 ? (
           <div className="seller2026-categories-empty">
-            <Layers size={30} />
-            <h2>{isId ? "Belum ada kategori" : "No categories yet"}</h2>
-            <p>{isId ? "Mulai dengan membuat kategori baru." : "Start by creating a category."}</p>
-            <button type="button" disabled={!canCreate} onClick={openCreate}>{isId ? "Tambah Kategori" : "Add Category"}</button>
+            <Layers size={36} color="#64748b" />
+            <h2>{isId ? "Belum ada etalase toko" : "No showcases yet"}</h2>
+            <p>
+              {isId
+                ? "Etalase toko mempermudah pembeli menemukan produk favorit Anda (misal: 'Best Seller', 'Aneka Keripik', 'Promo Kampus')."
+                : "Create showcases to help buyers navigate your products by themes and collections."}
+            </p>
+            <button type="button" onClick={openCreate} className="is-primary">
+              <Plus size={16} />
+              {isId ? "Tambah Etalase Pertama" : "Create First Showcase"}
+            </button>
           </div>
         ) : (
           <>
             <div className="seller2026-categories-grid seller2026-categories-grid--head">
-              <label>
-                <input type="checkbox" checked={allPageSelected} onChange={(event) => categories.togglePageSelection(event.target.checked)} />
-                {isId ? "Pilih" : "Select"}
-              </label>
-              <span>{isId ? "Kategori" : "Category"}</span>
-              <span>{isId ? "Induk" : "Parent"}</span>
-              <span>{isId ? "Produk" : "Products"}</span>
-              <span>{isId ? "Visibilitas" : "Visibility"}</span>
-              <span>{isId ? "Diperbarui" : "Updated"}</span>
+              <span>#</span>
+              <span>{isId ? "Nama Etalase" : "Showcase Name"}</span>
+              <span>{isId ? "Deskripsi" : "Description"}</span>
+              <span>{isId ? "Jumlah Produk" : "Products"}</span>
+              <span>{isId ? "Status Tampil" : "Visibility"}</span>
               <span>{isId ? "Aksi" : "Actions"}</span>
             </div>
-            <div className="seller2026-categories-grid seller2026-categories-grid--body">
-              {categories.categories.map((category) => {
-                const parentLabel = seller2026CategoryLabels.parent(category, isId);
-                const visibleLabel = seller2026CategoryLabels.visibility(category.visibilityStatus, isId);
-                const lifecycleLabel = seller2026CategoryLabels.lifecycle(category.lifecycleStatus, isId);
-                const isVisibilityBusy = categories.visibilityCategoryId === category.id;
-                const hasDescription = category.description && category.description !== "No description" && category.description !== "Tidak ada deskripsi";
-                const updatedByDisplay = category.updatedBy === "by Seller" ? (isId ? "oleh Penjual" : "by Seller") : category.updatedBy;
-                const formattedDate = category.rawUpdatedAt
-                  ? formatSeller2026CategoryDate(category.rawUpdatedAt, isId)
-                  : category.updatedAt;
 
-                return (
-                  <article className="seller2026-category-row" key={category.id}>
-                    <label className="seller2026-category-row__select" data-label={isId ? "Pilih" : "Select"}>
-                      <input
-                        type="checkbox"
-                        checked={categories.selectedIds.includes(category.id)}
-                        onChange={(event) => categories.toggleSelected(category.id, event.target.checked)}
-                      />
-                    </label>
-                    <div className="seller2026-category-row__identity" data-label={isId ? "Kategori" : "Category"}>
-                      <CategoryIcon category={category} />
-                      <div>
-                        <strong
-                          className={category.permissions.canEdit ? "is-clickable" : ""}
-                          title={category.permissions.canEdit ? (isId ? "Klik untuk mengedit kategori" : "Click to edit category") : undefined}
-                          onClick={category.permissions.canEdit ? () => openEdit(category) : undefined}
-                        >
-                          {category.name}
-                        </strong>
-                        {hasDescription ? <small>{category.description}</small> : null}
-                      </div>
-                    </div>
-                    <div data-label={isId ? "Induk" : "Parent"}>
-                      <Pill tone={category.isRoot ? "blue" : "mint"}>{parentLabel}</Pill>
-                    </div>
-                    <span data-label={isId ? "Produk" : "Products"} style={{ fontWeight: 700, color: "var(--seller2026-text)" }}>
-                      {category.productsCount}
+            <div className="seller2026-categories-grid seller2026-categories-grid--body">
+              {showcases.map((sc, idx) => (
+                <article className="seller2026-category-row" key={sc.id}>
+                  <div style={{ color: "#64748b", fontWeight: 700, paddingLeft: "8px" }}>
+                    {idx + 1}
+                  </div>
+
+                  <div className="seller2026-category-row__identity" data-label={isId ? "Nama Etalase" : "Showcase"}>
+                    <span className="seller2026-category-icon is-blue">
+                      <FolderTree size={18} />
                     </span>
-                    <div data-label={isId ? "Visibilitas" : "Visibility"} className="seller2026-category-row__status">
-                      <Pill tone={category.isPublished ? "green" : "orange"}>{visibleLabel}</Pill>
-                      <small>{lifecycleLabel}</small>
+                    <div>
+                      <strong
+                        className="is-clickable"
+                        onClick={() => openEdit(sc)}
+                        title={isId ? "Klik untuk mengedit etalase" : "Click to edit"}
+                      >
+                        {sc.name}
+                      </strong>
+                      <small style={{ color: "#64748b" }}>slug: {sc.slug}</small>
                     </div>
-                    <div data-label={isId ? "Diperbarui" : "Updated"} className="seller2026-category-row__updated">
-                      <span>{formattedDate}</span>
-                      <small>{updatedByDisplay}</small>
-                    </div>
-                    <div className="seller2026-category-row__menu" data-label={isId ? "Aksi" : "Actions"}>
-                      <button type="button" aria-label={`Actions for ${category.name}`}><MoreVertical size={18} /></button>
-                      <div>
-                        <button type="button" disabled={!category.permissions.canEdit} onClick={() => openEdit(category)}>
+                  </div>
+
+                  <div data-label={isId ? "Deskripsi" : "Description"} style={{ color: "#94a3b8", fontSize: "0.85rem" }}>
+                    {sc.description || "-"}
+                  </div>
+
+                  <div data-label={isId ? "Jumlah Produk" : "Products"}>
+                    <Pill tone={sc.productCount > 0 ? "mint" : "orange"}>
+                      <Package size={12} style={{ marginRight: "4px" }} />
+                      {sc.productCount} {isId ? "Produk" : "Items"}
+                    </Pill>
+                  </div>
+
+                  <div data-label={isId ? "Status" : "Status"} className="seller2026-category-row__status">
+                    <Pill tone={sc.isActive ? "green" : "slate"}>
+                      {sc.isActive ? (isId ? "Aktif di Toko" : "Active") : (isId ? "Disembunyikan" : "Hidden")}
+                    </Pill>
+                  </div>
+
+                  <div className="seller2026-category-row__menu" data-label={isId ? "Aksi" : "Actions"}>
+                    <button
+                      type="button"
+                      aria-label="Actions"
+                      onClick={() => setActiveMenuId(activeMenuId === sc.id ? null : sc.id)}
+                    >
+                      <MoreVertical size={18} />
+                    </button>
+                    {activeMenuId === sc.id && (
+                      <div
+                        style={{
+                          display: "block",
+                          position: "absolute",
+                          right: 0,
+                          top: "100%",
+                          zIndex: 40,
+                          background: "#0f172a",
+                          border: "1px solid rgba(255,255,255,0.15)",
+                          borderRadius: "10px",
+                          boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
+                          padding: "6px",
+                          minWidth: "160px",
+                        }}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveMenuId(null);
+                            openEdit(sc);
+                          }}
+                        >
                           <Pencil size={14} />
-                          {isId ? "Edit Kategori" : "Edit Category"}
+                          {isId ? "Edit Etalase" : "Edit Showcase"}
                         </button>
-                        <Link to={`${workspaceRoutes.catalog()}?category=${encodeURIComponent(category.id)}`}>
-                          <Package size={14} />
-                          {isId ? "Lihat Produk" : "View Products"}
-                        </Link>
-                        <button type="button" disabled={!canManageStatus || isVisibilityBusy} onClick={() => updateVisibility(category)}>
-                          {category.isPublished ? <EyeOff size={14} /> : <Eye size={14} />}
-                          {category.isPublished ? (isId ? "Sembunyikan Kategori" : "Hide Category") : (isId ? "Tampilkan Kategori" : "Show Category")}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveMenuId(null);
+                            handleToggleActive(sc);
+                          }}
+                        >
+                          {sc.isActive ? <EyeOff size={14} /> : <Eye size={14} />}
+                          {sc.isActive
+                            ? (isId ? "Sembunyikan" : "Hide")
+                            : (isId ? "Tampilkan di Toko" : "Show on Store")}
                         </button>
-                        <button type="button" disabled title={isId ? "Fitur arsip belum aktif" : "Archive not available yet"}>
-                          <Archive size={14} />
-                          {isId ? "Arsip" : "Archive"}
+                        <button
+                          type="button"
+                          style={{ color: "#ef4444" }}
+                          onClick={() => {
+                            setActiveMenuId(null);
+                            handleDelete(sc);
+                          }}
+                        >
+                          <Trash2 size={14} />
+                          {isId ? "Hapus Etalase" : "Delete"}
                         </button>
                       </div>
-                    </div>
-                  </article>
-                );
-              })}
+                    )}
+                  </div>
+                </article>
+              ))}
             </div>
           </>
         )}
-
-        {categories.filteredCategories.length > 0 ? (
-          <footer className="seller2026-categories-pagination">
-            <span>
-              {isId
-                ? `Menampilkan ${categories.pagination.from} hingga ${categories.pagination.to} dari ${categories.pagination.total} hasil`
-                : `Showing ${categories.pagination.from} to ${categories.pagination.to} of ${categories.pagination.total} results`}
-            </span>
-            <div>
-              <select value={categories.pagination.perPage} onChange={(event) => categories.pagination.setPerPage(Number(event.target.value))}>
-                <option value={10}>{isId ? "10 per halaman" : "10 per page"}</option>
-                <option value={20}>{isId ? "20 per halaman" : "20 per page"}</option>
-                <option value={50}>{isId ? "50 per halaman" : "50 per page"}</option>
-              </select>
-              <button disabled={categories.pagination.page <= 1} onClick={() => categories.pagination.setPage(1)} title={isId ? "Halaman pertama" : "First page"}><ChevronsLeft size={15} /></button>
-              <button disabled={categories.pagination.page <= 1} onClick={() => categories.pagination.setPage(categories.pagination.page - 1)} title={isId ? "Sebelumnya" : "Previous"}><ChevronLeft size={15} /></button>
-              {Array.from({ length: Math.min(3, categories.pagination.totalPages) }, (_, index) => index + 1).map((pageNumber) => (
-                <button className={pageNumber === categories.pagination.page ? "is-active" : ""} key={pageNumber} onClick={() => categories.pagination.setPage(pageNumber)}>{pageNumber}</button>
-              ))}
-              <button disabled={categories.pagination.page >= categories.pagination.totalPages} onClick={() => categories.pagination.setPage(categories.pagination.page + 1)} title={isId ? "Berikutnya" : "Next"}><ChevronRight size={15} /></button>
-              <button disabled={categories.pagination.page >= categories.pagination.totalPages} onClick={() => categories.pagination.setPage(categories.pagination.totalPages)} title={isId ? "Halaman terakhir" : "Last page"}><ChevronsRight size={15} /></button>
-            </div>
-          </footer>
-        ) : null}
       </section>
 
-      <input
-        id={inputId}
-        key={inputId}
-        hidden
-        type="file"
-        accept="image/png,image/jpeg,image/webp"
-        onChange={(event) => handleImageFile(event.target.files?.[0])}
-      />
-      <CategoryModal
+      {/* Add / Edit Modal */}
+      <ShowcaseModal
         open={modalOpen}
         mode={modalMode}
         form={form}
-        errors={formErrors}
-        parentOptions={categories.getParentOptions(form.id, isId)}
-        onChange={updateForm}
+        storeProducts={storeProducts}
+        onChange={(patch) => setForm((curr) => ({ ...curr, ...patch }))}
         onClose={closeModal}
-        onSubmit={submitForm}
-        onImageUpload={() => document.getElementById(inputId)?.click()}
-        isSubmitting={categories.isCreating || Boolean(categories.updatingCategoryId)}
-        isUploading={uploading}
-        canUpload
+        onSubmit={handleFormSubmit}
+        isSubmitting={isMutating}
         isId={isId}
       />
     </div>

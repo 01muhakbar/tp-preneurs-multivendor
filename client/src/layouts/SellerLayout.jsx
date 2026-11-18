@@ -298,10 +298,10 @@ const getSellerPageMeta = (pathname, isId = false) => {
 
   if (pathname.endsWith("/catalog/categories")) {
     return {
-      title: isId ? "Kategori" : "Category",
+      title: isId ? "Etalase Toko" : "Store Showcases",
       subtitle: isId
-        ? "Kelola kategori produk."
-        : "Manage product categories.",
+        ? "Kelola etalase dan pengelompokan produk untuk toko Anda."
+        : "Manage store showcases and product collections.",
     };
   }
 
@@ -696,9 +696,9 @@ function SellerSidebar({
           implemented: true,
         },
         {
-          label: isId ? "Kategori" : "Categories",
+          label: isId ? "Etalase Toko" : "Store Showcases",
           to: sellerRoutes.categories(),
-          Icon: Tags,
+          Icon: Layers,
           enabled: hasPermission("CATEGORY_VIEW"),
           implemented: true,
         },

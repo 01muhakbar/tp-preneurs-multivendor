@@ -24,6 +24,16 @@ class Product extends Model {
             foreignKey: { name: "storeId", field: "store_id" },
             as: "store",
         });
+        Product.belongsToMany(models.StoreShowcase, {
+            through: models.StoreShowcaseProduct,
+            foreignKey: "productId",
+            otherKey: "showcaseId",
+            as: "showcases",
+        });
+        Product.hasMany(models.StoreShowcaseProduct, {
+            foreignKey: "productId",
+            as: "showcaseProducts",
+        });
     }
     static initModel(sequelize) {
         return Product.init({

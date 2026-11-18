@@ -22,6 +22,8 @@ import {
   ShoppingCart,
   Sparkles,
   Store,
+  FolderTree,
+  Layers,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useCart } from "../../../hooks/useCart.ts";
@@ -469,7 +471,60 @@ export default function StoreMicrosite2026View({
       (localStorage.getItem("store_language") === "Indonesia" ||
         localStorage.getItem("store_language") === "id"));
 
-  const { store, products, featuredProducts, richAboutHtml } = vm;
+  const { store, products, featuredProducts, showcases = [], richAboutHtml } = vm;
+
+  const [selectedShowcaseSlug, setSelectedShowcaseSlug] = useState("all");
+
+  const showcaseChips = useMemo(() => {
+    if (Array.isArray(showcases) && showcases.length > 0) {
+      return showcases.map((s) => ({
+        id: s.id,
+        name: s.name,
+        slug: s.slug,
+        description: s.description,
+        count: typeof s.productCount === "number" ? s.productCount : (s.products?.length || 0),
+        products: s.products || [],
+        isCustom: true,
+      }));
+    }
+    // Fallback: derive categories from products
+    const map = new Map();
+    products.forEach((p) => {
+      const cat = p?.category?.name || p?.categoryName || (isIndo ? "Produk Pilihan" : "Curated Items");
+      if (!map.has(cat)) {
+        map.set(cat, []);
+      }
+      map.get(cat).push(p);
+    });
+    return Array.from(map.entries()).map(([name, items]) => ({
+      id: name,
+      name,
+      slug: name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+      description: isIndo ? `Koleksi ${name} dari toko ini` : `Collection of ${name}`,
+      count: items.length,
+      products: items,
+      isCustom: false,
+    }));
+  }, [showcases, products, isIndo]);
+
+  const filteredProducts = useMemo(() => {
+    if (selectedShowcaseSlug === "all") return products;
+    const activeChip = showcaseChips.find((c) => c.slug === selectedShowcaseSlug);
+    if (!activeChip) return products;
+    if (activeChip.isCustom) {
+      const targetIds = new Set(activeChip.products.map((p) => Number(p.id)));
+      return products.filter((p) => targetIds.has(Number(p.id)));
+    }
+    return products.filter((p) => {
+      const cat = p?.category?.name || p?.categoryName || "";
+      return cat.toLowerCase() === activeChip.name.toLowerCase();
+    });
+  }, [products, selectedShowcaseSlug, showcaseChips]);
+
+  const activeShowcaseObj = useMemo(() => {
+    if (selectedShowcaseSlug === "all") return null;
+    return showcaseChips.find((c) => c.slug === selectedShowcaseSlug) || null;
+  }, [selectedShowcaseSlug, showcaseChips]);
 
   // Bilingual strings
   const T = useMemo(
@@ -694,58 +749,195 @@ export default function StoreMicrosite2026View({
           </div>
         </div>
 
+        {/* Showcase / Category Chips Bar */}
+        {showcaseChips.length > 0 && (
+          <div className="flex items-center gap-2 overflow-x-auto py-2 px-1 no-scrollbar">
+            <button
+              type="button"
+              onClick={() => setSelectedShowcaseSlug("all")}
+              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm ${
+                selectedShowcaseSlug === "all"
+                  ? "bg-[#fe6f05] text-white"
+                  : "bg-white/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-750"
+              }`}
+            >
+              <ShoppingBag size={13} />
+              <span>{isIndo ? "Semua Produk" : "All Products"}</span>
+              <span className="opacity-75 font-normal">({products.length})</span>
+            </button>
+            {showcaseChips.map((chip) => (
+              <button
+                key={chip.slug || chip.id}
+                type="button"
+                onClick={() => {
+                  setSelectedShowcaseSlug(chip.slug);
+                  if (activeTab === "about") onTabChange("products");
+                }}
+                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all shadow-sm ${
+                  selectedShowcaseSlug === chip.slug
+                    ? "bg-[#fe6f05] text-white"
+                    : "bg-white/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-750"
+                }`}
+              >
+                <FolderTree size={13} />
+                <span>{chip.name}</span>
+                <span className="opacity-75 font-normal">({chip.count})</span>
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* 3. Tab Contents */}
         <div className="space-y-6">
           {/* TAB 1: Store Home */}
           {activeTab === "home" && (
-            <section className="ms-card-section">
-              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6">
-                <div>
-                  <div className="flex items-center gap-2 text-[#fe6f05] mb-0.5">
-                    <Sparkles size={18} />
-                    <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
-                      {T.topPicks}
-                    </h2>
-                  </div>
-                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-                    {T.topPicksSub}
-                  </p>
-                </div>
-                {products.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => onTabChange("products")}
-                    className="inline-flex h-9 items-center justify-center gap-1 rounded-full border border-slate-300 bg-white px-4 text-xs font-bold text-[#034c85] hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-blue-400 shrink-0 self-start sm:self-auto"
-                  >
-                    <span>{T.viewAll}</span>
-                    <ChevronRight size={14} />
-                  </button>
-                )}
-              </div>
+            <>
+              {selectedShowcaseSlug === "all" ? (
+                <>
+                  <section className="ms-card-section">
+                    <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6">
+                      <div>
+                        <div className="flex items-center gap-2 text-[#fe6f05] mb-0.5">
+                          <Sparkles size={18} />
+                          <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
+                            {T.topPicks}
+                          </h2>
+                        </div>
+                        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                          {T.topPicksSub}
+                        </p>
+                      </div>
+                      {products.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => onTabChange("products")}
+                          className="inline-flex h-9 items-center justify-center gap-1 rounded-full border border-slate-300 bg-white px-4 text-xs font-bold text-[#034c85] hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-blue-400 shrink-0 self-start sm:self-auto"
+                        >
+                          <span>{T.viewAll}</span>
+                          <ChevronRight size={14} />
+                        </button>
+                      )}
+                    </div>
 
-              {productsLoading ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div
-                      key={i}
-                      className="h-72 rounded-2xl store-microsite-2026-skeleton"
-                    />
-                  ))}
-                </div>
-              ) : featuredProducts.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4">
-                  {featuredProducts.map((product) => (
-                    <MicrositeProductCard
-                      key={product.id || product.slug}
-                      product={product}
-                      isIndo={isIndo}
-                    />
-                  ))}
-                </div>
+                    {productsLoading ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5">
+                        {[1, 2, 3, 4].map((i) => (
+                          <div
+                            key={i}
+                            className="h-72 rounded-2xl store-microsite-2026-skeleton"
+                          />
+                        ))}
+                      </div>
+                    ) : featuredProducts.length > 0 ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4">
+                        {featuredProducts.map((product) => (
+                          <MicrositeProductCard
+                            key={product.id || product.slug}
+                            product={product}
+                            isIndo={isIndo}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      renderEmptyProducts()
+                    )}
+                  </section>
+
+                  {/* Render Sections for each Showcase / Category */}
+                  {showcaseChips
+                    .filter((chip) => chip.products && chip.products.length > 0)
+                    .map((chip) => (
+                      <section key={chip.slug || chip.id} className="ms-card-section">
+                        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6">
+                          <div>
+                            <div className="flex items-center gap-2 text-[#034c85] dark:text-blue-400 mb-0.5">
+                              <FolderTree size={18} />
+                              <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
+                                {chip.name}
+                              </h2>
+                            </div>
+                            {chip.description && (
+                              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                                {chip.description}
+                              </p>
+                            )}
+                          </div>
+                          {chip.products.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedShowcaseSlug(chip.slug);
+                                onTabChange("products");
+                              }}
+                              className="inline-flex h-9 items-center justify-center gap-1 rounded-full border border-slate-300 bg-white px-4 text-xs font-bold text-[#034c85] hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-blue-400 shrink-0 self-start sm:self-auto"
+                            >
+                              <span>{T.viewAll}</span>
+                              <ChevronRight size={14} />
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4">
+                          {chip.products.map((product) => (
+                            <MicrositeProductCard
+                              key={product.id || product.slug}
+                              product={product}
+                              isIndo={isIndo}
+                            />
+                          ))}
+                        </div>
+                      </section>
+                    ))}
+                </>
               ) : (
-                renderEmptyProducts()
+                /* Specific Showcase Selected */
+                <section className="ms-card-section">
+                  <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6">
+                    <div>
+                      <div className="flex items-center gap-2 text-[#034c85] dark:text-blue-400 mb-0.5">
+                        <FolderTree size={18} />
+                        <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
+                          {activeShowcaseObj?.name || (isIndo ? "Etalase Toko" : "Store Showcase")}
+                        </h2>
+                      </div>
+                      <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                        {activeShowcaseObj?.description ||
+                          (isIndo
+                            ? `Menampilkan produk dari etalase ${activeShowcaseObj?.name}`
+                            : `Showing products from ${activeShowcaseObj?.name}`)}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedShowcaseSlug("all")}
+                      className="inline-flex h-9 items-center justify-center gap-1 rounded-full border border-slate-300 bg-white px-4 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 shrink-0 self-start sm:self-auto"
+                    >
+                      <RotateCcw size={13} />
+                      <span>{isIndo ? "Lihat Semua Etalase" : "View All Showcases"}</span>
+                    </button>
+                  </div>
+
+                  {filteredProducts.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4">
+                      {filteredProducts.map((product) => (
+                        <MicrositeProductCard
+                          key={product.id || product.slug}
+                          product={product}
+                          isIndo={isIndo}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    renderEmptyProducts(
+                      isIndo ? "Belum Ada Produk di Etalase Ini" : "No Products in this Showcase",
+                      isIndo
+                        ? "Penjual belum menambahkan produk ke dalam etalase ini."
+                        : "No products have been added to this showcase yet."
+                    )
+                  )}
+                </section>
               )}
-            </section>
+            </>
           )}
 
           {/* TAB 2: All Products */}
@@ -754,16 +946,38 @@ export default function StoreMicrosite2026View({
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                 <div>
                   <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
-                    {T.allProducts}
+                    {activeShowcaseObj ? activeShowcaseObj.name : T.allProducts}
                   </h2>
                   <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-                    {T.allProductsSub}
+                    {activeShowcaseObj
+                      ? (isIndo ? `Menampilkan ${filteredProducts.length} produk di etalase ini` : `Showing ${filteredProducts.length} items in this showcase`)
+                      : T.allProductsSub}
                   </p>
                 </div>
 
                 {/* Search & Sort Controls */}
-                <div className="flex items-center gap-2.5 w-full sm:w-auto">
-                  <div className="relative flex-1 sm:w-64">
+                <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+                  {/* Showcase Filter Dropdown */}
+                  {showcaseChips.length > 0 && (
+                    <div className="relative shrink-0">
+                      <select
+                        value={selectedShowcaseSlug}
+                        onChange={(e) => setSelectedShowcaseSlug(e.target.value)}
+                        className="ms-sort-select"
+                        aria-label={isIndo ? "Filter Etalase" : "Filter Showcase"}
+                      >
+                        <option value="all">{isIndo ? "Semua Etalase" : "All Showcases"}</option>
+                        {showcaseChips.map((chip) => (
+                          <option key={chip.slug || chip.id} value={chip.slug}>
+                            {chip.name} ({chip.count})
+                          </option>
+                        ))}
+                      </select>
+                      <FolderTree className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                    </div>
+                  )}
+
+                  <div className="relative flex-1 sm:w-56">
                     <form onSubmit={onSearchSubmit}>
                       <input
                         type="text"
@@ -803,9 +1017,9 @@ export default function StoreMicrosite2026View({
                     />
                   ))}
                 </div>
-              ) : products.length > 0 ? (
+              ) : filteredProducts.length > 0 ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4">
-                  {products.map((product) => (
+                  {filteredProducts.map((product) => (
                     <MicrositeProductCard
                       key={product.id || product.slug}
                       product={product}

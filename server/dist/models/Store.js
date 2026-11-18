@@ -41,6 +41,10 @@ export class Store extends Model {
             foreignKey: { name: "storeId", field: "store_id" },
             as: "coupons",
         });
+        Store.hasMany(models.StoreShowcase, {
+            foreignKey: { name: "storeId", field: "store_id" },
+            as: "showcases",
+        });
     }
     static initModel(sequelize) {
         return Store.init({

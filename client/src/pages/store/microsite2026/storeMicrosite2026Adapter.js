@@ -70,7 +70,7 @@ export function normalizePublicProducts(raw) {
   };
 }
 
-export function buildStoreMicrosite2026ViewModel({ identity, productsPayload, richAbout, slug }) {
+export function buildStoreMicrosite2026ViewModel({ identity, productsPayload, richAbout, showcases = [], slug }) {
   const store = normalizePublicStoreIdentity(identity, slug);
   const productState = normalizePublicProducts(productsPayload);
   const rich = richAbout?.data ?? richAbout ?? {};
@@ -86,6 +86,7 @@ export function buildStoreMicrosite2026ViewModel({ identity, productsPayload, ri
       operationalLabel: store.isOperational ? "Operational" : "Store",
     },
     products: productState.products,
+    showcases: Array.isArray(showcases) ? showcases : [],
     featuredProducts: [...productState.products]
       .sort((a, b) => {
         // Fallback sort for Top Picks if needed

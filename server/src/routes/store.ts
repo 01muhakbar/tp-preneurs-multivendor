@@ -21,6 +21,7 @@ import {
   User,
   NewsletterSubscriber,
   OrderPaymentAttempt,
+  StoreShowcase,
   sequelize,
 } from "../models/index.js";
 import {
@@ -1333,6 +1334,78 @@ router.get(
   }
 );
 
+// GET /api/store/stores/:storeSlug/showcases
+router.get(
+  "/stores/:storeSlug/showcases",
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const storeSlug = normalizeStoreSlug(req.params.storeSlug);
+      if (!storeSlug) {
+        return res.status(400).json({ success: false, message: "Store slug is required." });
+      }
+
+      const store = await Store.findOne({
+        where: { slug: storeSlug, status: "ACTIVE" } as any,
+      });
+
+      if (!store) {
+        return res.status(404).json({ success: false, message: "Store not found." });
+      }
+
+      const showcases = await StoreShowcase.findAll({
+        where: { storeId: store.id, isActive: true },
+        include: [
+          {
+            model: Product,
+            as: "products",
+            where: { status: "active", published: true },
+            required: false,
+            attributes: [
+              "id",
+              "name",
+              "price",
+              "salePrice",
+              "stock",
+              "images",
+              "slug",
+              "rating",
+              "averageRating",
+              "totalReviews",
+            ],
+            through: { attributes: ["sortOrder"] },
+          },
+        ],
+        order: [
+          ["sortOrder", "ASC"],
+          ["createdAt", "DESC"],
+        ],
+      });
+
+      const items = showcases.map((sc: any) => {
+        const products = Array.isArray(sc.products) ? sc.products : [];
+        return {
+          id: sc.id,
+          storeId: sc.storeId,
+          name: sc.name,
+          slug: sc.slug,
+          description: sc.description,
+          icon: sc.icon,
+          sortOrder: sc.sortOrder,
+          productCount: products.length,
+          products,
+        };
+      });
+
+      return res.json({
+        success: true,
+        data: items,
+      });
+    } catch (error) {
+      return next(error);
+    }
+  }
+);
+
 // GET /api/store/products/count
 router.get(
   "/products/count",
@@ -1565,6 +1638,40 @@ router.get(
         }
 
         where.storeId = Number((store as any).id);
+      }
+
+      const showcaseParam = String(req.query.showcase || req.query.showcaseSlug || "").trim();
+      if (showcaseParam) {
+        const showcaseWhere: Record<string, any> = {
+          isActive: true,
+          [Op.or]: [
+            { slug: showcaseParam },
+            ...(Number.isFinite(Number(showcaseParam)) && Number(showcaseParam) > 0
+              ? [{ id: Number(showcaseParam) }]
+              : []),
+          ],
+        };
+        if (where.storeId) {
+          showcaseWhere.storeId = where.storeId;
+        }
+        const showcase = await StoreShowcase.findOne({
+          where: showcaseWhere,
+          include: [{ model: Product, as: "products", attributes: ["id"] }],
+        });
+        if (showcase) {
+          const productIds = ((showcase as any).products || []).map((p: any) => Number(p.id));
+          where.id = { [Op.in]: productIds };
+        } else {
+          return res.json({
+            data: [],
+            meta: {
+              page,
+              pageSize,
+              total: 0,
+              totalPages: 1,
+            },
+          });
+        }
       }
 
       const offset = (page - 1) * limit;
