@@ -1,23 +1,39 @@
+/* ==========================================================================
+   Admin Store Payment & Payout Profiles 2026 Stylesheet
+   Modern, Clean, Responsive & Dark-Mode Optimized
+   ========================================================================== */
+
 .admin-store-payment-profiles-page {
-  --spp-bg: var(--tp-bg);
-  --spp-card: var(--tp-surface);
-  --spp-card-soft: var(--tp-surface-soft);
-  --spp-border: var(--tp-border);
-  --spp-text: var(--tp-text);
-  --spp-muted: var(--tp-muted);
-  --spp-primary: var(--tp-primary);
-  --spp-green: var(--tp-success);
-  --spp-amber: #f59e0b;
-  --spp-red: #ef4444;
-  --spp-blue: var(--tp-primary);
-  --spp-purple: #8b5cf6;
-  --spp-shadow: 0 18px 46px rgba(15, 23, 42, 0.07);
+  --aspp-bg: var(--tp-bg, #0b1329);
+  --aspp-surface: var(--tp-surface, #131f3d);
+  --aspp-surface-soft: var(--tp-surface-soft, #1a2a50);
+  --aspp-surface-card: #142244;
+  --aspp-surface-hover: #1c2e59;
+  --aspp-border: var(--tp-border, rgba(255, 255, 255, 0.08));
+  --aspp-border-soft: rgba(255, 255, 255, 0.05);
+  --aspp-text: var(--tp-text, #f8fafc);
+  --aspp-muted: var(--tp-muted, #94a3b8);
+  --aspp-primary: var(--tp-primary, #0284c7);
+  --aspp-primary-hover: #0369a1;
+  --aspp-success: #10b981;
+  --aspp-warning: #f59e0b;
+  --aspp-danger: #ef4444;
+  --aspp-info: #38bdf8;
+  --aspp-purple: #a855f7;
+  --aspp-radius-sm: 8px;
+  --aspp-radius-md: 12px;
+  --aspp-radius-lg: 16px;
+  --aspp-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3);
+
   display: flex;
-  width: 100%;
-  min-width: 0;
   flex-direction: column;
-  gap: 18px;
-  color: var(--spp-text);
+  gap: 24px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  color: var(--aspp-text);
+  font-family: inherit;
+  box-sizing: border-box;
 }
 
 .admin-store-payment-profiles-page *,
@@ -26,801 +42,1038 @@
   box-sizing: border-box;
 }
 
-.admin-store-payment-profiles-page button,
-.admin-store-payment-profiles-page textarea {
-  font: inherit;
-}
-
-.spp-hero,
-.spp-store-card,
-.spp-panel,
-.spp-state,
-.spp-empty {
-  border: 1px solid var(--spp-border);
-  border-radius: 18px;
-  background: var(--spp-card);
-  box-shadow: var(--spp-shadow);
-}
-
-.spp-hero {
+/* --------------------------------------------------------------------------
+   Hero / Header
+   -------------------------------------------------------------------------- */
+.aspp-header-card {
+  background: var(--aspp-surface);
+  border: 1px solid var(--aspp-border);
+  border-radius: var(--aspp-radius-lg);
   padding: 24px;
-}
-
-.spp-hero__top {
+  box-shadow: var(--aspp-shadow);
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 18px;
-}
-
-.spp-eyebrow {
-  display: block;
-  color: var(--spp-muted);
-  font-size: 12px;
-  font-weight: 820;
-  letter-spacing: 0;
-  margin-bottom: 8px;
-  text-transform: uppercase;
-}
-
-.spp-hero h1 {
-  margin: 0;
-  color: var(--spp-text);
-  font-size: 29px;
-  font-weight: 860;
-  letter-spacing: 0;
-  line-height: 1.1;
-}
-
-.spp-hero p {
-  margin: 8px 0 0;
-  color: var(--spp-muted);
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.spp-hero__badges,
-.spp-hero__actions,
-.spp-store-badges {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-}
-
-.spp-hero__badges {
-  margin-top: 12px;
-}
-
-.spp-refresh,
-.spp-primary,
-.spp-secondary,
-.spp-danger,
-.spp-state button {
-  display: inline-flex;
-  min-height: 38px;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border-radius: 10px;
-  border: 1px solid transparent;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 820;
-  padding: 0 16px;
-  transition:
-    transform 150ms ease,
-    border-color 150ms ease,
-    background 150ms ease,
-    box-shadow 150ms ease;
-}
-
-.spp-refresh,
-.spp-secondary {
-  border-color: var(--spp-border);
-  background: var(--spp-card);
-  color: var(--spp-text);
-}
-
-.spp-primary {
-  background: var(--spp-primary);
-  color: #ffffff;
-}
-
-.spp-danger {
-  background: var(--spp-red);
-  color: #ffffff;
-}
-
-.spp-danger--outline {
-  border-color: rgba(239, 68, 68, 0.34);
-  background: var(--spp-card);
-  color: #dc2626;
-}
-
-.spp-refresh:hover,
-.spp-primary:hover,
-.spp-secondary:hover,
-.spp-danger:hover,
-.spp-state button:hover {
-  transform: translateY(-1px);
-}
-
-.spp-refresh:disabled,
-.spp-primary:disabled,
-.spp-secondary:disabled,
-.spp-danger:disabled {
-  cursor: not-allowed;
-  opacity: 0.56;
-  transform: none;
-}
-
-.spp-badge {
-  display: inline-flex;
-  min-height: 28px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 820;
-  padding: 0 14px;
-  white-space: nowrap;
-}
-
-.spp-badge--success {
-  background: rgba(16, 185, 129, 0.13);
-  color: #047857;
-}
-
-.spp-badge--warning {
-  background: rgba(245, 158, 11, 0.14);
-  color: #b45309;
-}
-
-.spp-badge--danger {
-  background: rgba(239, 68, 68, 0.12);
-  color: #dc2626;
-}
-
-.spp-badge--blue {
-  background: rgba(59, 130, 246, 0.12);
-  color: #2563eb;
-}
-
-.spp-badge--neutral {
-  background: rgba(100, 116, 139, 0.1);
-  color: #475569;
-}
-
-.spp-kpis {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 18px;
-  margin-top: 22px;
-}
-
-.spp-kpi {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 18px;
-  border: 1px solid var(--spp-border);
-  border-radius: 18px;
-  background: var(--spp-card);
-  padding: 22px;
-}
-
-.spp-kpi__icon {
-  display: inline-flex;
-  width: 58px;
-  height: 58px;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-}
-
-.spp-kpi p,
-.spp-kpi small {
-  margin: 0;
-  color: var(--spp-muted);
-}
-
-.spp-kpi p {
-  font-size: 14px;
-  font-weight: 800;
-}
-
-.spp-kpi strong {
-  display: block;
-  color: var(--spp-text);
-  font-size: 28px;
-  font-weight: 860;
-  line-height: 1;
-  margin: 12px 0 8px;
-}
-
-.spp-kpi small {
-  font-size: 13px;
-  font-weight: 720;
-}
-
-.spp-kpi--green .spp-kpi__icon {
-  background: rgba(16, 185, 129, 0.16);
-  color: #059669;
-}
-
-.spp-kpi--amber .spp-kpi__icon {
-  background: rgba(245, 158, 11, 0.17);
-  color: #d97706;
-}
-
-.spp-kpi--blue .spp-kpi__icon {
-  background: rgba(59, 130, 246, 0.15);
-  color: #2563eb;
-}
-
-.spp-kpi--purple .spp-kpi__icon {
-  background: rgba(139, 92, 246, 0.16);
-  color: #7c3aed;
-}
-
-.spp-readiness-filter {
-  border: 1px solid var(--spp-border);
-  border-radius: 18px;
-  background: var(--spp-card);
-  margin-top: 22px;
-  padding: 16px;
-}
-
-.spp-filter-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.spp-filter-head h2 {
-  margin: 0;
-  color: var(--spp-text);
-  font-size: 16px;
-  font-weight: 840;
-}
-
-.spp-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  justify-content: flex-end;
-}
-
-.spp-tabs button {
-  min-height: 34px;
-  border: 1px solid var(--spp-border);
-  border-radius: 999px;
-  background: var(--spp-card);
-  color: var(--spp-text);
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 780;
-  padding: 0 22px;
-}
-
-.spp-tabs button.is-active {
-  border-color: rgba(16, 185, 129, 0.36);
-  background: rgba(16, 185, 129, 0.12);
-  color: #047857;
-}
-
-.spp-queue {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  border: 1px solid var(--spp-border);
-  border-radius: 14px;
-  margin-top: 14px;
-  padding: 13px 18px;
-}
-
-.spp-queue--clear {
-  border-color: rgba(16, 185, 129, 0.28);
-  background: rgba(16, 185, 129, 0.08);
-  color: #059669;
-}
-
-.spp-queue--action {
-  border-color: rgba(245, 158, 11, 0.3);
-  background: rgba(245, 158, 11, 0.1);
-  color: #b45309;
-}
-
-.spp-queue strong,
-.spp-queue span {
-  display: block;
-}
-
-.spp-queue strong {
-  color: var(--spp-text);
-  font-size: 14px;
-  font-weight: 840;
-}
-
-.spp-queue span {
-  color: var(--spp-muted);
-  font-size: 13px;
-}
-
-.spp-list {
-  display: grid;
-  gap: 16px;
-}
-
-.spp-store-card {
-  padding: 20px;
-}
-
-.spp-store-card__head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 18px;
-  margin-bottom: 16px;
-}
-
-.spp-store-title {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 14px;
-}
-
-.spp-store-icon {
-  display: inline-flex;
-  width: 44px;
-  height: 44px;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  border-radius: 14px;
-  background: rgba(16, 185, 129, 0.14);
-  color: #059669;
-}
-
-.spp-store-title h2,
-.spp-panel h3 {
-  margin: 0;
-  color: var(--spp-text);
-  font-size: 18px;
-  font-weight: 860;
-  line-height: 1.2;
-}
-
-.spp-store-title p {
-  margin: 5px 0 0;
-  color: var(--spp-muted);
-  font-size: 13px;
-  font-weight: 720;
-}
-
-.spp-card-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.06fr) minmax(0, 0.94fr);
-  gap: 18px;
-}
-
-.spp-left-column,
-.spp-right-column {
-  display: grid;
-  align-content: start;
-  gap: 14px;
-  min-width: 0;
-}
-
-.spp-panel {
-  padding: 14px;
-  box-shadow: none;
-}
-
-.spp-panel__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.spp-panel h3 {
-  font-size: 15px;
-}
-
-.spp-snapshot-grid,
-.spp-readiness-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.spp-snapshot-cell,
-.spp-readiness-grid div {
-  min-width: 0;
-  border: 1px solid var(--spp-border);
-  background: var(--spp-card);
-  padding: 12px;
-}
-
-.spp-snapshot-cell:first-child,
-.spp-readiness-grid div:first-child {
-  border-radius: 10px 0 0 10px;
-}
-
-.spp-snapshot-cell:last-child,
-.spp-readiness-grid div:last-child {
-  border-radius: 0 10px 10px 0;
-}
-
-.spp-snapshot-cell span,
-.spp-readiness-grid span {
-  display: block;
-  color: var(--spp-muted);
-  font-size: 11px;
-  font-weight: 800;
-  margin-bottom: 6px;
-}
-
-.spp-snapshot-cell strong,
-.spp-readiness-grid strong {
-  display: block;
-  overflow-wrap: anywhere;
-  color: var(--spp-text);
-  font-size: 12px;
-  font-weight: 840;
-  line-height: 1.35;
-}
-
-.spp-note {
-  display: flex;
-  align-items: center;
-  min-height: 32px;
-  border-radius: 9px;
-  font-size: 12px;
-  font-weight: 820;
-  margin-top: 8px;
-  padding: 8px 12px;
-}
-
-.spp-note--info {
-  border: 1px solid rgba(59, 130, 246, 0.24);
-  background: rgba(59, 130, 246, 0.08);
-  color: #2563eb;
-}
-
-.spp-note--warning {
-  border: 1px solid rgba(245, 158, 11, 0.28);
-  background: rgba(245, 158, 11, 0.1);
-  color: #d97706;
-}
-
-.spp-readiness-head {
-  display: grid;
-  grid-template-columns: auto auto minmax(120px, 1fr);
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.spp-readiness-head strong {
-  font-size: 13px;
-}
-
-.spp-progress {
-  overflow: hidden;
-  height: 8px;
-  border-radius: 999px;
-  background: #e2e8f0;
-}
-
-.spp-progress span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--spp-primary);
-}
-
-.spp-readiness--success {
-  color: #059669 !important;
-}
-
-.spp-readiness--warning {
-  color: #d97706 !important;
-}
-
-.spp-readiness--danger {
-  color: #dc2626 !important;
-}
-
-.spp-readiness--blue {
-  color: #2563eb !important;
-}
-
-.spp-admin-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  border: 1px solid var(--spp-border);
-  border-radius: 14px;
-  background: var(--spp-card-soft);
-  padding: 12px 14px;
-}
-
-.spp-admin-actions > span {
-  color: var(--spp-text);
-  font-size: 14px;
-  font-weight: 840;
-}
-
-.spp-admin-actions div,
-.spp-action-note div {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  justify-content: flex-end;
-}
-
-.spp-action-note {
-  border: 1px solid var(--spp-border);
-  border-radius: 14px;
-  background: var(--spp-card-soft);
-  padding: 12px;
-}
-
-.spp-action-note textarea {
-  width: 100%;
-  min-height: 82px;
-  resize: vertical;
-  border: 1px solid var(--spp-border);
-  border-radius: 10px;
-  background: var(--spp-card);
-  color: var(--spp-text);
-  outline: none;
-  padding: 10px 12px;
-}
-
-.spp-action-note div {
-  margin-top: 10px;
-}
-
-.spp-qris-card {
-  display: grid;
-  grid-template-columns: 142px minmax(0, 1fr);
-  gap: 18px;
-  border: 1px solid rgba(16, 185, 129, 0.24);
-  border-radius: 14px;
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), transparent);
-  padding: 14px;
-}
-
-.spp-qris-card img {
-  width: 142px;
-  height: 142px;
-  border-radius: 10px;
-  background: #ffffff;
-  object-fit: contain;
-}
-
-.spp-qris-card strong,
-.spp-qris-card span,
-.spp-qris-card b {
-  display: block;
-}
-
-.spp-qris-card strong {
-  color: var(--spp-text);
-  font-size: 15px;
-}
-
-.spp-qris-card span {
-  color: var(--spp-muted);
-  font-size: 11px;
-  font-weight: 800;
-  margin-top: 8px;
-}
-
-.spp-qris-card b {
-  overflow-wrap: anywhere;
-  color: var(--spp-text);
-  font-size: 12px;
-}
-
-.spp-dashed {
-  display: flex;
-  min-height: 116px;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  border: 1px dashed #cbd5e1;
-  border-radius: 14px;
-  color: var(--spp-muted);
-  font-size: 15px;
-  font-weight: 760;
-}
-
-.spp-state,
-.spp-empty {
-  display: flex;
-  min-height: 300px;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  color: var(--spp-muted);
-  text-align: center;
-}
-
-.spp-state--error,
-.spp-empty {
   flex-direction: column;
-  padding: 28px;
+  gap: 20px;
 }
 
-.spp-state strong,
-.spp-empty strong {
-  color: var(--spp-text);
-  font-size: 16px;
-  font-weight: 840;
+.aspp-header-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
-.spp-state p,
-.spp-empty span {
-  margin: 0;
-  color: var(--spp-muted);
-}
-
-.spp-state button {
-  background: var(--spp-primary);
-  color: #ffffff;
-}
-
-.spp-spinner {
-  width: 22px;
-  height: 22px;
-  border: 3px solid rgba(16, 185, 129, 0.18);
-  border-top-color: var(--spp-primary);
-  border-radius: 50%;
-  animation: spp-spin 760ms linear infinite;
-}
-
-@keyframes spp-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-:where(html.dark, body.dark, [data-theme="dark"], [data-admin-theme="dark"], .admin-theme-dark) .admin-store-payment-profiles-page {
-  --spp-bg: #020817;
-  --spp-card: rgba(15, 23, 42, 0.86);
-  --spp-card-soft: rgba(15, 23, 42, 0.62);
-  --spp-border: rgba(148, 163, 184, 0.22);
-  --spp-text: #e5edf9;
-  --spp-muted: #9ca3af;
-  --spp-shadow: 0 18px 44px rgba(0, 0, 0, 0.28);
-}
-
-:where(html.dark, body.dark, [data-theme="dark"], [data-admin-theme="dark"], .admin-theme-dark) .spp-badge--neutral {
-  background: rgba(148, 163, 184, 0.13);
-  color: #cbd5e1;
-}
-
-:where(html.dark, body.dark, [data-theme="dark"], [data-admin-theme="dark"], .admin-theme-dark) .spp-progress {
-  background: rgba(148, 163, 184, 0.22);
-}
-
-:where(html.dark, body.dark, [data-theme="dark"], [data-admin-theme="dark"], .admin-theme-dark) .spp-action-note textarea {
-  background: rgba(15, 23, 42, 0.72);
-  border-color: var(--spp-border);
-  color: var(--spp-text);
-}
-
-:where(html.dark, body.dark, [data-theme="dark"], [data-admin-theme="dark"], .admin-theme-dark) .spp-dashed {
-  border-color: rgba(148, 163, 184, 0.34);
-}
-
-@media (max-width: 1180px) {
-  .spp-kpis {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .spp-card-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 760px) {
-  .spp-hero__top,
-  .spp-store-card__head,
-  .spp-filter-head,
-  .spp-admin-actions {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .spp-hero__actions,
-  .spp-tabs,
-  .spp-admin-actions div {
-    justify-content: flex-start;
-  }
-
-  .spp-kpis,
-  .spp-snapshot-grid,
-  .spp-readiness-grid,
-  .spp-qris-card {
-    grid-template-columns: 1fr;
-  }
-
-  .spp-snapshot-cell,
-  .spp-readiness-grid div {
-    border-radius: 10px !important;
-  }
-
-  .spp-qris-card img {
-    width: 100%;
-    max-width: 180px;
-    height: 180px;
-  }
-}
-
-.spp-edit-identity-btn {
+.aspp-eyebrow {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  padding: 3px 10px;
+  background: rgba(2, 132, 199, 0.15);
+  color: var(--aspp-primary);
+  border: 1px solid rgba(2, 132, 199, 0.3);
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.aspp-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--aspp-text);
+  letter-spacing: -0.02em;
+}
+
+.aspp-subtitle {
+  margin: 6px 0 0 0;
+  font-size: 13.5px;
+  color: var(--aspp-muted);
+  line-height: 1.5;
+  max-width: 650px;
+}
+
+.aspp-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.aspp-badge-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: var(--aspp-surface-soft);
+  border: 1px solid var(--aspp-border);
+  border-radius: 9999px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--aspp-text);
+}
+
+.aspp-btn-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--aspp-surface-soft);
+  border: 1px solid var(--aspp-border);
+  border-radius: var(--aspp-radius-md);
+  color: var(--aspp-text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.aspp-btn-refresh:hover {
+  background: var(--aspp-surface-hover);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* --------------------------------------------------------------------------
+   KPI Summary Grid
+   -------------------------------------------------------------------------- */
+.aspp-kpis-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 16px;
+}
+
+.aspp-kpi-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  background: var(--aspp-surface-card);
+  border: 1px solid var(--aspp-border);
+  border-radius: var(--aspp-radius-md);
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.aspp-kpi-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.aspp-kpi-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--aspp-radius-md);
+  flex-shrink: 0;
+}
+
+.aspp-kpi-card--green .aspp-kpi-icon {
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--aspp-success);
+}
+
+.aspp-kpi-card--amber .aspp-kpi-icon {
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--aspp-warning);
+}
+
+.aspp-kpi-card--blue .aspp-kpi-icon {
+  background: rgba(56, 189, 248, 0.12);
+  color: var(--aspp-info);
+}
+
+.aspp-kpi-card--purple .aspp-kpi-icon {
+  background: rgba(168, 85, 247, 0.12);
+  color: var(--aspp-purple);
+}
+
+.aspp-kpi-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.aspp-kpi-val {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--aspp-text);
+}
+
+.aspp-kpi-lbl {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--aspp-text);
+  margin-top: 3px;
+}
+
+.aspp-kpi-helper {
+  font-size: 11px;
+  color: var(--aspp-muted);
+  margin-top: 1px;
+}
+
+.aspp-kpi-highlight {
+  border-color: rgba(245, 158, 11, 0.4);
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.1);
+}
+
+/* --------------------------------------------------------------------------
+   Navigation Tabs
+   -------------------------------------------------------------------------- */
+.aspp-tabs-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--aspp-border);
+  padding-bottom: 8px;
+}
+
+.aspp-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--aspp-radius-md);
+  color: var(--aspp-muted);
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.aspp-tab-btn:hover {
+  color: var(--aspp-text);
+  background: var(--aspp-surface-soft);
+}
+
+.aspp-tab-btn.is-active {
+  color: #ffffff;
+  background: var(--aspp-primary);
+  border-color: var(--aspp-primary);
+}
+
+.aspp-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 800;
+  background: rgba(255, 255, 255, 0.15);
+  color: inherit;
+}
+
+.aspp-tab-btn.is-active .aspp-tab-badge {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.aspp-tab-badge--highlight {
+  background: var(--aspp-warning) !important;
+  color: #000000 !important;
+}
+
+/* --------------------------------------------------------------------------
+   Pending Queue Tab Styles
+   -------------------------------------------------------------------------- */
+.aspp-queue-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.aspp-empty-queue {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 48px 24px;
+  background: var(--aspp-surface);
+  border: 1px solid var(--aspp-border);
+  border-radius: var(--aspp-radius-lg);
+  box-shadow: var(--aspp-shadow);
+}
+
+.aspp-empty-queue-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--aspp-success);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.aspp-empty-queue h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--aspp-text);
+}
+
+.aspp-empty-queue p {
+  margin: 8px 0 0 0;
+  font-size: 13.5px;
+  color: var(--aspp-muted);
+  max-width: 480px;
+  line-height: 1.5;
+}
+
+.aspp-queue-card {
+  background: var(--aspp-surface);
+  border: 1px solid var(--aspp-border);
+  border-radius: var(--aspp-radius-lg);
+  padding: 20px 24px;
+  box-shadow: var(--aspp-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  border-left: 4px solid var(--aspp-warning);
+}
+
+.aspp-queue-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.aspp-queue-store-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.aspp-store-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--aspp-radius-md);
+  background: var(--aspp-surface-soft);
+  border: 1px solid var(--aspp-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--aspp-primary);
+  font-weight: 800;
+}
+
+.aspp-queue-store-title h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--aspp-text);
+}
+
+.aspp-queue-store-title p {
+  margin: 2px 0 0 0;
+  font-size: 12.5px;
+  color: var(--aspp-muted);
+}
+
+.aspp-queue-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  padding: 16px;
+  background: var(--aspp-surface-card);
+  border: 1px solid var(--aspp-border);
+  border-radius: var(--aspp-radius-md);
+}
+
+.aspp-queue-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.aspp-queue-col-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--aspp-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.aspp-queue-detail-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.aspp-queue-detail-row span {
+  color: var(--aspp-muted);
+}
+
+.aspp-queue-detail-row strong {
+  color: var(--aspp-text);
+  font-weight: 700;
+  text-align: right;
+}
+
+.aspp-queue-qris-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  padding: 8px;
+  background: var(--aspp-surface-soft);
+  border: 1px solid var(--aspp-border);
+  border-radius: var(--aspp-radius-sm);
+  transition: border-color 0.15s ease;
+}
+
+.aspp-queue-qris-box:hover {
+  border-color: var(--aspp-primary);
+}
+
+.aspp-queue-qris-thumb {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.aspp-queue-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 8px;
+  border-top: 1px solid var(--aspp-border);
+}
+
+/* --------------------------------------------------------------------------
+   Directory Table Tab Styles
+   -------------------------------------------------------------------------- */
+.aspp-directory-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.aspp-filter-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  background: var(--aspp-surface);
+  border: 1px solid var(--aspp-border);
+  border-radius: var(--aspp-radius-md);
+  padding: 14px 18px;
+  box-shadow: var(--aspp-shadow);
+}
+
+.aspp-search-box {
+  position: relative;
+  flex: 1;
+  min-width: 250px;
+  max-width: 450px;
+}
+
+.aspp-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--aspp-muted);
+  pointer-events: none;
+}
+
+.aspp-search-input {
+  width: 100%;
+  padding: 9px 36px 9px 36px;
+  background: var(--aspp-surface-soft);
+  border: 1px solid var(--aspp-border);
+  border-radius: var(--aspp-radius-md);
+  color: var(--aspp-text);
+  font-size: 13px;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.aspp-search-input:focus {
+  border-color: var(--aspp-primary);
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2);
+}
+
+.aspp-search-clear {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: var(--aspp-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.aspp-filters-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.aspp-select {
+  padding: 8px 14px;
+  background: var(--aspp-surface-soft);
+  border: 1px solid var(--aspp-border);
+  border-radius: var(--aspp-radius-md);
+  color: var(--aspp-text);
+  font-size: 13px;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+}
+
+.aspp-select:focus {
+  border-color: var(--aspp-primary);
+}
+
+/* Table Card */
+.aspp-table-card {
+  background: var(--aspp-surface);
+  border: 1px solid var(--aspp-border);
+  border-radius: var(--aspp-radius-lg);
+  overflow: hidden;
+  box-shadow: var(--aspp-shadow);
+}
+
+.aspp-table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.aspp-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13px;
+}
+
+.aspp-table th {
+  padding: 14px 18px;
+  background: var(--aspp-surface-card);
+  color: var(--aspp-muted);
+  font-weight: 700;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--aspp-border);
+  white-space: nowrap;
+}
+
+.aspp-table td {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--aspp-border-soft);
+  color: var(--aspp-text);
+  vertical-align: middle;
+}
+
+.aspp-table tr:last-child td {
+  border-bottom: none;
+}
+
+.aspp-table tr:hover td {
+  background: var(--aspp-surface-hover);
+}
+
+.aspp-store-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.aspp-store-name {
+  font-weight: 700;
+  color: var(--aspp-text);
+  font-size: 13.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.aspp-owner-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.aspp-owner-name {
+  font-weight: 600;
+  color: var(--aspp-text);
+}
+
+.aspp-owner-email {
+  font-size: 11.5px;
+  color: var(--aspp-muted);
+}
+
+.aspp-bank-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: rgba(2, 132, 199, 0.15);
+  color: var(--aspp-info);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.aspp-account-num {
+  font-family: monospace;
+  font-weight: 700;
+  font-size: 12.5px;
+  color: var(--aspp-text);
+}
+
+.aspp-qris-thumb-mini {
+  width: 38px;
+  height: 38px;
+  border-radius: 4px;
+  border: 1px solid var(--aspp-border);
+  object-fit: cover;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.aspp-qris-thumb-mini:hover {
+  transform: scale(1.1);
+  border-color: var(--aspp-primary);
+}
+
+/* Status Badges */
+.aspp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.aspp-badge--active {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--aspp-success);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.aspp-badge--pending {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--aspp-warning);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.aspp-badge--revision {
+  background: rgba(56, 189, 248, 0.15);
+  color: var(--aspp-info);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.aspp-badge--incomplete {
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--aspp-muted);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.aspp-badge--store-active {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--aspp-success);
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.aspp-badge--store-inactive {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--aspp-danger);
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+/* Readiness Progress Bar */
+.aspp-readiness-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 90px;
+}
+
+.aspp-progress-bar {
+  width: 100%;
+  height: 6px;
+  background: var(--aspp-surface-soft);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.aspp-progress-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}
+
+/* Action Buttons */
+.aspp-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.aspp-btn-review {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   padding: 6px 12px;
-  border: 1px solid var(--spp-border);
-  border-radius: 999px;
-  background: var(--spp-card-soft);
-  color: var(--spp-text);
-  font-size: 0.78rem;
+  background: rgba(2, 132, 199, 0.12);
+  border: 1px solid rgba(2, 132, 199, 0.3);
+  color: var(--aspp-info);
+  border-radius: var(--aspp-radius-md);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.aspp-btn-review:hover {
+  background: var(--aspp-primary);
+  color: #ffffff;
+  border-color: var(--aspp-primary);
+}
+
+.aspp-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--aspp-surface-soft);
+  border: 1px solid var(--aspp-border);
+  border-radius: var(--aspp-radius-md);
+  color: var(--aspp-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.aspp-btn-icon:hover {
+  color: var(--aspp-text);
+  background: var(--aspp-surface-hover);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Pagination Footer */
+.aspp-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  border-top: 1px solid var(--aspp-border);
+  background: var(--aspp-surface-card);
+  flex-wrap: wrap;
+}
+
+.aspp-pagination-info {
+  font-size: 12.5px;
+  color: var(--aspp-muted);
+}
+
+.aspp-pagination-btns {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.aspp-page-btn {
+  padding: 6px 12px;
+  background: var(--aspp-surface-soft);
+  border: 1px solid var(--aspp-border);
+  border-radius: var(--aspp-radius-sm);
+  color: var(--aspp-text);
+  font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
-.spp-edit-identity-btn:hover {
-  background: var(--spp-primary);
-  color: #fff;
-  border-color: var(--spp-primary);
+.aspp-page-btn:hover:not(:disabled) {
+  background: var(--aspp-surface-hover);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
-.spp-identity-editor {
+.aspp-page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* --------------------------------------------------------------------------
+   Modal / Lightbox Styles
+   -------------------------------------------------------------------------- */
+.aspp-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
-  margin-top: 12px;
-  padding: 12px 16px;
-  border-radius: 12px;
-  background: var(--spp-card-soft);
-  border: 1px dashed var(--spp-border);
+  justify-content: center;
+  padding: 20px;
+}
+
+.aspp-modal-card {
+  background: var(--aspp-surface);
+  border: 1px solid var(--aspp-border);
+  border-radius: var(--aspp-radius-lg);
   width: 100%;
+  max-width: 680px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
 }
 
-.spp-identity-editor input,
-.spp-identity-editor select {
-  padding: 6px 10px;
-  border: 1px solid var(--spp-border);
-  border-radius: 8px;
-  background: var(--spp-card);
-  color: var(--spp-text);
-  font-size: 0.85rem;
+.aspp-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--aspp-border);
+  position: sticky;
+  top: 0;
+  background: var(--aspp-surface);
+  z-index: 10;
 }
 
-.spp-identity-editor input {
-  flex: 1;
-  min-width: 160px;
+.aspp-modal-title h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--aspp-text);
 }
 
-.spp-identity-editor button {
-  padding: 6px 12px;
-  border-radius: 8px;
-  font-size: 0.82rem;
-  font-weight: 600;
+.aspp-modal-title p {
+  margin: 3px 0 0 0;
+  font-size: 12.5px;
+  color: var(--aspp-muted);
+}
+
+.aspp-modal-close {
+  background: transparent;
+  border: none;
+  color: var(--aspp-muted);
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: var(--aspp-radius-sm);
+  transition: all 0.15s ease;
 }
 
+.aspp-modal-close:hover {
+  background: var(--aspp-surface-soft);
+  color: var(--aspp-text);
+}
+
+.aspp-modal-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.aspp-section-card {
+  background: var(--aspp-surface-card);
+  border: 1px solid var(--aspp-border);
+  border-radius: var(--aspp-radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.aspp-section-title {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--aspp-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.aspp-kv-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.aspp-kv-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.aspp-kv-item span {
+  font-size: 11.5px;
+  color: var(--aspp-muted);
+}
+
+.aspp-kv-item strong {
+  font-size: 13.5px;
+  color: var(--aspp-text);
+  font-weight: 700;
+}
+
+.aspp-note-box {
+  padding: 12px 14px;
+  border-radius: var(--aspp-radius-md);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.aspp-note-box--warning {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: #fbbf24;
+}
+
+.aspp-note-box--info {
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #7dd3fc;
+}
+
+.aspp-modal-footer {
+  padding: 18px 24px;
+  border-top: 1px solid var(--aspp-border);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  background: var(--aspp-surface-card);
+  position: sticky;
+  bottom: 0;
+}
+
+/* Button styles */
+.aspp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 18px;
+  border-radius: var(--aspp-radius-md);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+}
+
+.aspp-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.aspp-btn--primary {
+  background: var(--aspp-primary);
+  color: #ffffff;
+}
+
+.aspp-btn--primary:hover:not(:disabled) {
+  background: var(--aspp-primary-hover);
+}
+
+.aspp-btn--success {
+  background: var(--aspp-success);
+  color: #ffffff;
+}
+
+.aspp-btn--success:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.aspp-btn--danger {
+  background: var(--aspp-danger);
+  color: #ffffff;
+}
+
+.aspp-btn--danger:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.aspp-btn--secondary {
+  background: var(--aspp-surface-soft);
+  border-color: var(--aspp-border);
+  color: var(--aspp-text);
+}
+
+.aspp-btn--secondary:hover:not(:disabled) {
+  background: var(--aspp-surface-hover);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.aspp-btn--danger-outline {
+  background: transparent;
+  border-color: var(--aspp-danger);
+  color: var(--aspp-danger);
+}
+
+.aspp-btn--danger-outline:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* Textarea Note */
+.aspp-textarea {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--aspp-surface-soft);
+  border: 1px solid var(--aspp-border);
+  border-radius: var(--aspp-radius-md);
+  color: var(--aspp-text);
+  font-size: 13px;
+  outline: none;
+  min-height: 80px;
+  resize: vertical;
+}
+
+.aspp-textarea:focus {
+  border-color: var(--aspp-primary);
+}
+
+/* Lightbox preview */
+.aspp-lightbox-img {
+  max-width: 90vw;
+  max-height: 85vh;
+  object-fit: contain;
+  border-radius: var(--aspp-radius-md);
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8);
+}
