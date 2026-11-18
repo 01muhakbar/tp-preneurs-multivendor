@@ -5,7 +5,6 @@ import {
   AlertCircle,
   AlertTriangle,
   ArrowRight,
-  BadgeCheck,
   Building2,
   Check,
   CheckCircle2,
@@ -14,25 +13,17 @@ import {
   Clock3,
   Copy,
   CreditCard,
-  Download,
-  ExternalLink,
-  FileImage,
-  HelpCircle,
-  Lock,
   Pencil,
-  Plus,
   QrCode,
   RefreshCw,
   Save,
   Send,
   ShieldCheck,
+  Sparkles,
   Upload,
-  User,
   Wallet,
-  X,
 } from "lucide-react";
 import { useSeller2026PaymentProfile } from "../../../hooks/seller2026/useSeller2026PaymentProfile.ts";
-import { resolveAssetUrl } from "../../../lib/assetUrl.js";
 import { useSellerWorkspaceRoute } from "../../../utils/sellerWorkspaceRoute.js";
 import { getSeller2026PagePermissions } from "./seller2026PagePermissions.js";
 import "./SellerPaymentSetupPage.css";
@@ -62,9 +53,23 @@ const formatDate = (val, isId = false) => {
 };
 
 export default function Seller2026LivePaymentProfilePage() {
+  const {
+    sellerContext,
+    workspaceStoreId: storeId,
+    workspaceStoreSlug,
+    isId: outletIsId,
+    selectedLanguage,
+  } = useSellerWorkspaceRoute();
   const { i18n } = useTranslation();
-  const isId = String(i18n?.language || "").toLowerCase().startsWith("id");
-  const { sellerContext, workspaceStoreId: storeId, workspaceStoreSlug } = useSellerWorkspaceRoute();
+
+  const isId = Boolean(
+    outletIsId !== undefined
+      ? outletIsId
+      : String(selectedLanguage?.isoCode || "").toLowerCase() === "id" ||
+        String(i18n?.language || "").toLowerCase().startsWith("id") ||
+        String(localStorage.getItem("seller_language") || "").toLowerCase().includes("id")
+  );
+
   const { can } = getSeller2026PagePermissions(sellerContext);
   const canView = can("STORE_PAYMENT_PROFILE_READ");
   const permissionCanEdit = can("STORE_PAYMENT_PROFILE_SUBMIT");
@@ -90,7 +95,9 @@ export default function Seller2026LivePaymentProfilePage() {
   useEffect(() => {
     if (profile?.form) {
       setForm(profile.form);
-      const isKnown = POPULAR_BANKS.some((b) => b.toLowerCase().includes(String(profile.form.bankName || "").toLowerCase()));
+      const isKnown = POPULAR_BANKS.some((b) =>
+        b.toLowerCase().includes(String(profile.form.bankName || "").toLowerCase())
+      );
       if (profile.form.bankName && !isKnown) {
         setIsOtherBank(true);
         setCustomBank(profile.form.bankName);
@@ -104,9 +111,14 @@ export default function Seller2026LivePaymentProfilePage() {
   // Active snapshot data
   const active = profile?.activeSnapshot;
   const hasActiveAccount = Boolean(active?.bankName && active?.accountNumber);
-  const isApproved = profile?.checkoutReady || (profile?.activeSnapshot?.isActive && profile?.activeSnapshot?.verificationStatus === "ACTIVE");
+  const isApproved =
+    profile?.checkoutReady ||
+    (profile?.activeSnapshot?.isActive &&
+      profile?.activeSnapshot?.verificationStatus === "ACTIVE");
   const isUnderReview = profile?.requestStatus?.isSubmitted;
-  const isRevision = String(profile?.review?.code || "").toUpperCase().includes("REVISION");
+  const isRevision = String(profile?.review?.code || "")
+    .toUpperCase()
+    .includes("REVISION");
 
   const handleCopyAccount = (accountNo) => {
     if (!accountNo) return;
@@ -168,7 +180,7 @@ export default function Seller2026LivePaymentProfilePage() {
         type: "success",
         message: isId
           ? "Pengaturan rekening berhasil dikirim untuk verifikasi Admin."
-          : "Payment setup submitted successfully for Admin verification.",
+          : "Payment setup submitted successfully for Admin review.",
       });
       setIsEditing(false);
     } catch (err) {
@@ -202,7 +214,11 @@ export default function Seller2026LivePaymentProfilePage() {
       <main className="s26-setup">
         <div className="s26-alert s26-alert--warning">
           <ShieldCheck size={20} />
-          <span>{isId ? "Akses Pengaturan Pembayaran tidak tersedia untuk peran akun Anda." : "Payment setup access is not available for your role."}</span>
+          <span>
+            {isId
+              ? "Akses Pengaturan Pembayaran tidak tersedia untuk peran akun Anda."
+              : "Payment setup access is not available for your role."}
+          </span>
         </div>
       </main>
     );
@@ -211,7 +227,16 @@ export default function Seller2026LivePaymentProfilePage() {
   if (profileQuery.isLoading) {
     return (
       <main className="s26-setup">
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "350px", gap: "10px", color: "var(--s26-muted)" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            minHeight: "350px",
+            gap: "10px",
+            color: "var(--s26-muted)",
+          }}
+        >
           <RefreshCw size={22} className="animate-spin" />
           <span>{isId ? "Memuat pengaturan pembayaran..." : "Loading payment setup..."}</span>
         </div>
@@ -221,13 +246,21 @@ export default function Seller2026LivePaymentProfilePage() {
 
   return (
     <main className="s26-setup">
+      {/* Eyebrow Badge */}
+      <div className="s26-eyebrow">
+        <Sparkles size={13} />
+        <span>{isId ? "Keuangan & Pencairan" : "Finance & Payout"}</span>
+      </div>
+
       {/* Breadcrumb */}
       <nav className="s26-setup-breadcrumb" aria-label="Breadcrumb">
         <Link to={`/seller/stores/${workspaceStoreSlug}`}>{isId ? "Toko" : "Store"}</Link>
         <span>/</span>
-        <Link to={`/seller/stores/${workspaceStoreSlug}/withdrawals`}>{isId ? "Keuangan" : "Finance"}</Link>
+        <Link to={`/seller/stores/${workspaceStoreSlug}/withdrawals`}>
+          {isId ? "Keuangan" : "Finance"}
+        </Link>
         <span>/</span>
-        <span className="current">{isId ? "Pengaturan Pembayaran" : "Payment Setup"}</span>
+        <span className="current">{isId ? "Pengaturan Rekening" : "Payment Setup"}</span>
       </nav>
 
       {/* Header Bar */}
@@ -307,17 +340,25 @@ export default function Seller2026LivePaymentProfilePage() {
               {active?.bankName || form.bankName || (isId ? "Belum Diatur" : "Not Set")}
             </strong>
             <span className="s26-kpi-card__sub">
-              {active?.accountNumber ? `•••• ${String(active.accountNumber).slice(-4)}` : (isId ? "Transfer Bank" : "Bank Transfer")}
+              {active?.accountNumber
+                ? `•••• ${String(active.accountNumber).slice(-4)}`
+                : (isId ? "Transfer Bank" : "Bank Transfer")}
             </span>
           </div>
         </article>
 
         <article className="s26-kpi-card">
-          <div className={`s26-kpi-card__icon ${isApproved ? "s26-kpi-card__icon--green" : "s26-kpi-card__icon--amber"}`}>
+          <div
+            className={`s26-kpi-card__icon ${
+              isApproved ? "s26-kpi-card__icon--green" : "s26-kpi-card__icon--amber"
+            }`}
+          >
             <Wallet size={22} />
           </div>
           <div className="s26-kpi-card__body">
-            <span className="s26-kpi-card__label">{isId ? "Kesiapan Penarikan" : "Withdrawal Readiness"}</span>
+            <span className="s26-kpi-card__label">
+              {isId ? "Kesiapan Penarikan" : "Withdrawal Readiness"}
+            </span>
             <strong className="s26-kpi-card__value">
               {isApproved
                 ? (isId ? "Siap Pencairan" : "Ready for Payout")
@@ -334,7 +375,15 @@ export default function Seller2026LivePaymentProfilePage() {
         </article>
 
         <article className="s26-kpi-card">
-          <div className={`s26-kpi-card__icon ${isApproved ? "s26-kpi-card__icon--green" : isRevision ? "s26-kpi-card__icon--orange" : "s26-kpi-card__icon--navy"}`}>
+          <div
+            className={`s26-kpi-card__icon ${
+              isApproved
+                ? "s26-kpi-card__icon--green"
+                : isRevision
+                ? "s26-kpi-card__icon--orange"
+                : "s26-kpi-card__icon--navy"
+            }`}
+          >
             <ShieldCheck size={22} />
           </div>
           <div className="s26-kpi-card__body">
@@ -348,7 +397,9 @@ export default function Seller2026LivePaymentProfilePage() {
                 ? (isId ? "Perlu Perbaikan" : "Revision Needed")
                 : (isId ? "Draf Pengajuan" : "Draft Request")}
             </strong>
-            <span className="s26-kpi-card__sub">{isId ? "Otoritas keamanan dana toko" : "Protects store funds"}</span>
+            <span className="s26-kpi-card__sub">
+              {isId ? "Keamanan dana toko" : "Protects store funds"}
+            </span>
           </div>
         </article>
 
@@ -359,7 +410,7 @@ export default function Seller2026LivePaymentProfilePage() {
           <div className="s26-kpi-card__body">
             <span className="s26-kpi-card__label">{isId ? "Pembayaran Pembeli" : "Buyer Checkout"}</span>
             <strong className="s26-kpi-card__value">Duitku Gateway</strong>
-            <span className="s26-kpi-card__sub">{isId ? "Otomatis & Terpusat" : "Automated & Centralized"}</span>
+            <span className="s26-kpi-card__sub">{isId ? "Otomatis & Terpusat" : "Automated & Central"}</span>
           </div>
         </article>
       </section>
@@ -376,7 +427,7 @@ export default function Seller2026LivePaymentProfilePage() {
               </h2>
               <p className="s26-panel__desc">
                 {isId
-                  ? "Rekening resmi toko untuk menerima hasil penarikan saldo penjualan dari TP Preneurs."
+                  ? "Rekening resmi toko untuk menerima hasil penarikan saldo penjualan."
                   : "Official store bank account for receiving store revenue disbursements."}
               </p>
             </div>
@@ -399,7 +450,9 @@ export default function Seller2026LivePaymentProfilePage() {
               <div className="s26-atm-card">
                 <div className="s26-atm-card__top">
                   <span className="s26-atm-card__bank">
-                    {active.bankName ? `BANK ${String(active.bankName).toUpperCase()}` : "BANK TRANSFER"}
+                    {active.bankName
+                      ? `BANK ${String(active.bankName).toUpperCase()}`
+                      : "BANK TRANSFER"}
                   </span>
                   <div className="s26-atm-card__chip" />
                 </div>
@@ -421,9 +474,14 @@ export default function Seller2026LivePaymentProfilePage() {
 
                 <div className="s26-atm-card__bottom">
                   <div>
-                    <span className="s26-atm-card__holder-label">{isId ? "Nama Pemilik Rekening" : "Account Holder"}</span>
+                    <span className="s26-atm-card__holder-label">
+                      {isId ? "Nama Pemilik Rekening" : "Account Holder"}
+                    </span>
                     <div className="s26-atm-card__holder-name">
-                      {active.accountHolderName || active.accountName || sellerContext?.store?.name || "-"}
+                      {active.accountHolderName ||
+                        active.accountName ||
+                        sellerContext?.store?.name ||
+                        "-"}
                     </div>
                   </div>
 
@@ -441,7 +499,7 @@ export default function Seller2026LivePaymentProfilePage() {
                   className="s26-btn s26-btn--primary"
                 >
                   <Wallet size={15} />
-                  <span>{isId ? "Buka Penarikan Dana (Withdrawals)" : "Go to Withdrawals"}</span>
+                  <span>{isId ? "Buka Penarikan Dana" : "Go to Withdrawals"}</span>
                 </Link>
 
                 {canEdit && (
@@ -469,7 +527,9 @@ export default function Seller2026LivePaymentProfilePage() {
               <div className="s26-form-group">
                 <label>
                   <span>{isId ? "Nama Bank Pencairan *" : "Disbursement Bank Name *"}</span>
-                  <small style={{ color: "var(--s26-dim)" }}>{isId ? "Tujuan transfer dana" : "Disbursement destination"}</small>
+                  <small style={{ color: "var(--s26-dim)" }}>
+                    {isId ? "Tujuan transfer dana" : "Disbursement destination"}
+                  </small>
                 </label>
                 <select
                   className="s26-select"
@@ -481,9 +541,13 @@ export default function Seller2026LivePaymentProfilePage() {
                     {isId ? "-- Pilih Bank Pencairan --" : "-- Select Payout Bank --"}
                   </option>
                   {POPULAR_BANKS.map((b) => (
-                    <option key={b} value={b}>{b}</option>
+                    <option key={b} value={b}>
+                      {b}
+                    </option>
                   ))}
-                  <option value="__OTHER__">{isId ? "Lainnya (Tulis Manual)" : "Other Bank (Type Manual)"}</option>
+                  <option value="__OTHER__">
+                    {isId ? "Lainnya (Tulis Manual)" : "Other Bank (Type Manual)"}
+                  </option>
                 </select>
                 {isOtherBank && (
                   <input
@@ -507,14 +571,19 @@ export default function Seller2026LivePaymentProfilePage() {
                 <input
                   type="text"
                   className="s26-input"
+                  style={{ fontFamily: "monospace", letterSpacing: "0.05em" }}
                   placeholder={isId ? "Contoh: 1234567890" : "E.g. 1234567890"}
                   value={form.accountNumber || ""}
-                  onChange={(e) => setField("accountNumber", e.target.value.replace(/[^0-9]/g, ""))}
+                  onChange={(e) =>
+                    setField("accountNumber", e.target.value.replace(/[^0-9]/g, ""))
+                  }
                   maxLength={50}
                   disabled={profileQuery.submitting || profileQuery.saving}
                 />
                 <span className="s26-form-hint">
-                  {isId ? "Pastikan nomor rekening aktif dan hanya berisi angka." : "Ensure account is active and digits only."}
+                  {isId
+                    ? "Pastikan nomor rekening aktif dan hanya berisi angka."
+                    : "Ensure account is active and digits only."}
                 </span>
               </div>
 
@@ -526,6 +595,7 @@ export default function Seller2026LivePaymentProfilePage() {
                 <input
                   type="text"
                   className="s26-input"
+                  style={{ textTransform: "uppercase" }}
                   placeholder={isId ? "Contoh: BUDI SANTOSO" : "E.g. JOHN DOE"}
                   value={form.accountHolderName || ""}
                   onChange={(e) => setField("accountHolderName", e.target.value)}
@@ -533,19 +603,29 @@ export default function Seller2026LivePaymentProfilePage() {
                   disabled={profileQuery.submitting || profileQuery.saving}
                 />
                 <span className="s26-form-hint">
-                  {isId ? "Nama harus sama persis dengan yang tertera di buku tabungan." : "Must match name on bank passbook / statement."}
+                  {isId
+                    ? "Harus sama dengan nama pada buku tabungan atau rekening koran."
+                    : "Must match name on bank passbook / statement."}
                 </span>
               </div>
 
               {/* Store & Additional Notes */}
               <div className="s26-form-group">
                 <label>
-                  <span>{isId ? "Catatan Tambahan untuk Admin (Opsional)" : "Additional Notes for Admin (Optional)"}</span>
+                  <span>
+                    {isId
+                      ? "Catatan Tambahan untuk Admin (Opsional)"
+                      : "Additional Notes for Admin (Optional)"}
+                  </span>
                 </label>
                 <textarea
                   className="s26-textarea"
                   rows={2}
-                  placeholder={isId ? "Contoh: Rekening operasional resmi toko..." : "E.g. Official operating store account..."}
+                  placeholder={
+                    isId
+                      ? "Contoh: Rekening operasional resmi toko..."
+                      : "E.g. Official operating store account..."
+                  }
                   value={form.sellerNote || ""}
                   onChange={(e) => setField("sellerNote", e.target.value)}
                   maxLength={500}
@@ -588,7 +668,11 @@ export default function Seller2026LivePaymentProfilePage() {
                         disabled={profileQuery.uploading}
                       >
                         <Upload size={14} />
-                        <span>{profileQuery.uploading ? (isId ? "Mengunggah..." : "Uploading...") : (isId ? "Unggah Gambar QRIS" : "Upload QRIS")}</span>
+                        <span>
+                          {profileQuery.uploading
+                            ? (isId ? "Mengunggah..." : "Uploading...")
+                            : (isId ? "Unggah Gambar QRIS" : "Upload QRIS")}
+                        </span>
                       </button>
                       {form.qrisImageUrl && (
                         <span style={{ fontSize: "12px", color: "var(--s26-green)" }}>
@@ -622,7 +706,11 @@ export default function Seller2026LivePaymentProfilePage() {
                   disabled={profileQuery.submitting || profileQuery.saving}
                 >
                   <Save size={15} />
-                  <span>{profileQuery.saving ? (isId ? "Menyimpan..." : "Saving...") : (isId ? "Simpan Draf" : "Save Draft")}</span>
+                  <span>
+                    {profileQuery.saving
+                      ? (isId ? "Menyimpan..." : "Saving...")
+                      : (isId ? "Simpan Draf" : "Save Draft")}
+                  </span>
                 </button>
 
                 {hasActiveAccount && (
@@ -649,16 +737,25 @@ export default function Seller2026LivePaymentProfilePage() {
               <span>{isId ? "Ketentuan Penarikan Saldo" : "Withdrawal Conditions"}</span>
             </h3>
 
-            <p style={{ margin: "0 0 14px", fontSize: "13px", color: "var(--s26-muted)", lineHeight: 1.5 }}>
+            <p
+              style={{
+                margin: "0 0 14px",
+                fontSize: "12.5px",
+                color: "var(--s26-muted)",
+                lineHeight: 1.45,
+              }}
+            >
               {isId
-                ? "Hasil penjualan dari pesanan yang telah diterima pembeli akan dikirimkan ke rekening bank yang disetujui di sini."
+                ? "Hasil penjualan dari pesanan yang telah diterima pembeli akan dicairkan ke rekening terverifikasi ini."
                 : "Proceeds from delivered customer orders will be disbursed to the approved bank account configured here."}
             </p>
 
             <ul className="s26-info-list">
               <li>
                 <span className="label">{isId ? "Minimal Penarikan" : "Minimum Payout"}</span>
-                <span className="value" style={{ color: "var(--s26-orange)" }}>Rp 50.000</span>
+                <span className="value" style={{ color: "var(--s26-orange)" }}>
+                  Rp 50.000
+                </span>
               </li>
               <li>
                 <span className="label">{isId ? "Biaya Administrasi" : "Transfer Fee"}</span>
@@ -670,13 +767,18 @@ export default function Seller2026LivePaymentProfilePage() {
               </li>
               <li>
                 <span className="label">{isId ? "Status Rekening" : "Account Status"}</span>
-                <span className="value" style={{ color: isApproved ? "var(--s26-green)" : "var(--s26-amber)" }}>
-                  {isApproved ? (isId ? "Siap Pencairan" : "Ready for Payout") : (isId ? "Perlu Verifikasi" : "Needs Review")}
+                <span
+                  className="value"
+                  style={{ color: isApproved ? "var(--s26-green)" : "var(--s26-amber)" }}
+                >
+                  {isApproved
+                    ? (isId ? "Siap Pencairan" : "Ready for Payout")
+                    : (isId ? "Perlu Verifikasi" : "Needs Review")}
                 </span>
               </li>
             </ul>
 
-            <div style={{ marginTop: "18px" }}>
+            <div style={{ marginTop: "16px" }}>
               <Link
                 to={`/seller/stores/${workspaceStoreSlug}/withdrawals`}
                 className="s26-btn s26-btn--primary"
@@ -722,17 +824,34 @@ export default function Seller2026LivePaymentProfilePage() {
             {profile?.review?.note && (
               <div
                 style={{
-                  marginTop: "14px",
-                  padding: "12px 14px",
+                  marginTop: "12px",
+                  padding: "10px 12px",
                   borderRadius: "var(--s26-radius-sm)",
                   background: isRevision ? "var(--s26-red-soft)" : "var(--s26-navy-soft)",
-                  border: `1px solid ${isRevision ? "rgba(239, 68, 68, 0.3)" : "var(--s26-navy-border)"}`,
+                  border: `1px solid ${
+                    isRevision ? "rgba(239, 68, 68, 0.3)" : "var(--s26-navy-border)"
+                  }`,
                 }}
               >
-                <strong style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.05em", color: isRevision ? "var(--s26-red)" : "var(--s26-navy-light)", display: "block" }}>
+                <strong
+                  style={{
+                    fontSize: "11px",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                    color: isRevision ? "var(--s26-red)" : "var(--s26-navy-light)",
+                    display: "block",
+                  }}
+                >
                   {isId ? "Catatan dari Admin:" : "Admin Review Note:"}
                 </strong>
-                <p style={{ margin: "4px 0 0", fontSize: "12px", color: "var(--s26-text)", lineHeight: 1.5 }}>
+                <p
+                  style={{
+                    margin: "4px 0 0",
+                    fontSize: "12px",
+                    color: "var(--s26-text)",
+                    lineHeight: 1.45,
+                  }}
+                >
                   {profile.review.note}
                 </p>
               </div>
