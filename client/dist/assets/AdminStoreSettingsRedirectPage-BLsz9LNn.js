@@ -1,0 +1,1 @@
+import{a as e,j as s,a1 as o}from"./index-Cpb9Zr1G.js";function n(){const t=e(),a={pathname:"/admin/store/store-settings",search:t.search,hash:t.hash};return s.jsx(o,{to:a,replace:!0})}export{n as default};

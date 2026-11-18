@@ -47,6 +47,7 @@ const ALLOWED_PAYMENT_FILTERS = new Set([
   "PAID",
   "REJECTED",
   "UNPAID",
+  "ALL",
 ]);
 const SELLER_PAYMENT_REVIEW_VIEW_REQUIRED_PERMISSIONS = [
   "ORDER_VIEW",
@@ -603,14 +604,11 @@ const listSellerPaymentReviewSuborders = async (storeId: number, statuses: strin
     order: [["createdAt", "DESC"]],
   });
 
+  const allowAll = statuses.includes("ALL");
   return items.filter((suborder) => {
-    const payments = Array.isArray((suborder as any)?.payments)
-      ? (suborder as any).payments
-      : (suborder as any)?.get?.("payments") ?? [];
-    return (
-      isQrisReviewPayment(getLatestTimelineRecord(payments)) &&
-      statuses.includes(resolveSellerPaymentReviewFilterStatus(suborder))
-    );
+    if (allowAll) return true;
+    const resolvedStatus = resolveSellerPaymentReviewFilterStatus(suborder);
+    return statuses.includes(resolvedStatus);
   });
 };
 

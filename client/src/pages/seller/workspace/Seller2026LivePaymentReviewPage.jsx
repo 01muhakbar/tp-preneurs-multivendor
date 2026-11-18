@@ -1,157 +1,90 @@
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { toast } from "react-hot-toast";
+import { useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
-  AlertTriangle,
+  ArrowRight,
   Banknote,
-  Check,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Clock3,
+  CreditCard,
   Download,
-  FileImage,
-  Grid2X2,
-  List,
-  MoreVertical,
   RotateCcw,
   Search,
+  Sparkles,
+  Wallet,
   XCircle,
 } from "lucide-react";
-import Seller2026PaymentProofDrawer from "../../../components/seller2026/paymentReview/Seller2026PaymentProofDrawer.jsx";
 import { useSeller2026PaymentReview } from "../../../hooks/seller2026/useSeller2026PaymentReview.ts";
-import { resolveAssetUrl } from "../../../lib/assetUrl.js";
 import { downloadCsvFile } from "../../../utils/exportFiles.js";
 import { useSellerWorkspaceRoute } from "../../../utils/sellerWorkspaceRoute.js";
 import { getSeller2026PagePermissions } from "./seller2026PagePermissions.js";
-import "../../../features/sellerWorkspace2026/Seller2026PaymentReview.css";
+import "./Seller2026LivePaymentReviewPage.css";
 
 const readPageNumber = (value, fallback) => {
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 };
 
-const money = (value) =>
+const formatMoney = (value) =>
   new Intl.NumberFormat("id-ID", {
     style: "currency",
     currency: "IDR",
     maximumFractionDigits: 0,
   }).format(Number(value || 0));
 
-const dateTime = (value) => {
+const formatDateTime = (value, isId = false) => {
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
+  return new Intl.DateTimeFormat(isId ? "id-ID" : "en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
   }).format(date);
 };
 
-const roleLabel = (value) =>
-  String(value || "Seller")
-    .toLowerCase()
-    .replaceAll("_", " ")
-    .replace(/\b\w/g, (character) => character.toUpperCase());
-
-const matchLabel = {
-  MATCHED: "Matched",
-  NEEDS_REVIEW: "Needs Review",
-  RISK_FLAG: "Risk Flag",
-};
-
-const truncateId = (value, maxLength = 22) => {
-  const str = String(value || "");
-  if (str.length <= maxLength) return str || "-";
-  return `${str.slice(0, 12)}...${str.slice(-6)}`;
-};
-
-const sameToken = (left, right) =>
-  Boolean(left && right) && String(left).trim() === String(right).trim();
-
 export default function Seller2026LivePaymentReviewPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
-  const { sellerContext, workspaceStoreId: storeId, workspaceRoutes } = useSellerWorkspaceRoute();
+  const {
+    sellerContext,
+    workspaceStoreId: storeId,
+    workspaceStoreSlug,
+    workspaceRoutes,
+    isId: outletIsId,
+    selectedLanguage,
+  } = useSellerWorkspaceRoute();
+  const { i18n } = useTranslation();
+
+  const isId = Boolean(
+    outletIsId !== undefined
+      ? outletIsId
+      : String(selectedLanguage?.isoCode || "").toLowerCase() === "id" ||
+        String(i18n?.language || "").toLowerCase().startsWith("id") ||
+        String(localStorage.getItem("seller_language") || "").toLowerCase().includes("id")
+  );
+
   const { can } = getSeller2026PagePermissions(sellerContext);
-  const canView = can("ORDER_READ") && can("PAYMENT_REVIEW_READ");
+  const canView = can("ORDER_READ") && can("PAYMENT_STATUS_VIEW");
+
   const query = {
     search: searchParams.get("q") || "",
-    status: searchParams.get("status") || "awaiting",
+    status: searchParams.get("status") || "all",
     paymentMethod: searchParams.get("paymentMethod") || "all",
-    matchStatus: searchParams.get("matchStatus") || "all",
-    reviewer: searchParams.get("reviewer") || "all",
-    dateFrom: searchParams.get("dateFrom") || "",
-    dateTo: searchParams.get("dateTo") || "",
     page: readPageNumber(searchParams.get("page"), 1),
     limit: readPageNumber(searchParams.get("limit"), 10),
   };
+
   const review = useSeller2026PaymentReview(storeId, query, {
     enabled: canView,
-    canReview: canView,
+    canReview: false, // Read-only mode
   });
-  const [view, setView] = useState("table");
-  const [selectedPaymentId, setSelectedPaymentId] = useState(null);
-  const [openMenuId, setOpenMenuId] = useState(null);
-  const [notice, setNotice] = useState(null);
-  const [autoOpenedSignature, setAutoOpenedSignature] = useState("");
-  const requestedProofId = searchParams.get("proofId") || "";
-  const requestedPaymentId = searchParams.get("paymentId") || "";
-  const requestedSuborderId = searchParams.get("suborderId") || "";
-  const requestedOrder = searchParams.get("order") || searchParams.get("q") || "";
-  const requestSignature = `${requestedProofId}|${requestedPaymentId}|${requestedSuborderId}|${requestedOrder}`;
-  const shouldOpenRequestedProof =
-    searchParams.get("openProof") === "1" ||
-    searchParams.get("drawer") === "review-proof" ||
-    Boolean(requestedProofId || requestedPaymentId || requestedSuborderId);
-  const selectedRow = useMemo(
-    () =>
-      review.data.rows.find(
-        (row) => String(row.paymentId) === String(selectedPaymentId)
-      ) || null,
-    [review.data.rows, selectedPaymentId]
-  );
-  const selectedOrderHref = selectedRow
-    ? workspaceRoutes.orderDetail(selectedRow.suborderId)
-    : "";
-
-  useEffect(() => {
-    if (!shouldOpenRequestedProof || review.isLoading || autoOpenedSignature === requestSignature) return;
-
-    const matchedRow = review.data.rows.find((row) =>
-      sameToken(row.paymentId, requestedPaymentId) ||
-      sameToken(row.proofId, requestedProofId) ||
-      sameToken(row.suborderId, requestedSuborderId) ||
-      sameToken(row.suborderNumber, requestedOrder) ||
-      sameToken(row.orderNumber, requestedOrder)
-    );
-
-    if (matchedRow) {
-      setSelectedPaymentId(matchedRow.paymentId);
-      setAutoOpenedSignature(requestSignature);
-    }
-  }, [
-    requestedOrder,
-    requestedPaymentId,
-    requestedProofId,
-    requestedSuborderId,
-    review.data.rows,
-    review.isLoading,
-    shouldOpenRequestedProof,
-    requestSignature,
-    autoOpenedSignature
-  ]);
 
   const changeQuery = (patch) => {
     const next = new URLSearchParams(searchParams);
     const values = {
       ...patch,
-      ...(Object.prototype.hasOwnProperty.call(patch, "page")
-        ? {}
-        : { page: 1 }),
+      ...(Object.prototype.hasOwnProperty.call(patch, "page") ? {} : { page: 1 }),
     };
     Object.entries(values).forEach(([key, value]) => {
       const paramKey = key === "search" ? "q" : key;
@@ -171,228 +104,331 @@ export default function Seller2026LivePaymentReviewPage() {
     setSearchParams(next);
   };
 
-  const reset = () => {
+  const resetFilters = () => {
     setSearchParams(new URLSearchParams());
-    setNotice(null);
   };
 
-  const clearProofRequestParams = () => {
-    const next = new URLSearchParams(searchParams);
-    ["openProof", "drawer", "proofId", "paymentId", "suborderId", "order"].forEach((key) => {
-      next.delete(key);
-    });
-    setSearchParams(next);
-  };
-
-  const exportQueue = () => {
+  const exportCsv = () => {
     downloadCsvFile(
       [
-        { key: "order", label: "Order" },
-        { key: "buyer", label: "Buyer" },
-        { key: "method", label: "Payment Method" },
-        { key: "submitted", label: "Submitted" },
-        { key: "match", label: "Match Check" },
-        { key: "amount", label: "Amount" },
-        { key: "status", label: "Status" },
+        { key: "orderNumber", label: isId ? "No. Pesanan" : "Order Number" },
+        { key: "suborderNumber", label: isId ? "No. Suborder" : "Suborder Number" },
+        { key: "buyerName", label: isId ? "Pembeli" : "Buyer" },
+        { key: "paymentMethod", label: isId ? "Metode Pembayaran" : "Payment Method" },
+        { key: "amount", label: isId ? "Jumlah" : "Amount" },
+        { key: "paymentStatus", label: isId ? "Status Pembayaran" : "Payment Status" },
+        { key: "date", label: isId ? "Waktu Transaksi" : "Transaction Time" },
       ],
       review.data.rows.map((row) => ({
-        order: row.orderNumber,
-        buyer: row.buyer.name,
-        method: row.paymentMethod,
-        submitted: dateTime(row.submittedAt),
-        match: matchLabel[row.matchStatus],
+        orderNumber: row.orderNumber,
+        suborderNumber: row.suborderNumber,
+        buyerName: row.buyerName,
+        paymentMethod: row.paymentMethod || "Duitku Gateway",
         amount: row.expectedAmount,
-        status: row.paymentStatusLabel,
+        paymentStatus: row.paymentStatus,
+        date: formatDateTime(row.submittedAt || row.createdAt, isId),
       })),
-      `seller-payment-review-${new Date().toISOString().slice(0, 10)}.csv`
+      `riwayat-pembayaran-${workspaceStoreSlug}-${new Date().toISOString().slice(0, 10)}.csv`
     );
-    setNotice({
-      type: "success",
-      text: `${review.data.rows.length} visible payment proof(s) exported.`,
-    });
-    toast.success(`${review.data.rows.length} visible payment proof(s) exported.`);
   };
 
-  const mutationSucceeded = (message) => {
-    setSelectedPaymentId(null);
-    clearProofRequestParams();
-    setNotice({ type: "success", text: message });
-    toast.success(message);
-  };
+  const summary = review.data.summary;
+  const counts = review.data.counts;
 
-  const mutationFailed = (error) => {
-    const message = error?.message || "Unable to review this payment proof.";
-    setNotice({ type: "error", text: message });
-    toast.error(message);
-    throw error || new Error(message);
-  };
-
-  if (!canView) {
-    return (
-      <div className="s26-pr">
-        <div className="s26-pr-state is-error">
-          <AlertTriangle size={24} />
-          <h1>Payment review access is unavailable</h1>
-          <p>This page requires both order and payment-status visibility.</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (review.isLoading) {
-    return (
-      <div className="s26-pr">
-        <div className="s26-pr-skeleton is-heading" />
-        <div className="s26-pr-summary">
-          {[1, 2, 3, 4].map((item) => (
-            <div className="s26-pr-skeleton is-card" key={item} />
-          ))}
-        </div>
-        <div className="s26-pr-skeleton is-table" />
-      </div>
-    );
-  }
-
-  if (review.isError) {
-    return (
-      <div className="s26-pr">
-        <div className="s26-pr-state is-error">
-          <AlertTriangle size={24} />
-          <h1>Unable to load payment review</h1>
-          <p>{review.error?.message || "Try again."}</p>
-          <button type="button" onClick={() => review.refetch()}>Retry</button>
-        </div>
-      </div>
-    );
-  }
-
-  const cards = [
-    { label: "Awaiting Review", value: review.data.summary.awaiting, icon: Clock3, tone: "amber", note: "Proofs waiting for a decision" },
-    { label: "Approved Today", value: review.data.summary.approvedToday, icon: CheckCircle2, tone: "green", note: "Verified seller payments" },
-    { label: "Rejected Today", value: review.data.summary.rejectedToday, icon: XCircle, tone: "red", note: "Proofs returned to buyers" },
-    { label: "Total Verified Amount", value: money(review.data.summary.verifiedAmount), icon: Banknote, tone: "blue", note: "Across visible paid records" },
-  ];
-  const tabs = [
-    ["awaiting", "Awaiting", review.data.counts.awaiting],
-    ["approved", "Approved", review.data.counts.approved],
-    ["rejected", "Rejected", review.data.counts.rejected],
-    ["all", "All", review.data.counts.all],
-  ];
+  const currentTab = query.status;
 
   return (
-    <div className="s26-pr">
-      <nav className="s26-pr-breadcrumb" aria-label="Breadcrumb">
-        <span>Stores</span><i>/</i>
-        <span>{sellerContext?.store?.name || "Active Store"}</span><i>/</i>
-        <span>Finance</span><i>/</i><strong>Payment Review</strong>
+    <div className="seller2026-payment-history-container">
+      {/* Eyebrow Badge */}
+      <div className="sph-eyebrow">
+        <Sparkles size={13} />
+        <span>{isId ? "Transaksi Gateway Terverifikasi" : "Verified Gateway Settlements"}</span>
+      </div>
+
+      {/* Breadcrumb */}
+      <nav className="sph-breadcrumb" aria-label="Breadcrumb">
+        <Link to={`/seller/stores/${workspaceStoreSlug}`}>{isId ? "Toko" : "Store"}</Link>
+        <span>/</span>
+        <Link to={`/seller/stores/${workspaceStoreSlug}/withdrawals`}>
+          {isId ? "Keuangan" : "Finance"}
+        </Link>
+        <span>/</span>
+        <span className="current">{isId ? "Riwayat Pembayaran" : "Payment History"}</span>
       </nav>
 
-      <header className="s26-pr-header">
+      {/* Header */}
+      <header className="sph-header">
         <div>
-          <h1>Payment Review</h1>
-          <p>Review incoming payment proofs, verify matching orders, and record clear seller decisions.</p>
+          <h1>{isId ? "Riwayat Pembayaran Masuk" : "Incoming Payments History"}</h1>
+          <p>
+            {isId
+              ? "Catatan transaksi pembayaran pesanan dari pembeli yang telah terverifikasi otomatis via Payment Gateway Duitku."
+              : "Automated payment settlement records from customer orders processed via Duitku Payment Gateway."}
+          </p>
         </div>
-        <div className="s26-pr-header__actions">
-          <span>{review.data.store.name || sellerContext?.store?.name}</span>
-          <span className={review.canReview ? "is-green" : "is-amber"}>
-            {review.canReview ? "Can review" : "View only"}
-          </span>
-          <span className="is-blue">{roleLabel(review.data.governance.roleCode)}</span>
-          <button type="button" onClick={exportQueue}><Download size={17} />Export Queue</button>
+
+        <div className="sph-header-actions">
+          <button
+            type="button"
+            className="sph-btn-export"
+            onClick={exportCsv}
+            disabled={review.data.rows.length === 0}
+            title={isId ? "Unduh laporan CSV" : "Export CSV report"}
+          >
+            <Download size={15} />
+            <span>{isId ? "Ekspor CSV" : "Export CSV"}</span>
+          </button>
         </div>
       </header>
 
-      {notice ? (
-        <div className={`s26-pr-notice is-${notice.type}`}>
-          {notice.type === "success" ? <Check size={16} /> : <AlertTriangle size={16} />}
-          {notice.text}
-        </div>
-      ) : null}
+      {/* 4-Card Summary Grid */}
+      <section className="sph-kpi-grid">
+        <article className="sph-kpi-card">
+          <div className="sph-kpi-icon-wrap is-blue">
+            <Wallet size={22} />
+          </div>
+          <div className="sph-kpi-body">
+            <span className="sph-kpi-label">
+              {isId ? "Total Dana Terverifikasi" : "Total Settled Revenue"}
+            </span>
+            <strong className="sph-kpi-value">{formatMoney(summary.verifiedAmount)}</strong>
+            <span className="sph-kpi-sub">
+              {isId ? "Akumulasi pembayaran pesanan lunas" : "Gross paid order accumulation"}
+            </span>
+          </div>
+        </article>
 
-      <section className="s26-pr-summary">
-        {cards.map(({ label, value, icon: Icon, tone, note }) => (
-          <article key={label}>
-            <span className={`is-${tone}`}><Icon size={26} /></span>
-            <div><small>{label}</small><strong>{value}</strong><em>{note}</em></div>
-          </article>
-        ))}
+        <article className="sph-kpi-card">
+          <div className="sph-kpi-icon-wrap is-green">
+            <CheckCircle2 size={22} />
+          </div>
+          <div className="sph-kpi-body">
+            <span className="sph-kpi-label">{isId ? "Transaksi Lunas" : "Settled Orders"}</span>
+            <strong className="sph-kpi-value">
+              {counts.approved} {isId ? "Pesanan" : "Orders"}
+            </strong>
+            <span className="sph-kpi-sub">
+              {isId ? "Terverifikasi otomatis gateway" : "Automated gateway settlement"}
+            </span>
+          </div>
+        </article>
+
+        <article className="sph-kpi-card">
+          <div className="sph-kpi-icon-wrap is-orange">
+            <Clock3 size={22} />
+          </div>
+          <div className="sph-kpi-body">
+            <span className="sph-kpi-label">
+              {isId ? "Menunggu Pembayaran" : "Pending Settlement"}
+            </span>
+            <strong className="sph-kpi-value">
+              {counts.awaiting} {isId ? "Pesanan" : "Orders"}
+            </strong>
+            <span className="sph-kpi-sub">
+              {isId ? "Menunggu pelunasan pembeli" : "Awaiting customer payment"}
+            </span>
+          </div>
+        </article>
+
+        <article className="sph-kpi-card">
+          <div className="sph-kpi-icon-wrap is-blue">
+            <CreditCard size={22} />
+          </div>
+          <div className="sph-kpi-body">
+            <span className="sph-kpi-label">{isId ? "Gateway Pembayaran" : "Payment Rail"}</span>
+            <strong className="sph-kpi-value">Duitku Gateway</strong>
+            <span className="sph-kpi-sub">
+              {isId ? "Otomatis & Terpusat" : "Automated & Central"}
+            </span>
+          </div>
+        </article>
       </section>
 
-      <section className="s26-pr-panel">
-        <div className="s26-pr-tabs">
+      {/* Main Table Card */}
+      <section className="sph-table-card">
+        {/* Status Tabs */}
+        <div className="sph-tabs-bar">
+          <button
+            type="button"
+            className={`sph-tab-btn ${currentTab === "all" ? "is-active" : ""}`}
+            onClick={() => changeQuery({ status: "all" })}
+          >
+            <span>{isId ? "Semua Transaksi" : "All Payments"}</span>
+            <span className="sph-tab-count">{counts.all}</span>
+          </button>
+          <button
+            type="button"
+            className={`sph-tab-btn ${currentTab === "approved" ? "is-active" : ""}`}
+            onClick={() => changeQuery({ status: "approved" })}
+          >
+            <span>{isId ? "Lunas" : "Settled"}</span>
+            <span className="sph-tab-count">{counts.approved}</span>
+          </button>
+          <button
+            type="button"
+            className={`sph-tab-btn ${currentTab === "awaiting" ? "is-active" : ""}`}
+            onClick={() => changeQuery({ status: "awaiting" })}
+          >
+            <span>{isId ? "Menunggu" : "Pending"}</span>
+            <span className="sph-tab-count">{counts.awaiting}</span>
+          </button>
+          <button
+            type="button"
+            className={`sph-tab-btn ${currentTab === "rejected" ? "is-active" : ""}`}
+            onClick={() => changeQuery({ status: "rejected" })}
+          >
+            <span>{isId ? "Batal / Kadaluwarsa" : "Cancelled / Expired"}</span>
+            <span className="sph-tab-count">{counts.rejected}</span>
+          </button>
+        </div>
+
+        {/* Toolbar */}
+        <div className="sph-toolbar">
+          <div className="sph-search-box">
+            <Search size={15} className="sph-search-icon" />
+            <input
+              type="text"
+              className="sph-search-input"
+              placeholder={isId ? "Cari nomor invoice, nama pembeli..." : "Search invoice, buyer name..."}
+              value={query.search}
+              onChange={(e) => changeQuery({ search: e.target.value })}
+            />
+          </div>
+
           <div>
-            {tabs.map(([value, label, count]) => (
+            <button
+              type="button"
+              className="sph-btn-reset"
+              onClick={resetFilters}
+              title={isId ? "Atur ulang filter" : "Reset filters"}
+            >
+              <RotateCcw size={14} />
+              <span>{isId ? "Atur Ulang" : "Reset"}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Table Content or Empty State */}
+        {review.data.rows.length === 0 ? (
+          <div className="sph-empty-state">
+            <div className="sph-empty-icon">
+              <CreditCard size={28} />
+            </div>
+            <h2 className="sph-empty-title">
+              {isId ? "Belum Ada Riwayat Pembayaran Masuk" : "No Incoming Payments Found"}
+            </h2>
+            <p className="sph-empty-text">
+              {isId
+                ? "Transaksi pembayaran dari pembeli via gateway akan otomatis tercatat dan muncul di sini begitu pesanan dibuat atau dilunasi."
+                : "Payment transactions from buyers will appear here automatically once orders are placed or settled."}
+            </p>
+            {(query.search || currentTab !== "all") && (
               <button
                 type="button"
-                className={query.status === value ? "is-active" : ""}
-                key={value}
-                onClick={() => changeQuery({ status: value })}
+                className="sph-btn-reset"
+                onClick={resetFilters}
+                style={{ padding: "8px 16px" }}
               >
-                {label}<span>{count}</span>
+                <span>{isId ? "Hapus Filter Pencarian" : "Clear Filters"}</span>
               </button>
-            ))}
+            )}
           </div>
-          <div className="s26-pr-view">
-            <span>View:</span>
-            <button type="button" className={view === "table" ? "is-active" : ""} onClick={() => setView("table")}><List size={16} />Table</button>
-            <button type="button" className={view === "board" ? "is-active" : ""} onClick={() => setView("board")}><Grid2X2 size={15} />Board</button>
-            <button type="button" onClick={reset}><RotateCcw size={15} />Reset</button>
-          </div>
-        </div>
-
-        <div className="s26-pr-filters">
-          <label className="s26-pr-search"><Search size={17} /><input value={query.search} placeholder="Search by order ID, buyer, or notes..." onChange={(event) => changeQuery({ search: event.target.value })} /></label>
-          <label><span>Payment Method</span><select value={query.paymentMethod} onChange={(event) => changeQuery({ paymentMethod: event.target.value })}><option value="all">All Methods</option><option value="qris">QRIS</option><option value="bank">Bank Transfer</option></select></label>
-          <label><span>Match Status</span><select value={query.matchStatus} onChange={(event) => changeQuery({ matchStatus: event.target.value })}><option value="all">All Statuses</option><option value="MATCHED">Matched</option><option value="NEEDS_REVIEW">Needs Review</option><option value="RISK_FLAG">Risk Flag</option></select></label>
-          <div className="s26-pr-date"><input type="date" aria-label="Date from" value={query.dateFrom} onChange={(event) => changeQuery({ dateFrom: event.target.value })} /><i>-</i><input type="date" aria-label="Date to" value={query.dateTo} onChange={(event) => changeQuery({ dateTo: event.target.value })} /></div>
-          <label><span>Reviewer</span><select value={query.reviewer} onChange={(event) => changeQuery({ reviewer: event.target.value })}><option value="all">All Reviewers</option><option value="reviewed">Reviewed</option><option value="unreviewed">Unreviewed</option></select></label>
-        </div>
-
-        {review.data.rows.length === 0 ? (
-          <div className="s26-pr-empty">
-            <FileImage size={34} />
-            <h2>No payment proofs found</h2>
-            <p>New checkout proofs will appear here when they match the selected queue and filters.</p>
-            <button type="button" onClick={reset}>Reset Filters</button>
-          </div>
-        ) : view === "table" ? (
-          <div className="s26-pr-table-wrap">
-            <table className="s26-pr-table">
-              <thead><tr><th>Proof</th><th>Order</th><th>Buyer</th><th>Payment</th><th>Submitted</th><th>Match Check</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead>
+        ) : (
+          <div className="sph-table-wrap">
+            <table className="sph-table">
+              <thead>
+                <tr>
+                  <th style={{ width: "24%" }}>{isId ? "No. Pesanan" : "Order / Invoice"}</th>
+                  <th style={{ width: "22%" }}>{isId ? "Pelanggan" : "Customer"}</th>
+                  <th style={{ width: "22%" }}>{isId ? "Metode Pembayaran" : "Payment Method"}</th>
+                  <th style={{ width: "16%" }}>{isId ? "Status Pembayaran" : "Payment Status"}</th>
+                  <th style={{ width: "16%", textAlign: "right" }}>
+                    {isId ? "Jumlah & Aksi" : "Amount & Action"}
+                  </th>
+                </tr>
+              </thead>
               <tbody>
                 {review.data.rows.map((row) => {
-                  const proof = resolveAssetUrl(row.proofUrl);
+                  const isPaid = row.paymentStatus === "PAID";
+                  const isPending = row.paymentStatus === "PENDING_CONFIRMATION";
+                  const isRejected = row.paymentStatus === "REJECTED";
+
                   return (
-                    <tr key={row.paymentId}>
-                      <td><button type="button" className="s26-pr-proof-thumb" onClick={() => setSelectedPaymentId(row.paymentId)}>{proof ? <img src={proof} alt="" /> : <FileImage size={20} />}</button></td>
-                      <td><button type="button" className="s26-pr-order" title={row.orderNumber} onClick={() => setSelectedPaymentId(row.paymentId)}>{truncateId(row.orderNumber)}</button><small title={row.suborderNumber}>{truncateId(row.suborderNumber)}</small></td>
-                      <td><div className="s26-pr-buyer"><span>{row.buyer.initials}</span><div><strong>{row.buyer.name}</strong><small>{row.buyer.email || row.buyer.phone || "Buyer"}</small></div></div></td>
-                      <td><strong>{row.paymentMethod}</strong><small title={row.paymentReference}>{truncateId(row.paymentReference)}</small></td>
-                      <td><span>{dateTime(row.submittedAt)}</span></td>
-                      <td><span className={`s26-pr-chip is-${row.matchStatus.toLowerCase()}`}>{matchLabel[row.matchStatus]}</span></td>
-                      <td><strong>{money(row.expectedAmount)}</strong></td>
-                      <td><span className={`s26-pr-chip is-${row.paymentStatusTone}`}>{row.paymentStatusLabel}</span></td>
+                    <tr key={row.id}>
+                      {/* Order Identity */}
                       <td>
-                        <div className="s26-pr-actions relative">
-                          <button type="button" className={row.canReview && review.canReview ? "is-primary" : ""} onClick={() => setSelectedPaymentId(row.paymentId)}>{row.canReview && review.canReview ? "Review" : "View"}</button>
-                          <button type="button" title="More options" onClick={() => setOpenMenuId(openMenuId === row.paymentId ? null : row.paymentId)}>
-                            <MoreVertical size={17} />
-                          </button>
-                          {openMenuId === row.paymentId && (
-                            <div className="absolute right-0 top-full z-20 mt-1 w-44 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
-                              <div className="flex flex-col text-[12px] font-medium text-slate-700">
-                                <button type="button" className="w-full px-4 py-2.5 text-left hover:bg-slate-50" onClick={() => { setOpenMenuId(null); setSelectedPaymentId(row.paymentId); }}>
-                                  {row.canReview && review.canReview ? "Review Proof" : "View Proof"}
-                                </button>
-                                <button type="button" className="w-full px-4 py-2.5 text-left hover:bg-slate-50" onClick={() => { setOpenMenuId(null); navigate(workspaceRoutes.orderDetail(row.suborderId)); }}>
-                                  View Order Details
-                                </button>
-                                <button type="button" className="w-full px-4 py-2.5 text-left hover:bg-slate-50" onClick={() => { setOpenMenuId(null); navigator.clipboard.writeText(row.orderNumber); toast.success("Order ID copied"); }}>
-                                  Copy Order ID
-                                </button>
-                              </div>
-                            </div>
-                          )}
+                        <Link
+                          to={workspaceRoutes.orderDetail(row.suborderId)}
+                          className="sph-order-link"
+                          title={isId ? "Buka detail pesanan" : "View order details"}
+                        >
+                          {row.orderNumber || row.suborderNumber}
+                        </Link>
+                        <div className="sph-order-date">
+                          {formatDateTime(row.submittedAt || row.createdAt, isId)}
+                        </div>
+                      </td>
+
+                      {/* Customer */}
+                      <td>
+                        <div className="sph-buyer-name">{row.buyerName}</div>
+                        <div className="sph-buyer-meta">{row.buyerEmail || row.buyer?.phone || "-"}</div>
+                      </td>
+
+                      {/* Payment Method */}
+                      <td>
+                        <span className="sph-method-badge">
+                          <CreditCard size={13} style={{ color: "var(--sph-muted)" }} />
+                          <span>{row.paymentMethod || "Duitku Gateway"}</span>
+                        </span>
+                      </td>
+
+                      {/* Status */}
+                      <td>
+                        <span
+                          className={`sph-status-badge ${
+                            isPaid
+                              ? "is-paid"
+                              : isPending
+                              ? "is-pending"
+                              : isRejected
+                              ? "is-rejected"
+                              : "is-unpaid"
+                          }`}
+                        >
+                          <span className="sph-status-dot" />
+                          <span>
+                            {isPaid
+                              ? (isId ? "Lunas" : "Settled")
+                              : isPending
+                              ? (isId ? "Menunggu Bayar" : "Pending")
+                              : isRejected
+                              ? (isId ? "Kadaluwarsa" : "Expired")
+                              : row.paymentStatusLabel}
+                          </span>
+                        </span>
+                      </td>
+
+                      {/* Amount & Action Button */}
+                      <td style={{ textAlign: "right" }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "flex-end",
+                            gap: "10px",
+                          }}
+                        >
+                          <strong style={{ fontSize: "14px", fontWeight: 700 }}>
+                            {formatMoney(row.expectedAmount)}
+                          </strong>
+                          <Link
+                            to={workspaceRoutes.orderDetail(row.suborderId)}
+                            className="sph-btn-detail"
+                            title={isId ? "Lihat Detail Pesanan" : "View Order Detail"}
+                          >
+                            <ArrowRight size={15} />
+                          </Link>
                         </div>
                       </td>
                     </tr>
@@ -401,112 +437,8 @@ export default function Seller2026LivePaymentReviewPage() {
               </tbody>
             </table>
           </div>
-        ) : (
-          <div className="s26-pr-board">
-            {[
-              ["awaiting", "Awaiting Review", "PENDING_CONFIRMATION"],
-              ["approved", "Approved", "PAID"],
-              ["rejected", "Rejected", "REJECTED"],
-            ].map(([columnKey, label, status]) => {
-              const columnRows = review.data.rows.filter((row) => row.paymentStatus === status);
-              return (
-                <section className={`s26-pr-board-column is-${columnKey}`} key={columnKey}>
-                  <header>
-                    <strong>{label}</strong>
-                    <span>{columnRows.length}</span>
-                    <MoreVertical size={16} />
-                  </header>
-                  <div>
-                    {columnRows.length === 0 ? (
-                      <div className="s26-pr-board-empty">
-                        {status === "PAID" ? <CheckCircle2 size={28} /> : status === "REJECTED" ? <XCircle size={28} /> : <Clock3 size={28} />}
-                        <strong>No {label.toLowerCase()} payments</strong>
-                        <span>{label} payments will appear here</span>
-                      </div>
-                    ) : columnRows.map((row) => {
-                      const proof = resolveAssetUrl(row.proofUrl);
-                      return (
-                        <article key={row.paymentId}>
-                          <button type="button" className="s26-pr-board-card" onClick={() => setSelectedPaymentId(row.paymentId)}>
-                            <span className="s26-pr-board-proof">{proof ? <img src={proof} alt="" /> : <FileImage size={20} />}</span>
-                            <span>
-                              <strong title={row.orderNumber}>{truncateId(row.orderNumber)}</strong>
-                              <small>{row.buyer.name}</small>
-                              <em>{row.paymentMethod}</em>
-                              <small>{dateTime(row.submittedAt)}</small>
-                            </span>
-                            <b>{money(row.expectedAmount)}</b>
-                          </button>
-                          <footer>
-                            <span className={`s26-pr-chip is-${row.paymentStatusTone}`} title={row.paymentStatusLabel}>{row.paymentStatusLabel}</span>
-                            <div className="s26-pr-card-actions">
-                              <button type="button" className="s26-pr-primary-btn" onClick={() => setSelectedPaymentId(row.paymentId)}>
-                                {row.canReview && review.canReview ? "Review Proof" : "View Proof"}
-                              </button>
-                              <button type="button" className="s26-pr-icon-btn" title="View Order" onClick={() => navigate(workspaceRoutes.orderDetail(row.suborderId))}>
-                                <MoreVertical size={14} />
-                              </button>
-                            </div>
-                          </footer>
-                        </article>
-                      );
-                    })}
-                  </div>
-                </section>
-              );
-            })}
-          </div>
         )}
-
-        <footer className="s26-pr-pagination">
-          <span>Showing {review.data.rows.length} of {review.data.pagination.total} proofs</span>
-          <div>
-            <label>Rows per page<select value={query.limit} onChange={(event) => changeQuery({ limit: Number(event.target.value), page: 1 })}><option value="5">5</option><option value="10">10</option><option value="20">20</option></select></label>
-            <button type="button" disabled={query.page <= 1} onClick={() => changeQuery({ page: query.page - 1 })}><ChevronLeft size={16} /></button>
-            <strong>{review.data.pagination.page}</strong>
-            <button type="button" disabled={query.page >= review.data.pagination.totalPages} onClick={() => changeQuery({ page: query.page + 1 })}><ChevronRight size={16} /></button>
-          </div>
-        </footer>
       </section>
-
-      <Seller2026PaymentProofDrawer
-        open={Boolean(selectedRow)}
-        row={selectedRow}
-        actorCanReview={review.canReview}
-        governanceNote={review.data.governance.note}
-        isMutating={review.isMutating}
-        mutationError={review.mutationError}
-        orderHref={selectedOrderHref}
-        onClose={() => {
-          setSelectedPaymentId(null);
-          clearProofRequestParams();
-        }}
-        onViewOrder={() => {
-          if (!selectedOrderHref) return;
-          navigate(selectedOrderHref);
-        }}
-        onApprove={async (variables) => {
-          try {
-            await review.approvePayment(variables);
-            toast.success("Payment proof approved.");
-            if (selectedRow) {
-              navigate(workspaceRoutes.orders(), { state: { openDetailId: selectedRow.suborderId || selectedRow.orderId } });
-            } else {
-              mutationSucceeded("Payment proof approved.");
-            }
-          } catch (error) {
-            mutationFailed(error);
-          }
-        }}
-        onReject={async (variables) => {
-          try {
-            await review.rejectPayment(variables);
-            mutationSucceeded("Payment proof rejected. The review queue is refreshing.");
-          } catch (error) {
-            mutationFailed(error);
-          }
-        }}
-      />
     </div>
   );
 }

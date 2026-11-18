@@ -326,10 +326,10 @@ const getSellerPageMeta = (pathname, isId = false) => {
 
   if (pathname.endsWith("/payment-review")) {
     return {
-      title: isId ? "Tinjau Pembayaran" : "Payment Review",
+      title: isId ? "Riwayat Pembayaran" : "Payment History",
       subtitle: isId
-        ? "Tinjauan bukti pembayaran pembeli untuk ruang kerja penjual aktif."
-        : "Buyer payment proof review for the active seller workspace.",
+        ? "Catatan transaksi pembayaran pesanan toko via Payment Gateway."
+        : "Automated order payment records processed via Payment Gateway.",
     };
   }
 
@@ -742,7 +742,7 @@ function SellerSidebar({
       title: isId ? "Keuangan" : "Finance",
       items: [
         {
-          label: isId ? "Tinjau Pembayaran" : "Payment Review",
+          label: isId ? "Riwayat Pembayaran" : "Payment History",
           to: sellerRoutes.paymentReview(),
           Icon: BadgeCheck,
           enabled: hasPermission("ORDER_VIEW") && hasPermission("PAYMENT_STATUS_VIEW"),
