@@ -129,7 +129,7 @@ function ShowcaseModal({
             </div>
 
             {/* Product Picker Checklist */}
-            <div className="seller2026-form-group">
+            <div className="seller2026-form-group seller2026-product-picker-group">
               <div className="seller2026-product-picker-header">
                 <span className="seller2026-form-label">
                   {isId ? "Pilih Produk" : "Select Products"}
@@ -148,7 +148,7 @@ function ShowcaseModal({
                 </div>
               </div>
 
-              {storeProducts.length > 4 && (
+              {storeProducts.length > 2 && (
                 <div style={{ position: "relative", marginBottom: "6px" }}>
                   <Search size={14} style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: "var(--ssc-text-muted)" }} />
                   <input
@@ -201,17 +201,26 @@ function ShowcaseModal({
                         {imageUrl ? (
                           <img src={imageUrl} alt="" className="seller2026-product-thumb" />
                         ) : (
-                          <div className="seller2026-product-thumb" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-                            <Package size={16} color="var(--ssc-text-muted)" />
+                          <div className="seller2026-product-thumb">
+                            <Package size={18} color="var(--ssc-text-muted)" />
                           </div>
                         )}
                         <div className="seller2026-product-info">
-                          <span className="seller2026-product-name">{product.name || product.title}</span>
+                          <span className="seller2026-product-name" title={product.name || product.title}>
+                            {product.name || product.title}
+                          </span>
                           <span className="seller2026-product-sub">
-                            {formatCurrency(price)}
-                            {product.stock != null && <span> · {isId ? "Stok" : "Stock"}: {product.stock}</span>}
+                            <strong className="seller2026-product-price">{formatCurrency(price)}</strong>
+                            {product.stock != null && (
+                              <span className="seller2026-product-stock">· {isId ? "Stok" : "Stock"}: {product.stock}</span>
+                            )}
                           </span>
                         </div>
+                        {isChecked && (
+                          <span className="seller2026-product-selected-check" aria-hidden="true">
+                            <Check size={16} />
+                          </span>
+                        )}
                       </div>
                     );
                   })

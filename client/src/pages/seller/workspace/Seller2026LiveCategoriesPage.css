@@ -772,27 +772,48 @@
 }
 
 .seller2026-product-picker-list {
-  max-height: 210px;
+  max-height: 240px;
   overflow-y: auto;
+  overflow-x: hidden;
   border: 1px solid var(--ssc-card-border);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 6px;
   background: var(--ssc-input-bg);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.seller2026-product-picker-list::-webkit-scrollbar {
+  width: 6px;
+}
+.seller2026-product-picker-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.seller2026-product-picker-list::-webkit-scrollbar-thumb {
+  background: var(--ssc-card-border);
+  border-radius: 999px;
+}
+.seller2026-product-picker-list::-webkit-scrollbar-thumb:hover {
+  background: var(--ssc-text-muted);
 }
 
 .seller2026-product-item-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 6px 8px;
-  border-radius: 8px;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 10px;
   border: 1px solid transparent;
+  background: transparent;
   cursor: pointer;
   transition: all 0.15s ease;
   user-select: none;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
 }
 
 .seller2026-product-item-row:hover {
@@ -800,42 +821,76 @@
 }
 
 .seller2026-product-item-row.is-selected {
-  background: rgba(3, 76, 133, 0.1);
-  border-color: rgba(3, 76, 133, 0.3);
+  background: rgba(3, 76, 133, 0.08);
+  border-color: rgba(3, 76, 133, 0.25);
 }
 :where(html.dark, .dark) .seller2026-product-item-row.is-selected {
   background: rgba(56, 189, 248, 0.12);
-  border-color: rgba(56, 189, 248, 0.25);
+  border-color: rgba(56, 189, 248, 0.28);
 }
 
 .seller2026-product-thumb {
-  width: 36px;
-  height: 36px;
-  border-radius: 6px;
-  object-fit: cover;
-  background: #1e293b;
-  flex-shrink: 0;
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  border-radius: 8px !important;
+  object-fit: cover !important;
+  background: #1e293b !important;
+  border: 1px solid var(--ssc-card-border) !important;
+  flex-shrink: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
 }
 
 .seller2026-product-info {
-  flex: 1;
+  flex: 1 1 auto;
   min-width: 0;
   display: flex;
   flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
 }
 
 .seller2026-product-name {
-  font-size: 0.825rem;
+  font-size: 0.85rem;
   font-weight: 600;
   color: var(--ssc-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.35;
 }
 
 .seller2026-product-sub {
-  font-size: 0.725rem;
+  font-size: 0.75rem;
   color: var(--ssc-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.seller2026-product-price {
+  font-weight: 700;
+  color: #fe6f05;
+}
+
+.seller2026-product-stock {
+  color: var(--ssc-text-muted);
+}
+
+.seller2026-product-selected-check {
+  color: #fe6f05;
+  flex-shrink: 0;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Visibility Switch Card (Replaces the floating checkbox) */
@@ -881,10 +936,20 @@
 }
 
 .seller2026-checkbox-custom {
-  width: 18px;
-  height: 18px;
+  width: 18px !important;
+  min-width: 18px !important;
+  max-width: 18px !important;
+  height: 18px !important;
+  min-height: 18px !important;
+  max-height: 18px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  flex: 0 0 18px !important;
+  flex-shrink: 0 !important;
+  border-radius: 4px !important;
   cursor: pointer;
-  accent-color: #fe6f05;
+  accent-color: #fe6f05 !important;
+  box-sizing: border-box !important;
 }
 
 /* Modal Footer */

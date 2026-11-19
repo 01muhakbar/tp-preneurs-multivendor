@@ -5390,7 +5390,7 @@ body.dark .seller2026-category-row__menu button:hover:not(:disabled) {
   color: var(--seller2026-text);
 }
 
-.seller2026-form-group input,
+.seller2026-form-group input:not([type="checkbox"]):not([type="radio"]),
 .seller2026-form-group select {
   padding: 10px 12px;
   border: 1px solid var(--seller2026-border);
@@ -6310,7 +6310,7 @@ body.dark .seller2026-drawer,
   font-weight: 720;
 }
 
-.seller2026-form-group input,
+.seller2026-form-group input:not([type="checkbox"]):not([type="radio"]),
 .seller2026-form-group select {
   background: var(--seller2026-surface);
   border: 1px solid var(--seller2026-border);
