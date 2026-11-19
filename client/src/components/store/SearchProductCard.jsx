@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Eye, ShoppingCart } from "lucide-react";
+import { Eye } from "lucide-react";
+import ShoppingCartPlus from "./ShoppingCartPlus.jsx";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../../hooks/useCart.ts";
 import { formatCurrency } from "../../utils/format.js";
@@ -171,7 +172,7 @@ export default function SearchProductCard({ product, variant = "grid" }) {
               ) : isAdding ? (
                 <span className="text-base">✓</span>
               ) : (
-                <ShoppingCart className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
+                <ShoppingCartPlus size={18} className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
               )}
             </button>
           ) : null}
@@ -237,7 +238,7 @@ export default function SearchProductCard({ product, variant = "grid" }) {
                     <span>Added</span>
                   ) : (
                     <>
-                      <ShoppingCart className="h-4 w-4" />
+                      <ShoppingCartPlus size={16} className="h-4 w-4" />
                       <span>{isPurchasable ? "Add to Cart" : "Unavailable"}</span>
                     </>
                   )}

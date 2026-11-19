@@ -40,6 +40,7 @@ import { formatCurrency } from "../../utils/format.js";
 import { resolveProductImageUrl } from "../../utils/productImage.js";
 import { productHasVariantSelections } from "../../utils/publicProductVariations.js";
 import { useStorefrontWishlist } from "../../utils/storefrontWishlist.js";
+import ShoppingCartPlus from "../../components/store/ShoppingCartPlus.jsx";
 
 const PRIMARY = "var(--tp-primary)";
 const ACCENT = "var(--tp-accent)";
@@ -1282,7 +1283,7 @@ function ProductCard({ product, compact = false, showDiscount = false }) {
               aria-label={`Add ${product.name} to cart`}
               className="absolute bottom-3 right-3 z-10 grid h-11 w-11 place-items-center rounded-full bg-[var(--tp-primary)] text-white shadow-[0_10px_20px_rgba(3,76,133,0.2)] transition hover:bg-[var(--tp-accent)] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isAdding ? <BadgeCheck className="h-5 w-5" /> : <ShoppingCart className="h-5 w-5" />}
+              {isAdding ? <BadgeCheck className="h-5 w-5" /> : <ShoppingCartPlus size={20} className="h-5 w-5 text-white" />}
             </button>
           </>
         ) : null}
