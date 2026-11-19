@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Eye, ShoppingCart, Star } from "lucide-react";
+import { Eye, Star } from "lucide-react";
+import ShoppingCartPlus from "../store/ShoppingCartPlus.jsx";
 import { useCart } from "../../hooks/useCart.ts";
 import { formatCurrency } from "../../utils/format.js";
 import { resolveProductImageUrl } from "../../utils/productImage.js";
@@ -159,7 +160,7 @@ export default function ProductCardKacha({ product }) {
               disabled={isAdding || isLoading || !isPurchasable}
               className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-emerald-600 text-white shadow-sm transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 disabled:cursor-not-allowed disabled:opacity-70 sm:h-10 sm:w-10"
             >
-              {!isPurchasable ? "!" : isAdding ? "✓" : <ShoppingCart className="h-4.5 w-4.5" />}
+              {!isPurchasable ? "!" : isAdding ? "✓" : <ShoppingCartPlus className="h-4 w-4" />}
             </button>
           </div>
         </div>

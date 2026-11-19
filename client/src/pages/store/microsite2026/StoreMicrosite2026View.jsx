@@ -20,7 +20,6 @@ import {
   Share2,
   ShieldCheck,
   ShoppingBag,
-  ShoppingCart,
   Sparkles,
   Store,
   FolderTree,
@@ -33,6 +32,7 @@ import { resolveAssetUrl } from "../../../lib/assetUrl.js";
 import { resolveProductImageUrl } from "../../../utils/productImage.js";
 import { productHasVariantSelections } from "../../../utils/publicProductVariations.js";
 import VariantQuickAddModal from "../../../components/store/VariantQuickAddModal.jsx";
+import ShoppingCartPlus from "../../../components/store/ShoppingCartPlus.jsx";
 import "./store-microsite-2026.css";
 
 function formatJoinedDate(dateValue, isIndo = true) {
@@ -221,7 +221,7 @@ function MicrositeProductCard({ product, isIndo = true }) {
                 ) : isAdding ? (
                   <Check size={16} className="text-white animate-pulse" />
                 ) : (
-                  <ShoppingCart size={15} />
+                  <ShoppingCartPlus size={16} className="w-4 h-4 text-white" />
                 )}
               </button>
             </div>
