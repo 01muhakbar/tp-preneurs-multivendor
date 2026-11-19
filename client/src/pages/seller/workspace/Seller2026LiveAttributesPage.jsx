@@ -4,19 +4,25 @@ import { useTranslation } from "react-i18next";
 import { toast } from "react-hot-toast";
 import {
   CheckCircle2,
+  ChevronDown,
   Circle,
   Download,
-  Filter,
   Layers,
-  MoreVertical,
   Pencil,
   Plus,
   RotateCcw,
   Search,
+  SlidersHorizontal,
+  Sparkles,
   Tags,
+  Trash2,
   Upload,
 } from "lucide-react";
-import { exportSellerAttributes, importSellerAttributes } from "../../../api/sellerAttributes.ts";
+import {
+  bulkSellerAttributes,
+  exportSellerAttributes,
+  importSellerAttributes,
+} from "../../../api/sellerAttributes.ts";
 import {
   formatSeller2026AttributeDate,
   getSeller2026AttributeLabels,
@@ -41,6 +47,7 @@ export default function Seller2026LiveAttributesPage({ initialCreateOpen = false
   const location = useLocation();
   const isCreateRoute = initialCreateOpen || location.pathname.endsWith("/attributes/new");
   const importInputRef = useRef(null);
+  const bulkMenuRef = useRef(null);
   const { sellerContext, workspaceStoreId: storeId, workspaceRoutes, isId: outletIsId = false } = useSellerWorkspaceRoute();
   const { i18n } = useTranslation();
   const isId = Boolean(outletIsId || String(i18n.language || "").toLowerCase().startsWith("id"));
@@ -92,6 +99,8 @@ export default function Seller2026LiveAttributesPage({ initialCreateOpen = false
   const [activeAttribute, setActiveAttribute] = useState(null);
   const [isImporting, setIsImporting] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [bulkMenuOpen, setBulkMenuOpen] = useState(false);
+  const [isBulkLoading, setIsBulkLoading] = useState(false);
 
   useEffect(() => {
     if (isCreateRoute) {
@@ -99,6 +108,16 @@ export default function Seller2026LiveAttributesPage({ initialCreateOpen = false
       setDrawerOpen(true);
     }
   }, [isCreateRoute]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (bulkMenuRef.current && !bulkMenuRef.current.contains(event.target)) {
+        setBulkMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleCloseDrawer = () => {
     setDrawerOpen(false);
@@ -127,6 +146,21 @@ export default function Seller2026LiveAttributesPage({ initialCreateOpen = false
       next.set(paramKey, normalized);
     }
     if (paramKey !== "page") next.delete("page");
+    setSearchParams(next);
+  };
+
+  const updateQueries = (patch) => {
+    const next = new URLSearchParams(searchParams);
+    Object.entries(patch).forEach(([key, value]) => {
+      const paramKey = key === "search" ? "q" : key;
+      const normalized = String(value || "").trim();
+      if (!normalized || normalized === "all" || (paramKey === "page" && Number(normalized) <= 1)) {
+        next.delete(paramKey);
+      } else {
+        next.set(paramKey, normalized);
+      }
+    });
+    if (!patch.page) next.delete("page");
     setSearchParams(next);
   };
 
@@ -165,6 +199,28 @@ export default function Seller2026LiveAttributesPage({ initialCreateOpen = false
         ? selectedIds.filter((id) => !visibleIds.includes(id))
         : Array.from(new Set([...selectedIds, ...visibleIds]))
     );
+  };
+
+  const handleBulkAction = async (action) => {
+    if (!storeId || selectedIds.length === 0) return;
+    setIsBulkLoading(true);
+    try {
+      await bulkSellerAttributes(storeId, action, selectedIds.map(Number));
+      await refetch();
+      setSelectedIds([]);
+      setBulkMenuOpen(false);
+      toast.success(
+        action === "delete"
+          ? isId ? "Atribut terpilih berhasil dihapus" : "Selected attributes deleted"
+          : action === "publish"
+            ? isId ? "Atribut terpilih berhasil dipublikasikan" : "Selected attributes published"
+            : isId ? "Atribut terpilih dijadikan draf" : "Selected attributes set to draft"
+      );
+    } catch {
+      toast.error(isId ? "Gagal memproses aksi massal" : "Failed to process bulk action");
+    } finally {
+      setIsBulkLoading(false);
+    }
   };
 
   const exportAttributes = async () => {
@@ -214,6 +270,17 @@ export default function Seller2026LiveAttributesPage({ initialCreateOpen = false
     );
   }
 
+  const isTotalActive = filters.status === "all" && filters.usage === "all";
+  const isPublishedActive = filters.status === "published";
+  const isUnusedActive = filters.usage === "unused";
+  const isWithValuesActive = filters.usage === "with_values";
+  const hasActiveFilters = Boolean(
+    filters.search ||
+    filters.type !== "all" ||
+    filters.status !== "all" ||
+    filters.usage !== "all"
+  );
+
   const bulkButtonLabel = selectedIds.length > 0
     ? (isId ? `Aksi Massal (${selectedIds.length})` : `Bulk Actions (${selectedIds.length})`)
     : (isId ? "Aksi Massal" : "Bulk Actions");
@@ -223,8 +290,8 @@ export default function Seller2026LiveAttributesPage({ initialCreateOpen = false
       <section className="seller2026-attributes" data-seller2026-live-attributes="true">
         <header className="seller2026-attributes-header">
           <div className="seller2026-header-titles">
-            <h1>{isId ? "Atribut" : "Attributes"}</h1>
-            <p>{isId ? "Kelola atribut produk." : "Manage product attributes."}</p>
+            <h1>{isId ? "Atribut Produk" : "Product Attributes"}</h1>
+            <p>{isId ? "Kelola opsi varian (ukuran, warna, bahan) untuk produk katalog toko Anda." : "Manage variant options (size, color, material) for your catalog products."}</p>
           </div>
           <div className="seller2026-header-actions">
             <button className="seller2026-btn-outline" type="button" onClick={exportAttributes} disabled={isExporting}>
@@ -234,9 +301,39 @@ export default function Seller2026LiveAttributesPage({ initialCreateOpen = false
               <Upload size={16} /> {isId ? "Impor" : "Import"}
             </button>
             <input ref={importInputRef} type="file" accept=".json,.csv" hidden onChange={importAttributes} />
-            <button className="seller2026-btn-outline" type="button" disabled={selectedIds.length === 0} title={selectedIds.length === 0 ? (isId ? "Pilih atribut terlebih dahulu" : "Select attributes first") : (isId ? "Aksi massal" : "Bulk actions")}>
-              <Layers size={16} /> {bulkButtonLabel}
-            </button>
+
+            {/* Bulk Action Popover Menu */}
+            <div className="seller2026-bulk-wrap" ref={bulkMenuRef}>
+              <button
+                className={`seller2026-btn-outline seller2026-btn-bulk ${selectedIds.length > 0 ? "has-selection" : ""}`}
+                type="button"
+                disabled={selectedIds.length === 0 || isBulkLoading}
+                onClick={() => setBulkMenuOpen((prev) => !prev)}
+                title={selectedIds.length === 0 ? (isId ? "Pilih atribut di tabel terlebih dahulu" : "Select attributes first") : undefined}
+              >
+                <Layers size={16} /> {bulkButtonLabel} <ChevronDown size={14} className={bulkMenuOpen ? "is-rotated" : ""} />
+              </button>
+              {bulkMenuOpen && selectedIds.length > 0 && (
+                <div className="seller2026-bulk-dropdown" role="menu">
+                  {canManageStatus && (
+                    <button type="button" onClick={() => handleBulkAction("publish")} disabled={isBulkLoading}>
+                      <CheckCircle2 size={15} color="#10b981" /> {isId ? "Publikasikan Terpilih" : "Publish Selected"}
+                    </button>
+                  )}
+                  {canManageStatus && (
+                    <button type="button" onClick={() => handleBulkAction("unpublish")} disabled={isBulkLoading}>
+                      <Circle size={15} color="#f59e0b" /> {isId ? "Jadikan Draf" : "Set as Draft"}
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button type="button" className="seller2026-bulk-danger" onClick={() => handleBulkAction("delete")} disabled={isBulkLoading}>
+                      <Trash2 size={15} /> {isId ? "Hapus Terpilih" : "Delete Selected"}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
             {canCreate ? (
               <button className="seller2026-btn-primary" type="button" onClick={handleOpenCreate}>
                 <Plus size={16} /> {isId ? "Tambah Atribut" : "Add Attribute"}
@@ -245,29 +342,57 @@ export default function Seller2026LiveAttributesPage({ initialCreateOpen = false
           </div>
         </header>
 
+        {/* Interactive Quick-Filter KPI Cards */}
         <div className="seller2026-attributes-summary">
-          <article className="seller2026-kpi-card">
+          <article
+            className={`seller2026-kpi-card is-clickable ${isTotalActive ? "is-active" : ""}`}
+            role="button"
+            tabIndex={0}
+            onClick={() => updateQueries({ status: "all", usage: "all" })}
+            title={isId ? "Klik untuk melihat semua atribut" : "Click to view all attributes"}
+          >
             <div>
               <p className="seller2026-kpi-label">{isId ? "Total Atribut" : "Total Attributes"}</p>
               <p className="seller2026-kpi-value">{summary.total}</p>
             </div>
             <span className="seller2026-kpi-icon icon-gray"><Tags size={24} /></span>
           </article>
-          <article className="seller2026-kpi-card">
+
+          <article
+            className={`seller2026-kpi-card is-clickable ${isPublishedActive ? "is-active" : ""}`}
+            role="button"
+            tabIndex={0}
+            onClick={() => updateQueries({ status: isPublishedActive ? "all" : "published" })}
+            title={isId ? "Klik untuk menyaring atribut yang dipublikasikan" : "Click to filter published attributes"}
+          >
             <div>
               <p className="seller2026-kpi-label">{isId ? "Dipublikasikan" : "Published"}</p>
               <p className="seller2026-kpi-value">{summary.published}</p>
             </div>
             <span className="seller2026-kpi-icon icon-green"><CheckCircle2 size={24} /></span>
           </article>
-          <article className="seller2026-kpi-card">
+
+          <article
+            className={`seller2026-kpi-card is-clickable ${isUnusedActive ? "is-active" : ""}`}
+            role="button"
+            tabIndex={0}
+            onClick={() => updateQueries({ usage: isUnusedActive ? "all" : "unused" })}
+            title={isId ? "Klik untuk menyaring atribut yang belum digunakan pada produk" : "Click to filter unused attributes"}
+          >
             <div>
               <p className="seller2026-kpi-label">{isId ? "Belum Digunakan" : "Unused"}</p>
               <p className="seller2026-kpi-value">{summary.unused}</p>
             </div>
             <span className="seller2026-kpi-icon icon-amber"><Circle size={24} /></span>
           </article>
-          <article className="seller2026-kpi-card">
+
+          <article
+            className={`seller2026-kpi-card is-clickable ${isWithValuesActive ? "is-active" : ""}`}
+            role="button"
+            tabIndex={0}
+            onClick={() => updateQueries({ usage: isWithValuesActive ? "all" : "with_values" })}
+            title={isId ? "Klik untuk menyaring atribut yang memiliki nilai varian" : "Click to filter attributes with values"}
+          >
             <div>
               <p className="seller2026-kpi-label">{isId ? "Memiliki Nilai" : "With Values"}</p>
               <p className="seller2026-kpi-value">{summary.withValues}</p>
@@ -276,52 +401,73 @@ export default function Seller2026LiveAttributesPage({ initialCreateOpen = false
           </article>
         </div>
 
+        {/* Clean Reactive Toolbar */}
         <div className="seller2026-attributes-toolbar">
           <label className="seller2026-search-wrapper">
             <Search className="seller2026-search-icon" size={16} />
             <input
               aria-label={isId ? "Cari atribut" : "Search attributes"}
               className="seller2026-search-input"
-              placeholder={isId ? "Cari atribut..." : "Search attributes..."}
+              placeholder={isId ? "Cari nama atau tipe atribut..." : "Search attribute name or type..."}
               value={filters.search}
               onChange={(event) => updateQuery("search", event.target.value)}
             />
           </label>
           <div className="seller2026-filters-right">
-            <select className="seller2026-select-outline" aria-label={isId ? "Tipe Opsi" : "Option Type"} value={filters.type} onChange={(event) => updateQuery("type", event.target.value)}>
+            <select
+              className="seller2026-select-outline"
+              aria-label={isId ? "Tipe Opsi" : "Option Type"}
+              value={filters.type}
+              onChange={(event) => updateQuery("type", event.target.value)}
+            >
               <option value="all">{isId ? "Semua Tipe" : "All Types"}</option>
               <option value="dropdown">Dropdown</option>
-              <option value="radio">Radio</option>
+              <option value="radio">Radio Button</option>
               <option value="checkbox">{isId ? "Kotak Centang" : "Checkbox"}</option>
             </select>
-            <select className="seller2026-select-outline" aria-label={isId ? "Status" : "Status"} value={filters.status} onChange={(event) => updateQuery("status", event.target.value)}>
+            <select
+              className="seller2026-select-outline"
+              aria-label={isId ? "Status" : "Status"}
+              value={filters.status}
+              onChange={(event) => updateQuery("status", event.target.value)}
+            >
               <option value="all">{isId ? "Semua Status" : "All Statuses"}</option>
               <option value="published">{isId ? "Dipublikasikan" : "Published"}</option>
               <option value="draft">{isId ? "Draf" : "Draft"}</option>
               <option value="active">{isId ? "Aktif" : "Active"}</option>
               <option value="inactive">{isId ? "Nonaktif" : "Inactive"}</option>
             </select>
-            <select className="seller2026-select-outline" aria-label={isId ? "Penggunaan" : "Usage"} value={filters.usage} onChange={(event) => updateQuery("usage", event.target.value)}>
+            <select
+              className="seller2026-select-outline"
+              aria-label={isId ? "Penggunaan" : "Usage"}
+              value={filters.usage}
+              onChange={(event) => updateQuery("usage", event.target.value)}
+            >
               <option value="all">{isId ? "Semua Penggunaan" : "All Usage"}</option>
               <option value="in_use">{isId ? "Digunakan" : "In Use"}</option>
               <option value="unused">{isId ? "Belum Digunakan" : "Unused"}</option>
               <option value="with_values">{isId ? "Memiliki Nilai" : "With Values"}</option>
               <option value="no_values">{isId ? "Tanpa Nilai" : "No Values"}</option>
             </select>
-            <button className="seller2026-btn-accent" type="button" title={isId ? "Terapkan filter" : "Apply filters"}>
-              <Filter size={16} /> {isId ? "Terapkan" : "Apply"}
-            </button>
-            <button className="seller2026-btn-cancel" type="button" onClick={() => setSearchParams(new URLSearchParams())} title={isId ? "Reset semua filter" : "Reset all filters"}>
-              <RotateCcw size={16} /> {isId ? "Atur Ulang" : "Reset"}
-            </button>
+            {hasActiveFilters && (
+              <button
+                className="seller2026-btn-cancel seller2026-btn-reset-filters"
+                type="button"
+                onClick={() => setSearchParams(new URLSearchParams())}
+                title={isId ? "Reset semua filter" : "Reset all filters"}
+              >
+                <RotateCcw size={14} /> {isId ? "Atur Ulang" : "Reset"}
+              </button>
+            )}
           </div>
         </div>
 
+        {/* Structured Table */}
         <div className="seller2026-attributes-table-container">
           <table className="seller2026-table seller2026-attributes-table">
             <thead>
               <tr>
-                <th>
+                <th style={{ width: "44px" }}>
                   <input
                     aria-label={isId ? "Pilih semua atribut" : "Select visible attributes"}
                     type="checkbox"
@@ -329,26 +475,25 @@ export default function Seller2026LiveAttributesPage({ initialCreateOpen = false
                     onChange={toggleAllVisible}
                   />
                 </th>
-                <th>{isId ? "Nama" : "Name"}</th>
-                <th>{isId ? "Nama Tampilan" : "Display Name"}</th>
-                <th>{isId ? "Tipe Opsi" : "Option Type"}</th>
-                <th>{isId ? "Nilai" : "Values"}</th>
-                <th>{isId ? "Penggunaan" : "Usage"}</th>
-                <th>{isId ? "Status" : "Status"}</th>
-                <th>{isId ? "Diperbarui" : "Updated"}</th>
-                <th>{isId ? "Aksi" : "Actions"}</th>
+                <th style={{ width: "24%" }}>{isId ? "Nama Atribut" : "Attribute Name"}</th>
+                <th style={{ width: "13%" }}>{isId ? "Tipe Opsi" : "Option Type"}</th>
+                <th style={{ width: "25%" }}>{isId ? "Nilai Varian" : "Variant Values"}</th>
+                <th style={{ width: "13%" }}>{isId ? "Penggunaan" : "Usage"}</th>
+                <th style={{ width: "11%" }}>{isId ? "Status" : "Status"}</th>
+                <th style={{ width: "10%" }}>{isId ? "Diperbarui" : "Updated"}</th>
+                <th style={{ width: "90px" }}>{isId ? "Aksi" : "Actions"}</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={9} className="seller2026-table-loading">{isId ? "Memuat data atribut..." : "Loading attributes..."}</td></tr>
+                <tr><td colSpan={8} className="seller2026-table-loading">{isId ? "Memuat data atribut..." : "Loading attributes..."}</td></tr>
               ) : isError ? (
-                <tr><td colSpan={9} className="seller2026-table-error">{isId ? "Gagal memuat atribut" : "Unable to load attributes"}</td></tr>
+                <tr><td colSpan={8} className="seller2026-table-error">{isId ? "Gagal memuat atribut" : "Unable to load attributes"}</td></tr>
               ) : attributes.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="seller2026-table-empty">
+                  <td colSpan={8} className="seller2026-table-empty">
                     <h2>{isId ? "Belum ada atribut" : "No attributes yet"}</h2>
-                    <p>{isId ? "Mulai dengan membuat atribut baru." : "Start by creating an attribute."}</p>
+                    <p>{isId ? "Mulai dengan membuat atribut baru untuk varian produk Anda." : "Start by creating a new attribute for your product variants."}</p>
                     {canCreate ? <button className="seller2026-btn-primary" type="button" onClick={handleOpenCreate}>{isId ? "Tambah Atribut" : "Add Attribute"}</button> : null}
                   </td>
                 </tr>
@@ -372,7 +517,7 @@ export default function Seller2026LiveAttributesPage({ initialCreateOpen = false
                           onChange={() => toggleSelection(attribute.id)}
                         />
                       </td>
-                      <td data-label={isId ? "Nama" : "Name"} className="seller2026-fw-500" title={attribute.name}>
+                      <td data-label={isId ? "Nama" : "Name"} className="seller2026-attr-name-cell">
                         <strong
                           className={attribute.permissions.canEdit ? "is-clickable" : ""}
                           title={attribute.permissions.canEdit ? (isId ? "Klik untuk mengedit atribut" : "Click to edit attribute") : undefined}
@@ -380,17 +525,43 @@ export default function Seller2026LiveAttributesPage({ initialCreateOpen = false
                         >
                           {attribute.name}
                         </strong>
+                        {attribute.displayName && (
+                          <span className="seller2026-attr-display-sub">
+                            {isId ? "Tampilan:" : "Display:"} <em>{attribute.displayName}</em>
+                          </span>
+                        )}
                       </td>
-                      <td data-label={isId ? "Nama Tampilan" : "Display Name"} title={attribute.displayName}>{attribute.displayName}</td>
                       <td data-label={isId ? "Tipe Opsi" : "Option Type"}>
                         <span className="seller2026-pill-type">{optionTypeLabel}</span>
                       </td>
-                      <td data-label={isId ? "Nilai" : "Values"} style={{ fontWeight: 700 }}>
-                        {attribute.valuesCount > 0 ? attribute.valuesCount : "-"}
+                      <td data-label={isId ? "Nilai Varian" : "Variant Values"}>
+                        {attribute.values && attribute.values.length > 0 ? (
+                          <div className="seller2026-table-chips-wrap">
+                            {attribute.values.slice(0, 3).map((val, idx) => (
+                              <span key={idx} className="seller2026-table-chip" title={val}>
+                                {val}
+                              </span>
+                            ))}
+                            {attribute.values.length > 3 && (
+                              <span
+                                className="seller2026-table-chip-more"
+                                title={attribute.values.slice(3).join(", ")}
+                              >
+                                +{attribute.values.length - 3}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="seller2026-table-chip-empty">
+                            {isId ? "Belum ada nilai" : "No values"}
+                          </span>
+                        )}
                       </td>
                       <td data-label={isId ? "Penggunaan" : "Usage"}>
                         <span className={`seller2026-pill-usage ${attribute.usageStatus === "in_use" ? "in-use" : "unused"}`}>
-                          {usageLabel}
+                          {attribute.usageCount > 0
+                            ? `${attribute.usageCount} ${isId ? "Produk" : "Products"}`
+                            : usageLabel}
                         </span>
                       </td>
                       <td data-label={isId ? "Status" : "Status"}>
@@ -406,19 +577,19 @@ export default function Seller2026LiveAttributesPage({ initialCreateOpen = false
                             className="seller2026-btn-action"
                             type="button"
                             aria-label={isId ? "Edit Atribut" : "Edit Attribute"}
-                            title={isId ? "Edit Atribut" : "Edit Attribute"}
+                            title={isId ? "Edit Rincian Atribut" : "Edit Attribute"}
                             onClick={() => { setActiveAttribute(attribute); setDrawerOpen(true); }}
                             disabled={!attribute.permissions.canEdit}
                           >
                             <Pencil size={15} />
                           </button>
                           <Link
-                            className="seller2026-btn-action"
-                            aria-label={isId ? "Kelola Nilai" : "Manage Values"}
-                            title={isId ? "Kelola Nilai Atribut" : "Manage Values"}
+                            className="seller2026-btn-action seller2026-btn-action--values"
+                            aria-label={isId ? "Kelola Nilai Varian" : "Manage Variant Values"}
+                            title={isId ? "Kelola Nilai Varian Atribut" : "Manage Variant Values"}
                             to={workspaceRoutes.attributeValues(attribute.id)}
                           >
-                            <MoreVertical size={15} />
+                            <SlidersHorizontal size={15} />
                           </Link>
                         </div>
                       </td>
