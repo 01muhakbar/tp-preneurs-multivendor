@@ -21,7 +21,7 @@
     "start": "node scripts/run-pnpm.mjs -F server migrate && node scripts/run-pnpm.mjs --filter server start:prod",
     "deploy:pre": "node scripts/run-pnpm.mjs -F server migrate",
     "deploy:start": "pnpm deploy:pre && node scripts/run-pnpm.mjs --filter server start:prod",
-    "deploy:verify": "node scripts/run-pnpm.mjs build && node scripts/run-pnpm.mjs -F server migrate --dry-run && node scripts/one-click-deploy-check.mjs",
+    "deploy:verify": "node scripts/run-pnpm.mjs build && node scripts/run-pnpm.mjs -F server migrate --dry-run && node scripts/check-tdz.mjs && node scripts/one-click-deploy-check.mjs",
     "dev": "pnpm -r --parallel dev",
     "dev:server": "pnpm --filter server dev",
     "dev:client": "pnpm --filter client dev",

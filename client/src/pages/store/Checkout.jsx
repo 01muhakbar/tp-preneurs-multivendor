@@ -1357,6 +1357,20 @@ export default function CheckoutPage() {
   const publicStoreSettings = outletContext.storeSettings || null;
   const { user, isLoading: isAuthLoading } = useAuth() || {};
   const queryClient = useQueryClient();
+
+  const resolveHasAuthHint = () => {
+    try {
+      return (
+        Boolean(user) ||
+        Boolean(localStorage.getItem("authToken")) ||
+        localStorage.getItem("accountSessionHint") === "true" ||
+        localStorage.getItem("authSessionHint") === "true"
+      );
+    } catch {
+      return Boolean(user);
+    }
+  };
+  const hasCheckoutAuthHint = resolveHasAuthHint();
   const {
     items,
     isLoading: isCartLoading,
@@ -1507,19 +1521,6 @@ export default function CheckoutPage() {
     };
   }, [i18n]);
 
-  const resolveHasAuthHint = () => {
-    try {
-      return (
-        Boolean(user) ||
-        Boolean(localStorage.getItem("authToken")) ||
-        localStorage.getItem("accountSessionHint") === "true" ||
-        localStorage.getItem("authSessionHint") === "true"
-      );
-    } catch {
-      return Boolean(user);
-    }
-  };
-  const hasCheckoutAuthHint = resolveHasAuthHint();
   const checkoutCustomizationQuery = useQuery({
     queryKey: ["store-customization", "checkout", lang],
     queryFn: () => getStoreCustomization({ lang, include: "checkout" }),
