@@ -1,5 +1,5 @@
 import { Op, QueryTypes, literal } from "sequelize";
-import { Notification, sequelize, Store, StoreMember } from "../models/index.js";
+import { Notification, sequelize, Store, StoreMember, Order } from "../models/index.js";
 const ADMIN_NOTIFICATION_PREFERENCE_KEY_PREFIX = "admin.notifications.preferences.";
 const RETENTION_DAYS = Math.max(1, Number(process.env.NOTIFICATION_RETENTION_DAYS || 30));
 const RETENTION_MAX = Math.max(50, Number(process.env.NOTIFICATION_RETENTION_MAX || 500));
@@ -160,15 +160,42 @@ const applyNotificationRetentionPolicy = async () => {
         },
     });
 };
-const toNotificationPayload = (item) => ({
-    id: item.id,
-    type: item.type,
-    title: item.title,
-    isRead: Boolean(item.isRead),
-    meta: normalizeMeta(item.meta),
-    createdAt: item.createdAt,
-    updatedAt: item.updatedAt,
-});
+export const formatCompactOrderNumber = (invoiceNo, orderId, createdAt) => {
+    const raw = String(invoiceNo || "").trim();
+    if (/^TP-\d{6}-\w+/i.test(raw))
+        return raw;
+    const d = createdAt ? new Date(createdAt) : new Date();
+    const dateStr = !Number.isNaN(d.getTime())
+        ? `${String(d.getFullYear()).slice(-2)}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`
+        : "261104";
+    const numPart = orderId
+        ? String(orderId).padStart(4, "0")
+        : raw && !raw.startsWith("STORE-IDEMP-")
+            ? raw.replace(/[^A-Za-z0-9]/g, "").slice(-4) || "0001"
+            : "0001";
+    return `TP-${dateStr}-${numPart}`;
+};
+const toNotificationPayload = (item) => {
+    const meta = normalizeMeta(item.meta) || {};
+    const rawInvoice = String(meta.invoiceNo || meta.ref || meta.invoice || "").trim();
+    const rawOrderId = Number(meta.orderId || meta.id || 0) || null;
+    const canonicalOrderNo = meta.orderNumber ||
+        (rawInvoice || rawOrderId
+            ? formatCompactOrderNumber(rawInvoice, rawOrderId, item.createdAt)
+            : null);
+    if (canonicalOrderNo) {
+        meta.orderNumber = canonicalOrderNo;
+    }
+    return {
+        id: item.id,
+        type: item.type,
+        title: item.title,
+        isRead: Boolean(item.isRead),
+        meta,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
+    };
+};
 export const ensureNotificationStorage = async () => {
     if (ensured)
         return;
@@ -295,12 +322,14 @@ export const createNewOrderNotification = async (input) => {
     const orderId = toNumber(input.orderId, 0);
     const invoiceNo = String(input.invoiceNo || "").trim() || null;
     const title = `${customerName} placed an order of ${amount}!`;
+    const orderNumber = formatCompactOrderNumber(invoiceNo, orderId, new Date());
     return createNotification({
         type: "ORDER_CREATED",
         title,
         meta: {
             orderId,
             invoiceNo,
+            orderNumber,
             amount: toNumber(input.amount, 0),
             customerName,
         },
@@ -373,6 +402,43 @@ export const listNotifications = async (limit = 20, offset = 0, adminId) => {
     const adminItems = items
         .filter((item) => !hasPrivateTarget(item.meta) && isTypeEnabledForAdmin(item.type, enabledTypes))
         .slice(safeOffset, safeOffset + safeLimit);
+    // Batch-enrich missing orderId / orderNumber for notifications with invoiceNo
+    const missingOrderInvoices = adminItems
+        .map((item) => {
+        const meta = normalizeMeta(item.meta);
+        const inv = String(meta?.invoiceNo || meta?.ref || "").trim();
+        const oId = Number(meta?.orderId || meta?.id || 0);
+        return !oId && inv && inv.startsWith("STORE-") ? inv : null;
+    })
+        .filter((inv) => Boolean(inv));
+    if (missingOrderInvoices.length > 0) {
+        try {
+            const matchingOrders = await Order.findAll({
+                where: { invoiceNo: { [Op.in]: missingOrderInvoices } },
+                attributes: ["id", "invoiceNo", "createdAt"],
+            });
+            const orderMap = new Map();
+            matchingOrders.forEach((o) => {
+                if (o.invoiceNo)
+                    orderMap.set(o.invoiceNo, o);
+            });
+            adminItems.forEach((item) => {
+                const meta = normalizeMeta(item.meta);
+                if (meta && meta.invoiceNo && !meta.orderId) {
+                    const invKey = String(meta.invoiceNo || "").trim();
+                    const match = invKey ? orderMap.get(invKey) : null;
+                    if (match) {
+                        meta.orderId = match.id;
+                        meta.orderNumber = formatCompactOrderNumber(match.invoiceNo, match.id, match.createdAt);
+                        item.meta = meta;
+                    }
+                }
+            });
+        }
+        catch {
+            // non-fatal enrichment fallback
+        }
+    }
     return {
         unreadCount,
         items: adminItems.map(toNotificationPayload),

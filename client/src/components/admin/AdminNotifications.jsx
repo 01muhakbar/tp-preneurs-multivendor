@@ -43,6 +43,25 @@ const formatMoney = (val) => {
   return idrCurrencyFormatter.format(num);
 };
 
+export const formatCompactOrderNumber = (invoiceNo, orderId, createdAt) => {
+  const raw = String(invoiceNo || "").trim();
+  if (/^TP-\d{6}-\w+/i.test(raw)) return raw;
+
+  const d = createdAt ? new Date(createdAt) : null;
+  const dateStr =
+    d && !Number.isNaN(d.getTime())
+      ? `${String(d.getFullYear()).slice(-2)}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`
+      : "261104";
+
+  const numPart = orderId
+    ? String(orderId).padStart(4, "0")
+    : raw && !raw.startsWith("STORE-IDEMP-")
+      ? raw.replace(/[^A-Za-z0-9]/g, "").slice(-4) || "0001"
+      : "0001";
+
+  return `TP-${dateStr}-${numPart}`;
+};
+
 export const formatNotificationTimestamp = (input, isIndo = false) => {
   const date = new Date(input || "");
   if (Number.isNaN(date.getTime())) return "-";
@@ -88,9 +107,16 @@ export const formatNotificationContent = (item, isIndo = false) => {
   const meta = item.meta && typeof item.meta === "object" ? item.meta : {};
   const customerName = String(meta.customerName || meta.customer || "").trim();
   const rawAmount = meta.amount ? formatMoney(meta.amount) : "";
-  const invoiceNo = String(meta.invoiceNo || meta.ref || "").trim();
+  const invoiceNo = String(meta.invoiceNo || meta.ref || meta.invoice || "").trim();
   const orderId = String(meta.orderId || meta.id || "").trim();
-  const orderRef = invoiceNo ? `#${invoiceNo}` : (orderId ? `#${orderId}` : "");
+  const canonicalOrderNo = meta.orderNumber || formatCompactOrderNumber(invoiceNo, orderId, item.createdAt);
+  const orderRef = canonicalOrderNo
+    ? `#${canonicalOrderNo}`
+    : invoiceNo && !invoiceNo.startsWith("STORE-IDEMP-")
+      ? `#${invoiceNo}`
+      : orderId
+        ? `#${orderId}`
+        : "";
 
   if (type === "ORDER_CREATED" || type === "NEW_ORDER") {
     let name = customerName;
@@ -108,8 +134,9 @@ export const formatNotificationContent = (item, isIndo = false) => {
     return {
       title: titleText,
       subtitle: subtitleText || (isIndo ? "Pesanan perlu diproses" : "Order needs fulfillment"),
-      badge: isIndo ? "Pesanan Baru" : "New Order",
+      badge: isIndo ? "Pesanan" : "Order",
       typeKey: "order",
+      canonicalOrderNo,
     };
   }
 
@@ -121,8 +148,9 @@ export const formatNotificationContent = (item, isIndo = false) => {
     return {
       title: titleText,
       subtitle: subtitleText || (isIndo ? "Transaksi otomatis terkonfirmasi" : "Transaction automatically confirmed"),
-      badge: isIndo ? "Pembayaran Duitku" : "Duitku Payment",
+      badge: isIndo ? "Pembayaran" : "Payment",
       typeKey: "payment",
+      canonicalOrderNo,
     };
   }
 
@@ -182,12 +210,13 @@ const toMetaString = (value) => {
   return normalized;
 };
 
-const buildNotificationTargetUrl = (item) => {
+export const buildNotificationTargetUrl = (item) => {
   if (!item || typeof item !== "object") return null;
   const type = String(item.type || "").trim().toUpperCase();
   const meta = item.meta && typeof item.meta === "object" ? item.meta : {};
   const invoiceNo = toMetaString(meta.invoiceNo || meta.invoice || meta.ref);
   const orderId = toMetaString(meta.orderId || meta.orderID || meta.id);
+  const canonicalOrderNo = meta.orderNumber || formatCompactOrderNumber(invoiceNo, orderId, item.createdAt);
 
   const isOrderNotification =
     type === "ORDER_CREATED" ||
@@ -198,7 +227,10 @@ const buildNotificationTargetUrl = (item) => {
 
   if (type === "CONTACT_MESSAGE") return "/admin/settings";
   if (!isOrderNotification) return null;
-  if (invoiceNo) {
+  if (canonicalOrderNo) {
+    return `/admin/orders/${encodeURIComponent(canonicalOrderNo)}`;
+  }
+  if (invoiceNo && !invoiceNo.startsWith("STORE-IDEMP-")) {
     return `/admin/orders/${encodeURIComponent(invoiceNo)}`;
   }
   if (orderId) {

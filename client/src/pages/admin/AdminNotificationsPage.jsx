@@ -14,6 +14,7 @@ import {
   MessageSquare,
   ArrowRight,
   Filter,
+  X,
 } from "lucide-react";
 import {
   clearAllAdminNotifications,
@@ -25,6 +26,8 @@ import {
 import {
   formatNotificationContent,
   formatNotificationTimestamp,
+  formatCompactOrderNumber,
+  buildNotificationTargetUrl,
 } from "../../components/admin/AdminNotifications.jsx";
 
 const PAGE_LIMIT = 50;
@@ -34,34 +37,6 @@ const DEFAULT_COLUMN_VISIBILITY = {
   notification: true,
   date: true,
   actions: true,
-};
-
-const toMetaString = (value) => {
-  const normalized = String(value ?? "").trim();
-  const lowered = normalized.toLowerCase();
-  if (!normalized || lowered === "undefined" || lowered === "null") return "";
-  return normalized;
-};
-
-const buildNotificationTargetUrl = (item) => {
-  if (!item || typeof item !== "object") return null;
-  const type = String(item.type || "").trim().toUpperCase();
-  const meta = item.meta && typeof item.meta === "object" ? item.meta : {};
-  const invoiceNo = toMetaString(meta.invoiceNo || meta.invoice || meta.ref);
-  const orderId = toMetaString(meta.orderId || meta.orderID || meta.id);
-
-  const isOrderNotification =
-    type === "ORDER_CREATED" ||
-    type === "NEW_ORDER" ||
-    type === "PAYMENT_SETTLED" ||
-    type === "ORDER_STATUS_CHANGED" ||
-    type === "ORDER_STATUS_UPDATED";
-
-  if (type === "CONTACT_MESSAGE") return "/admin/settings";
-  if (!isOrderNotification) return null;
-  if (invoiceNo) return `/admin/orders/${encodeURIComponent(invoiceNo)}`;
-  if (orderId) return `/admin/orders?search=${encodeURIComponent(orderId)}`;
-  return "/admin/orders";
 };
 
 export default function AdminNotificationsPage() {
@@ -327,12 +302,18 @@ export default function AdminNotificationsPage() {
               onClick={() => setStatus("all")}
               className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition ${
                 status === "all"
-                  ? "bg-white dark:bg-[#0c182c] text-[#034c85] dark:text-white shadow-sm font-bold"
+                  ? "bg-[#034c85] text-white shadow-sm font-bold"
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
               <span>{t("notifications.all", "All")}</span>
-              <span className="rounded-full bg-slate-200 dark:bg-slate-700 px-1.5 py-0.2 text-[10px]">
+              <span
+                className={`rounded-full px-1.5 py-0.2 text-[10px] ${
+                  status === "all"
+                    ? "bg-white/20 text-white font-bold"
+                    : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
+                }`}
+              >
                 {totalCount}
               </span>
             </button>
@@ -341,13 +322,19 @@ export default function AdminNotificationsPage() {
               onClick={() => setStatus("unread")}
               className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition ${
                 status === "unread"
-                  ? "bg-white dark:bg-[#0c182c] text-[#fe6f05] shadow-sm font-bold"
+                  ? "bg-[#fe6f05] text-white shadow-sm font-bold"
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
               <span>{t("notifications.unread", "Unread")}</span>
               {unreadCount > 0 ? (
-                <span className="rounded-full bg-[#fe6f05]/15 text-[#fe6f05] px-1.5 py-0.2 text-[10px] font-bold">
+                <span
+                  className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold ${
+                    status === "unread"
+                      ? "bg-white/20 text-white"
+                      : "bg-[#fe6f05]/15 text-[#fe6f05]"
+                  }`}
+                >
                   {unreadCount}
                 </span>
               ) : null}
@@ -357,12 +344,18 @@ export default function AdminNotificationsPage() {
               onClick={() => setStatus("read")}
               className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition ${
                 status === "read"
-                  ? "bg-white dark:bg-[#0c182c] text-[#034c85] dark:text-sky-400 shadow-sm font-bold"
+                  ? "bg-[#034c85] text-white shadow-sm font-bold"
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
               <span>{t("notifications.read", "Read")}</span>
-              <span className="rounded-full bg-slate-200 dark:bg-slate-700 px-1.5 py-0.2 text-[10px]">
+              <span
+                className={`rounded-full px-1.5 py-0.2 text-[10px] ${
+                  status === "read"
+                    ? "bg-white/20 text-white font-bold"
+                    : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
+                }`}
+              >
                 {readCount}
               </span>
             </button>
@@ -377,8 +370,18 @@ export default function AdminNotificationsPage() {
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder={t("notifications.searchPlaceholder", "Search notifications...")}
-                className="h-9 w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60 pl-8 pr-3 text-xs text-slate-800 dark:text-slate-100 outline-none transition focus:border-[#034c85] dark:focus:border-sky-500"
+                className="h-9 w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60 pl-8 pr-8 text-xs text-slate-800 dark:text-slate-100 outline-none transition focus:border-[#034c85] dark:focus:border-sky-500"
               />
+              {search ? (
+                <button
+                  type="button"
+                  onClick={() => setSearch("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  aria-label="Clear search"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              ) : null}
             </div>
 
             {/* Column Visibility Menu */}
@@ -500,8 +503,8 @@ export default function AdminNotificationsPage() {
                       key={item.id}
                       className={`group transition hover:bg-slate-50/80 dark:hover:bg-slate-850/60 cursor-pointer ${
                         !item.isRead
-                          ? "bg-[#fe6f05]/[0.02] dark:bg-[#fe6f05]/[0.05]"
-                          : ""
+                          ? "border-l-4 border-l-[#fe6f05] bg-[#fe6f05]/[0.03] dark:bg-[#fe6f05]/[0.06]"
+                          : "border-l-4 border-l-transparent"
                       }`}
                       onClick={() => handleOpenNotification(item)}
                     >
@@ -620,8 +623,8 @@ export default function AdminNotificationsPage() {
                                   onClick={() => handleOpenNotification(item)}
                                   className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
                                 >
-                                  <ArrowRight className="h-3.5 w-3.5" />
-                                  <span>{t("notifications.open", "Open")}</span>
+                                  <ArrowRight className="h-3.5 w-3.5 text-[#034c85] dark:text-sky-400" />
+                                  <span>{isIndo ? "Buka Pesanan" : t("notifications.open", "Open Order")}</span>
                                 </button>
                                 {!item.isRead && (
                                   <button
