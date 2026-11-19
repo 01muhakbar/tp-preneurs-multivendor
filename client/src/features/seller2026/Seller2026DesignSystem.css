@@ -221,10 +221,18 @@
   border-radius: 16px;
   background: var(--seller-panel);
   padding: 14px;
+  transition: all 0.15s ease;
 }
-.s26-notification-item.unread { box-shadow: inset 3px 0 0 var(--seller-primary); }
+.s26-notification-item.unread {
+  box-shadow: inset 3px 0 0 #fe6f05;
+  background: rgba(254, 111, 5, 0.02);
+}
+.s26-app.s26-dark .s26-notification-item.unread {
+  box-shadow: inset 3px 0 0 #fe6f05;
+  background: rgba(254, 111, 5, 0.06);
+}
 .s26-notification-dot { width: 8px; height: 8px; border-radius: 999px; background: var(--seller-muted); margin-top: 6px; opacity: .45; }
-.s26-notification-item.unread .s26-notification-dot { background: var(--seller-primary); opacity: 1; }
+.s26-notification-item.unread .s26-notification-dot { background: #fe6f05; opacity: 1; }
 .s26-notification-body { min-width: 0; }
 .s26-notification-head { display: flex; justify-content: space-between; gap: 12px; min-width: 0; }
 .s26-notification-head strong { display: block; color: var(--seller-text); line-height: 1.35; overflow-wrap: anywhere; }
@@ -232,6 +240,28 @@
 .s26-notification-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; color: var(--seller-muted); font-size: 12px; }
 .s26-notification-meta span { border: 1px solid var(--seller-border); border-radius: 999px; padding: 3px 8px; background: var(--seller-panel-soft); }
 .s26-notification-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 10px; min-width: 120px; }
+.s26-notification-actions .s26-link {
+  color: #034c85;
+  font-weight: 700;
+  font-size: 13px;
+  text-decoration: none;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgba(3, 76, 133, 0.08);
+  transition: all 0.15s ease;
+}
+.s26-notification-actions .s26-link:hover {
+  background: #034c85;
+  color: #ffffff;
+}
+.s26-app.s26-dark .s26-notification-actions .s26-link {
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+}
+.s26-app.s26-dark .s26-notification-actions .s26-link:hover {
+  background: #034c85;
+  color: #ffffff;
+}
 .s26-state { padding: 28px; border: 1px solid var(--seller-border); border-radius: 8px; background: var(--seller-panel); color: var(--seller-text); }
 .s26-state h2 { margin: 0 0 8px; font-size: 1.25rem; }
 .s26-state p { margin: 0; color: var(--seller-muted); }

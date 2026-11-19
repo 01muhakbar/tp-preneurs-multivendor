@@ -232,6 +232,95 @@ const categoryLabels: Record<string, string> = {
   other: "Other",
 };
 
+export const sanitizeSellerNotificationTitle = (
+  rawTitle: unknown,
+  meta: Record<string, unknown> = {},
+  actionCode = ""
+): string => {
+  const cleanTitle = String(rawTitle || "").trim();
+  const rawInvoice = String(meta.invoiceNo || meta.ref || "").trim();
+  const isIdemp =
+    rawInvoice.startsWith("STORE-IDEMP-") ||
+    rawInvoice.startsWith("STORE-") ||
+    cleanTitle.includes("STORE-IDEMP-");
+  const cleanOrderRef =
+    !isIdemp && rawInvoice
+      ? `#${rawInvoice}`
+      : meta.suborderId
+      ? `#SUB-${meta.suborderId}`
+      : "";
+  const amount = Number(meta.amount || meta.totalAmount || 0);
+  const amountStr =
+    amount > 0
+      ? new Intl.NumberFormat("id-ID", {
+          style: "currency",
+          currency: "IDR",
+          maximumFractionDigits: 0,
+        }).format(amount)
+      : "";
+
+  if (
+    cleanTitle.includes("STORE-IDEMP-") ||
+    /suborder|order/i.test(cleanTitle) ||
+    actionCode.includes("ORDER") ||
+    actionCode.includes("SUBORDER")
+  ) {
+    if (cleanOrderRef && amountStr) {
+      return `New Order: ${cleanOrderRef} (${amountStr})`;
+    }
+    if (cleanOrderRef) {
+      return `New Order: ${cleanOrderRef}`;
+    }
+    if (amountStr) {
+      return `New Order: ${amountStr}`;
+    }
+    return "New Order";
+  }
+
+  // General cleanup
+  let sanitized = cleanTitle
+    .replace(/STORE-IDEMP-[A-Za-z0-9]+(-S\d+)?/g, cleanOrderRef || "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  sanitized = sanitized.replace(/!+$/, "");
+  return sanitized || "Seller Notification";
+};
+
+export const sanitizeSellerNotificationMessage = (
+  rawMessage: unknown,
+  _meta: Record<string, unknown> = {},
+  actionCode = "",
+  title = ""
+): string => {
+  let message = String(rawMessage || "").trim();
+  if (
+    message.includes("STORE-IDEMP-") ||
+    /suborder|order/i.test(title) ||
+    actionCode.includes("ORDER") ||
+    actionCode.includes("SUBORDER")
+  ) {
+    return "New suborder awaiting buyer payment via Duitku.";
+  }
+  if (actionCode.includes("SETTLED")) {
+    return "Payment settled via Duitku. Ready to pack and ship.";
+  }
+  if (actionCode.includes("REVIEW")) {
+    return "Payment transaction under review by Duitku gateway.";
+  }
+  if (actionCode.includes("FAILED") || actionCode.includes("CANCELLED")) {
+    return "Order payment expired or was cancelled.";
+  }
+  if (message.includes("STORE-IDEMP-")) {
+    message = message
+      .replace(/from checkout STORE-IDEMP-[^\s.]+/gi, "via Duitku.")
+      .replace(/STORE-IDEMP-[^\s.]+/gi, "")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+  }
+  message = message.replace(/!+$/, ".");
+  return message || "Notification details.";
+};
+
 export function adaptSeller2026Notifications(
   value: unknown,
   options: AdaptSeller2026NotificationsOptions = {}
@@ -244,6 +333,7 @@ export function adaptSeller2026Notifications(
   const notifications = array(rawItems).map((entry) => {
     const notification = object(entry);
     const meta = object(notification.metadata || notification.meta);
+    const actionCode = String(meta.actionCode || notification.type || "").toUpperCase();
     const category = normalizeNotificationCategory(
       notification.category || notification.type || meta.category || meta.actionCode
     );
@@ -262,11 +352,15 @@ export function adaptSeller2026Notifications(
       notification.readAt || notification.isRead === true || notification.read === true
     );
     const status: Seller2026NotificationReadStatus = isRead ? "read" : "unread";
+
+    const rawTitle = text(notification.title || meta.title, "Notification");
+    const rawMessage = text(notification.message || notification.body || meta.message || meta.description, "No details available.");
+
     return {
       id: (notification.id ?? notification.notificationId ?? notification.title ?? "notification") as string | number,
       storeId: number(notification.storeId || meta.storeId, 0) || null,
-      title: text(notification.title || meta.title, "Notification"),
-      message: text(notification.message || notification.body || meta.message || meta.description, "No details available."),
+      title: sanitizeSellerNotificationTitle(rawTitle, meta, actionCode),
+      message: sanitizeSellerNotificationMessage(rawMessage, meta, actionCode, rawTitle),
       type,
       severity: priority,
       status,
@@ -317,10 +411,13 @@ export function adaptSeller2026Notifications(
 export function adaptSellerNotification(value: unknown) {
   const notification = object(value);
   const meta = object(notification.meta);
+  const actionCode = String(meta.actionCode || notification.type || "").toUpperCase();
+  const rawTitle = text(notification.title || notification.message, "Notification");
+  const rawMessage = text(notification.message || notification.body || meta.message);
   return {
     id: notification.id ?? null,
-    title: text(notification.title || notification.message, "Notification"),
-    message: text(notification.message || notification.body || meta.message),
+    title: sanitizeSellerNotificationTitle(rawTitle, meta, actionCode),
+    message: sanitizeSellerNotificationMessage(rawMessage, meta, actionCode, rawTitle),
     category: text(notification.category || notification.type, "Seller"),
     priority: text(notification.priority || notification.severity, "Low"),
     read: Boolean(notification.readAt || notification.isRead),

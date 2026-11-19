@@ -656,6 +656,21 @@
   color: #475569;
 }
 
+.navbar__notify-icon-wrap--product {
+  background: rgba(3, 76, 133, 0.12);
+  color: #034c85;
+}
+
+.navbar__notify-icon-wrap--stock {
+  background: rgba(254, 111, 5, 0.12);
+  color: #fe6f05;
+}
+
+.navbar__notify-icon-wrap--team {
+  background: rgba(99, 102, 241, 0.12);
+  color: #4f46e5;
+}
+
 .navbar__notify-main {
   min-width: 0;
   flex: 1;
@@ -1033,6 +1048,21 @@
 .admin-theme-dark .navbar__notify-icon-wrap--general {
   background: rgba(148, 163, 184, 0.15);
   color: #cbd5e1;
+}
+
+.admin-theme-dark .navbar__notify-icon-wrap--product {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+}
+
+.admin-theme-dark .navbar__notify-icon-wrap--stock {
+  background: rgba(254, 111, 5, 0.2);
+  color: #fb923c;
+}
+
+.admin-theme-dark .navbar__notify-icon-wrap--team {
+  background: rgba(99, 102, 241, 0.2);
+  color: #818cf8;
 }
 
 .admin-theme-dark .navbar__notify-title {

@@ -79,6 +79,7 @@ export const createSellerWorkspaceRoutes = (storeSlug) => ({
   orders: () => buildSellerWorkspacePath(storeSlug, "/orders"),
   orderDetail: (suborderId) =>
     buildSellerWorkspacePath(storeSlug, `/orders/${encodeURIComponent(String(suborderId))}`),
+  notifications: () => buildSellerWorkspacePath(storeSlug, "/notifications"),
   paymentReview: () => resolveSellerPaymentReviewRoute({ storeSlug }),
   paymentCenter: () => buildSellerWorkspacePath(storeSlug, "/withdrawals"),
   withdrawals: () => buildSellerWorkspacePath(storeSlug, "/withdrawals"),

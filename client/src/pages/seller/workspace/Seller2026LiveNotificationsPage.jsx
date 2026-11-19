@@ -34,7 +34,7 @@ const applySearchParams = (currentParams, setSearchParams) => (nextQuery) => {
 
 export default function Seller2026LiveNotificationsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { sellerContext, workspaceStoreId: storeId, workspaceStoreSlug } = useSellerWorkspaceRoute();
+  const { sellerContext, workspaceStoreId: storeId, workspaceStoreSlug, isId } = useSellerWorkspaceRoute();
   const { can, permissions } = getSeller2026PagePermissions(sellerContext);
   const canView = can("NOTIFICATION_READ");
   const query = {
@@ -84,6 +84,7 @@ export default function Seller2026LiveNotificationsPage() {
         markAllRead: notificationMutations.markAllRead,
         reset: notificationMutations.reset,
       }}
+      isId={isId}
     />
   );
 }

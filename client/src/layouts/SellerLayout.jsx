@@ -10,8 +10,10 @@ import {
 } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  ArrowRight,
   BadgeCheck,
   Bell,
+  CheckCheck,
   ChevronDown,
   ChevronRight,
   CreditCard,
@@ -145,16 +147,46 @@ const formatSellerNotificationTime = (value) => {
   });
 };
 
+const getSellerNotificationTypeKey = (notification) => {
+  const meta = notification?.meta && typeof notification.meta === "object" ? notification.meta : {};
+  const code = String(meta.actionCode || notification?.type || notification?.category || "").toLowerCase();
+  const title = String(notification?.title || "").toLowerCase();
+  if (code.includes("order") || code.includes("suborder") || title.includes("order") || title.includes("suborder")) return "order";
+  if (code.includes("payment") || code.includes("settle") || code.includes("payout") || title.includes("payment")) return "payment";
+  if (code.includes("product") || code.includes("catalog") || title.includes("product")) return "product";
+  if (code.includes("stock") || title.includes("stock")) return "stock";
+  if (code.includes("team") || code.includes("member") || title.includes("team")) return "team";
+  return "general";
+};
+
 const getSellerNotificationLabel = (notification, isId = false) => {
-  const actionCode = String(notification?.meta?.actionCode || notification?.type || "")
-    .trim()
-    .toUpperCase();
-  if (actionCode === "SELLER_SUBORDER_CREATED") return isId ? "Pesanan baru" : "New order";
-  if (actionCode === "SELLER_PAYMENT_SETTLED") return isId ? "Pembayaran lunas" : "Payment settled";
-  if (actionCode === "SELLER_PAYMENT_REVIEW_REQUIRED") return isId ? "Riwayat pembayaran" : "Payment record";
-  if (actionCode === "SELLER_PAYMENT_FAILED") return isId ? "Pembayaran gagal" : "Payment failed";
-  if (actionCode === "SELLER_PAYMENT_CANCELLED") return isId ? "Pembayaran dibatalkan" : "Payment cancelled";
-  return isId ? "Pembaruan penjual" : "Seller update";
+  const meta = notification?.meta && typeof notification.meta === "object" ? notification.meta : {};
+  const actionCode = String(meta.actionCode || notification?.type || "").trim().toUpperCase();
+  const rawTitle = String(notification?.title || "").toLowerCase();
+
+  if (
+    actionCode === "SELLER_SUBORDER_CREATED" ||
+    actionCode.includes("ORDER") ||
+    rawTitle.includes("order") ||
+    rawTitle.includes("suborder")
+  ) {
+    return isId ? "Pesanan Baru" : "New Order";
+  }
+  if (actionCode === "SELLER_PAYMENT_SETTLED" || rawTitle.includes("settled")) {
+    return isId ? "Pembayaran Lunas" : "Payment Settled";
+  }
+  if (actionCode === "SELLER_PAYMENT_REVIEW_REQUIRED" || rawTitle.includes("review")) {
+    return isId ? "Tinjauan Pembayaran" : "Payment Review";
+  }
+  if (actionCode === "SELLER_PAYMENT_FAILED" || rawTitle.includes("failed")) {
+    return isId ? "Pembayaran Gagal" : "Payment Failed";
+  }
+  if (actionCode === "SELLER_PAYMENT_CANCELLED" || rawTitle.includes("cancelled")) {
+    return isId ? "Dibatalkan" : "Cancelled";
+  }
+  if (actionCode.includes("PRODUCT")) return isId ? "Produk" : "Product";
+  if (actionCode.includes("STOCK")) return isId ? "Stok" : "Stock";
+  return isId ? "Notifikasi" : "Notification";
 };
 
 const formatSellerNotificationTitle = (notification, isId = false) => {
@@ -162,49 +194,111 @@ const formatSellerNotificationTitle = (notification, isId = false) => {
   const meta = notification?.meta && typeof notification.meta === "object" ? notification.meta : {};
   const actionCode = String(meta.actionCode || notification?.type || "").trim().toUpperCase();
 
-  if (rawTitle.includes("STORE-IDEMP-") || rawTitle.includes("is awaiting buyer payment")) {
-    const invoiceNo = meta.invoiceNo || meta.ref;
-    const amount = Number(meta.amount || 0);
-    const amountStr =
-      amount > 0
-        ? new Intl.NumberFormat("id-ID", {
-            style: "currency",
-            currency: "IDR",
-            maximumFractionDigits: 0,
-          }).format(amount)
-        : "";
+  const suborderId = meta.suborderId || meta.targetId;
+  const rawInvoice = String(meta.invoiceNo || meta.suborderNumber || meta.orderNumber || meta.ref || "").trim();
+  const isIdemp = rawInvoice.startsWith("STORE-IDEMP-") || rawInvoice.startsWith("STORE-") || rawTitle.includes("STORE-IDEMP-");
+  const cleanOrderRef = !isIdemp && rawInvoice ? (rawInvoice.startsWith("#") ? rawInvoice : `#${rawInvoice}`) : suborderId ? `#SUB-${suborderId}` : "";
+  const amount = Number(meta.amount || meta.totalAmount || 0);
+  const amountStr =
+    amount > 0
+      ? new Intl.NumberFormat("id-ID", {
+          style: "currency",
+          currency: "IDR",
+          maximumFractionDigits: 0,
+        }).format(amount)
+      : "";
 
-    if (actionCode === "SELLER_SUBORDER_CREATED") {
-      if (invoiceNo && amountStr) {
-        return isId
-          ? `Pesanan Baru: ${invoiceNo} (${amountStr}) • Menunggu Pembayaran via Duitku`
-          : `New Order: ${invoiceNo} (${amountStr}) • Awaiting Duitku Payment`;
-      }
+  if (
+    rawTitle.includes("STORE-IDEMP-") ||
+    rawTitle.includes("is awaiting buyer payment") ||
+    actionCode === "SELLER_SUBORDER_CREATED" ||
+    actionCode.includes("ORDER") ||
+    /suborder|pesanan/i.test(rawTitle)
+  ) {
+    if (cleanOrderRef && amountStr) {
       return isId
-        ? "Pesanan Baru: Menunggu Pembayaran via Duitku"
-        : "New Order: Awaiting Duitku Payment";
+        ? `Pesanan Baru: ${cleanOrderRef} (${amountStr})`
+        : `New Order: ${cleanOrderRef} (${amountStr})`;
     }
+    if (cleanOrderRef) {
+      return isId ? `Pesanan Baru: ${cleanOrderRef}` : `New Order: ${cleanOrderRef}`;
+    }
+    if (amountStr) {
+      return isId ? `Pesanan Baru: ${amountStr}` : `New Order: ${amountStr}`;
+    }
+    return isId ? "Pesanan Baru Masuk" : "New Order Received";
   }
 
-  return rawTitle || (isId ? "Notifikasi penjual" : "Seller notification");
+  if (actionCode === "SELLER_PAYMENT_SETTLED") {
+    return isId
+      ? (cleanOrderRef ? `Pembayaran Diterima: ${cleanOrderRef}` : "Pembayaran Diterima")
+      : (cleanOrderRef ? `Payment Settled: ${cleanOrderRef}` : "Payment Settled");
+  }
+
+  if (actionCode === "SELLER_PAYMENT_REVIEW_REQUIRED") {
+    return isId
+      ? (cleanOrderRef ? `Tinjauan Pembayaran: ${cleanOrderRef}` : "Tinjauan Pembayaran")
+      : (cleanOrderRef ? `Payment Review: ${cleanOrderRef}` : "Payment Review");
+  }
+
+  if (actionCode === "SELLER_PAYMENT_FAILED" || actionCode === "SELLER_PAYMENT_CANCELLED") {
+    return isId
+      ? (cleanOrderRef ? `Pembayaran Dibatalkan: ${cleanOrderRef}` : "Pembayaran Dibatalkan")
+      : (cleanOrderRef ? `Payment Cancelled: ${cleanOrderRef}` : "Payment Cancelled");
+  }
+
+  let clean = rawTitle
+    .replace(/STORE-IDEMP-[A-Za-z0-9]+(-S\d+)?/g, cleanOrderRef || "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  clean = clean.replace(/!+$/, "");
+  return clean || (isId ? "Notifikasi Toko" : "Store Notification");
 };
 
 const formatSellerNotificationMessage = (notification, isId = false) => {
   const meta = notification?.meta && typeof notification.meta === "object" ? notification.meta : {};
-  let rawMessage = String(meta.message || "").trim();
+  const actionCode = String(meta.actionCode || notification?.type || "").trim().toUpperCase();
+  const rawTitle = String(notification?.title || "").trim();
+  let rawMessage = String(meta.message || notification?.message || "").trim();
 
-  if (rawMessage.includes("STORE-IDEMP-")) {
-    const invoiceNo = meta.invoiceNo || meta.ref;
-    if (invoiceNo && !invoiceNo.includes("STORE-IDEMP-")) {
-      rawMessage = rawMessage.replace(/checkout\s+STORE-IDEMP-[^\s.]+/gi, `checkout ${invoiceNo}`);
-    } else {
-      rawMessage = rawMessage.replace(
-        /from checkout STORE-IDEMP-[^\s.]+/gi,
-        isId ? "melalui Payment Gateway Duitku." : "via Duitku Payment Gateway."
-      );
-    }
+  if (
+    rawTitle.includes("STORE-IDEMP-") ||
+    rawMessage.includes("STORE-IDEMP-") ||
+    actionCode === "SELLER_SUBORDER_CREATED" ||
+    actionCode.includes("ORDER") ||
+    /suborder|pesanan/i.test(rawTitle)
+  ) {
+    return isId
+      ? "Pesanan masuk menunggu pembayaran pembeli via Duitku."
+      : "New suborder awaiting buyer payment via Duitku.";
   }
 
+  if (actionCode === "SELLER_PAYMENT_SETTLED") {
+    return isId
+      ? "Pembayaran pesanan lunas via Duitku. Siap diproses."
+      : "Payment settled via Duitku. Ready to pack and ship.";
+  }
+
+  if (actionCode === "SELLER_PAYMENT_REVIEW_REQUIRED") {
+    return isId
+      ? "Transaksi pembayaran sedang ditinjau gateway Duitku."
+      : "Payment transaction under review by Duitku gateway.";
+  }
+
+  if (actionCode === "SELLER_PAYMENT_FAILED" || actionCode === "SELLER_PAYMENT_CANCELLED") {
+    return isId
+      ? "Pembayaran pesanan dibatalkan atau waktu habis."
+      : "Order payment expired or was cancelled.";
+  }
+
+  if (rawMessage.includes("STORE-IDEMP-")) {
+    rawMessage = rawMessage
+      .replace(/from checkout STORE-IDEMP-[^\s.]+/gi, isId ? "melalui Duitku." : "via Duitku.")
+      .replace(/STORE-IDEMP-[^\s.]+/gi, "")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+  }
+  rawMessage = rawMessage.replace(/!+$/, ".");
   return rawMessage;
 };
 
@@ -485,93 +579,177 @@ function SellerNotificationsMenu({
   onItemClick,
   onMarkAllRead,
   isMarkingAllRead = false,
+  onShowAll,
 }) {
+  const prevOpenRef = useRef(open);
+
+  useEffect(() => {
+    // When dropdown was open and now closes, mark all read automatically
+    if (prevOpenRef.current && !open && unreadCount > 0) {
+      onMarkAllRead?.();
+    }
+    prevOpenRef.current = open;
+  }, [open, unreadCount, onMarkAllRead]);
+
+  const handleToggle = () => {
+    // If popover is currently open, clicking bell again closes and marks all read!
+    if (open && unreadCount > 0) {
+      onMarkAllRead?.();
+    }
+    onToggle?.();
+  };
+
   return (
     <div className="navbar__notify" ref={containerRef}>
       <button
         type="button"
         className="navbar__icon navbar__icon--notify"
-        aria-label="Seller notifications"
+        aria-label={isId ? "Notifikasi penjual" : "Seller notifications"}
         aria-haspopup="menu"
         aria-expanded={open}
-        onClick={onToggle}
+        onClick={handleToggle}
+        title={isId ? "Notifikasi penjual" : "Seller notifications"}
       >
         <Bell size={18} />
-        {unreadCount > 0 ? <span className="navbar__badge">{unreadCount}</span> : null}
+        {unreadCount > 0 ? (
+          <span className="navbar__badge" aria-label={`${unreadCount} unread`}>
+            {unreadCount > 99 ? "99+" : unreadCount}
+          </span>
+        ) : null}
       </button>
 
       {open ? (
         <div className="navbar__notify-menu" role="menu">
+          {/* Header */}
           <div className="navbar__notify-head">
-            <p>{isId ? "Notifikasi Penjual" : "Seller Notifications"}</p>
-            <div className="flex items-center gap-2">
-              <span>{unreadCount} {isId ? "belum dibaca" : "unread"}</span>
+            <div className="navbar__notify-head-title-wrap">
+              <p className="navbar__notify-head-title">
+                {isId ? "Notifikasi Penjual" : "Seller Notifications"}
+              </p>
               {unreadCount > 0 ? (
-                <button
-                  type="button"
-                  onClick={onMarkAllRead}
-                  disabled={isMarkingAllRead}
-                  className="rounded-full border border-emerald-200 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:text-emerald-300 dark:hover:bg-slate-800"
-                >
-                  {isId ? "Tandai dibaca" : "Read all"}
-                </button>
-              ) : null}
+                <span className="navbar__notify-unread-badge">
+                  {unreadCount} {isId ? "Baru" : "Unread"}
+                </span>
+              ) : (
+                <span className="navbar__notify-head-sub">
+                  {isId ? "Semua telah dibaca" : "All caught up"}
+                </span>
+              )}
             </div>
+
+            {unreadCount > 0 ? (
+              <button
+                type="button"
+                onClick={onMarkAllRead}
+                disabled={isMarkingAllRead}
+                className="navbar__notify-head-action"
+                title={isId ? "Tandai dibaca" : "Mark all read"}
+              >
+                <CheckCheck size={13} />
+                <span>{isId ? "Tandai dibaca" : "Mark all read"}</span>
+              </button>
+            ) : null}
           </div>
+
+          {/* Loading state */}
           {isLoading && items.length === 0 ? (
-            <p className="navbar__notify-empty">{isId ? "Memuat notifikasi penjual..." : "Loading seller notifications..."}</p>
-          ) : items.length === 0 ? (
-            <p className="navbar__notify-empty">
-              {isId ? "Belum ada notifikasi untuk ruang kerja ini." : "No seller notifications yet for this workspace."}
-            </p>
-          ) : (
+            <div className="navbar__notify-empty">
+              <div className="tp-spin-loader" />
+              <span>{isId ? "Memuat notifikasi penjual..." : "Loading seller notifications..."}</span>
+            </div>
+          ) : null}
+
+          {/* Empty state */}
+          {!isLoading && items.length === 0 ? (
+            <div className="navbar__notify-empty">
+              <Bell size={24} className="navbar__notify-empty-icon" />
+              <span>{isId ? "Belum ada notifikasi untuk toko ini." : "No notifications yet for this store."}</span>
+            </div>
+          ) : null}
+
+          {/* List */}
+          {!isLoading && items.length > 0 ? (
             <div className="navbar__notify-list">
               {items.map((notification) => {
-                const meta =
-                  notification?.meta && typeof notification.meta === "object"
-                    ? notification.meta
-                    : {};
-                const message = String(meta.message || "").trim();
+                const typeKey = getSellerNotificationTypeKey(notification);
+                const IconComponent =
+                  typeKey === "order"
+                    ? ShoppingBag
+                    : typeKey === "payment"
+                    ? CreditCard
+                    : typeKey === "product"
+                    ? Package
+                    : typeKey === "stock"
+                    ? Tags
+                    : typeKey === "team"
+                    ? Users
+                    : Bell;
+                const titleText = formatSellerNotificationTitle(notification, isId);
+                const messageText = formatSellerNotificationMessage(notification, isId);
                 const timeLabel = formatSellerNotificationTime(notification?.createdAt);
                 const badgeLabel = getSellerNotificationLabel(notification, isId);
+
                 return (
                   <button
                     key={notification.id}
                     type="button"
                     role="menuitem"
-                    className={`navbar__notify-item ${notification?.isRead ? "" : "is-unread"} w-full text-left`}
+                    className={`navbar__notify-item ${notification?.isRead ? "is-read" : "is-unread"} w-full text-left`}
                     onClick={() => onItemClick?.(notification)}
                   >
-                    <span
-                      className={`navbar__notify-dot mt-1.5 ${
-                        notification?.isRead ? "opacity-30" : ""
-                      }`}
+                    <div
+                      className={`navbar__notify-icon-wrap navbar__notify-icon-wrap--${typeKey}`}
                       aria-hidden="true"
-                    />
+                    >
+                      <IconComponent size={15} />
+                    </div>
+
                     <div className="navbar__notify-main">
-                      <p className="navbar__notify-title">
-                        {formatSellerNotificationTitle(notification, isId)}
-                      </p>
-                      {formatSellerNotificationMessage(notification, isId) || message ? (
-                        <p
-                          className={joinClassNames(
-                            "mt-1 text-[11px] leading-5",
-                            isDark ? "text-slate-400" : "text-slate-500"
-                          )}
-                        >
-                          {formatSellerNotificationMessage(notification, isId) || message}
+                      <div className="navbar__notify-row-top">
+                        <p className="navbar__notify-title" title={titleText}>
+                          {titleText}
+                        </p>
+                        {!notification?.isRead && (
+                          <span
+                            className="navbar__notify-dot"
+                            title={isId ? "Belum dibaca" : "Unread"}
+                            aria-label="Unread"
+                          />
+                        )}
+                      </div>
+
+                      {messageText ? (
+                        <p className="navbar__notify-subtext">
+                          {messageText}
                         </p>
                       ) : null}
+
                       <div className="navbar__notify-meta">
                         <span className="navbar__notify-label">{badgeLabel}</span>
-                        {timeLabel ? <span className="navbar__notify-time">{timeLabel}</span> : null}
+                        {timeLabel ? (
+                          <span className="navbar__notify-time">{timeLabel}</span>
+                        ) : null}
                       </div>
                     </div>
                   </button>
                 );
               })}
             </div>
-          )}
+          ) : null}
+
+          {/* Footer Action */}
+          {!isLoading && items.length > 0 ? (
+            <div className="navbar__notify-footer">
+              <button
+                type="button"
+                onClick={onShowAll}
+                className="navbar__notify-footer-action"
+              >
+                <span>{isId ? "Lihat Semua Notifikasi" : "Show All Notifications"}</span>
+                <ArrowRight size={14} />
+              </button>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>
@@ -826,6 +1004,13 @@ function SellerSidebar({
     {
       title: isId ? "Ruang Kerja" : "Workspace",
       items: [
+        {
+          label: isId ? "Notifikasi" : "Notifications",
+          to: sellerRoutes.notifications(),
+          Icon: Bell,
+          enabled: true,
+          implemented: true,
+        },
         {
           label: isId ? "Tim" : "Team",
           to: sellerRoutes.team(),
@@ -1492,11 +1677,19 @@ export default function SellerLayout() {
             ? profileDropdownRef
             : null;
       if (targetRef?.current && !targetRef.current.contains(event.target)) {
+        if (activeMenu === "notify" && Number(sellerNotificationCountQuery.data?.count || 0) > 0) {
+          void handleMarkAllSellerNotificationsRead();
+        }
         setActiveMenu(null);
       }
     };
     const onKeyDown = (event) => {
-      if (event.key === "Escape") setActiveMenu(null);
+      if (event.key === "Escape") {
+        if (activeMenu === "notify" && Number(sellerNotificationCountQuery.data?.count || 0) > 0) {
+          void handleMarkAllSellerNotificationsRead();
+        }
+        setActiveMenu(null);
+      }
     };
     document.addEventListener("mousedown", onMouseDown);
     document.addEventListener("keydown", onKeyDown);
@@ -1504,7 +1697,7 @@ export default function SellerLayout() {
       document.removeEventListener("mousedown", onMouseDown);
       document.removeEventListener("keydown", onKeyDown);
     };
-  }, [activeMenu]);
+  }, [activeMenu, sellerNotificationCountQuery.data?.count]);
 
   const contextValue = useMemo(
     () => ({
@@ -1720,11 +1913,25 @@ export default function SellerLayout() {
   };
 
   const handleMarkAllSellerNotificationsRead = async () => {
+    queryClient.setQueryData(
+      ["seller", "notifications", canonicalStoreId, "count"],
+      { count: 0 }
+    );
     try {
       await markAllSellerNotificationsReadMutation.mutateAsync();
     } catch {
       // keep dropdown stable; unread count will refresh on next poll
     }
+  };
+
+  const handleShowAllSellerNotifications = () => {
+    if (activeMenu === "notify") {
+      if (Number(sellerNotificationCountQuery.data?.count || 0) > 0) {
+        void handleMarkAllSellerNotificationsRead();
+      }
+      setActiveMenu(null);
+    }
+    navigate(sellerRoutes.notifications());
   };
 
   return (
@@ -1858,6 +2065,7 @@ export default function SellerLayout() {
                 onItemClick={handleSellerNotificationClick}
                 onMarkAllRead={handleMarkAllSellerNotificationsRead}
                 isMarkingAllRead={markAllSellerNotificationsReadMutation.isPending}
+                onShowAll={handleShowAllSellerNotifications}
               />
               <SellerProfileMenu
                 open={activeMenu === "profile"}

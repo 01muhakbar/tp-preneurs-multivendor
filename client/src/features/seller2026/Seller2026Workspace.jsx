@@ -2822,6 +2822,7 @@ function TeamPage({
   storeContext,
   seller2026Permissions,
   teamMutations = null,
+  isId = false,
 }) {
   const { storeSlug } = useParams();
   const isLive = Boolean(teamData || teamState);
@@ -3049,28 +3050,152 @@ function TeamPage({
       accumulator[category.key] = category.label;
       return accumulator;
     }, {});
-    const formatNotificationLabel = (value) =>
-      String(value || "Info")
+
+    const categoryLabelsLocalized = {
+      all: isId ? "Semua" : "All",
+      orders: isId ? "Pesanan" : "Orders",
+      inventory: isId ? "Stok & Inventaris" : "Stock & Inventory",
+      payments: isId ? "Pembayaran" : "Payments",
+      team: isId ? "Tim & Akses" : "Team & Access",
+      system: isId ? "Sistem & Pembaruan" : "System & Updates",
+      other: isId ? "Lainnya" : "Other",
+    };
+
+    const formatNotificationLabel = (value) => {
+      const val = String(value || "Info").toLowerCase();
+      if (isId) {
+        if (val === "unread" || val === "true") return "Belum Dibaca";
+        if (val === "read" || val === "false") return "Sudah Dibaca";
+        if (val === "critical") return "Kritis";
+        if (val === "important") return "Penting";
+        if (val === "info") return "Info";
+        if (val === "low") return "Rendah";
+      }
+      return String(value || "Info")
         .replace(/[_-]+/g, " ")
         .replace(/\b\w/g, (character) => character.toUpperCase());
+    };
+
+    const getLocalizedTitle = (row) => {
+      if (!isId) return row.title;
+      let title = String(row.title || "");
+      if (title.startsWith("New Order:")) {
+        return title.replace(/^New Order:/, "Pesanan Baru:");
+      }
+      if (title === "New Order" || title === "New Order Received") {
+        return "Pesanan Baru";
+      }
+      if (title.startsWith("Payment Settled:")) {
+        return title.replace(/^Payment Settled:/, "Pembayaran Lunas:");
+      }
+      if (title.startsWith("Payment Review:")) {
+        return title.replace(/^Payment Review:/, "Tinjauan Pembayaran:");
+      }
+      if (title.startsWith("Payment Cancelled:")) {
+        return title.replace(/^Payment Cancelled:/, "Pembayaran Dibatalkan:");
+      }
+      return title;
+    };
+
+    const getLocalizedMessage = (row) => {
+      if (!isId) return row.message || "No details available.";
+      let msg = String(row.message || "");
+      if (msg.includes("New suborder awaiting buyer payment")) {
+        return "Pesanan masuk menunggu pembayaran pembeli via Duitku.";
+      }
+      if (msg.includes("Payment settled via Duitku")) {
+        return "Pembayaran pesanan lunas via Duitku. Siap diproses.";
+      }
+      if (msg.includes("Payment transaction under review")) {
+        return "Transaksi pembayaran sedang ditinjau gateway Duitku.";
+      }
+      if (msg.includes("Order payment expired or was cancelled")) {
+        return "Pembayaran pesanan dibatalkan atau waktu habis.";
+      }
+      return msg || "Tidak ada detail tambahan.";
+    };
 
     return (
       <Shell section="team" mode={mode} storeContext={storeContext}>
-        {teamState?.isError ? <Card title="Notifications could not be loaded" hint="Store-scoped notifications are temporarily unavailable." actions={<button type="button" className="s26-btn" onClick={teamState?.refetch}>Try again</button>} /> : null}
+        {teamState?.isError ? (
+          <Card
+            title={isId ? "Notifikasi tidak dapat dimuat" : "Notifications could not be loaded"}
+            hint={isId ? "Notifikasi toko sementara tidak tersedia." : "Store-scoped notifications are temporarily unavailable."}
+            actions={<button type="button" className="s26-btn" onClick={teamState?.refetch}>{isId ? "Coba lagi" : "Try again"}</button>}
+          />
+        ) : null}
         <div className="s26-grid two">
-          <Card title="Notifications Center" hint="Priority filters, categories, unread state, and operational alerts." actions={<button type="button" className="s26-btn" disabled={!canMutateNotifications || isNotificationMutationPending || summary.unread <= 0} title={notificationActionTitle} onClick={() => runNotificationAction(notificationMutation?.markAllRead, "All notifications marked as read.")}>{notificationMutation?.isMarkingAllRead ? "Marking..." : "Mark all as read"}</button>}>
+          <Card
+            title={isId ? "Pusat Notifikasi" : "Notifications Center"}
+            hint={isId ? "Filter prioritas, kategori, status belum dibaca, dan pemberitahuan operasional toko." : "Priority filters, categories, unread state, and operational alerts."}
+            actions={
+              <button
+                type="button"
+                className="s26-btn"
+                disabled={!canMutateNotifications || isNotificationMutationPending || summary.unread <= 0}
+                title={notificationActionTitle}
+                onClick={() =>
+                  runNotificationAction(
+                    notificationMutation?.markAllRead,
+                    isId ? "Semua notifikasi telah ditandai dibaca." : "All notifications marked as read."
+                  )
+                }
+              >
+                {notificationMutation?.isMarkingAllRead
+                  ? (isId ? "Memproses..." : "Marking...")
+                  : (isId ? "Tandai semua dibaca" : "Mark all as read")}
+              </button>
+            }
+          >
             <div className="s26-grid five" style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 10, marginBottom: 14 }}>
-              <CatalogKpi label="All" value={summary.all || 0} />
-              <CatalogKpi label="Unread" value={summary.unread || 0} />
-              <CatalogKpi label="Critical" value={summary.critical || 0} />
-              <CatalogKpi label="Important" value={summary.important || 0} />
-              <CatalogKpi label="Info" value={summary.info || 0} />
+              <CatalogKpi label={isId ? "Semua" : "All"} value={summary.all || 0} />
+              <CatalogKpi label={isId ? "Belum Dibaca" : "Unread"} value={summary.unread || 0} />
+              <CatalogKpi label={isId ? "Kritis" : "Critical"} value={summary.critical || 0} />
+              <CatalogKpi label={isId ? "Penting" : "Important"} value={summary.important || 0} />
+              <CatalogKpi label={isId ? "Info" : "Info"} value={summary.info || 0} />
             </div>
             <div className="s26-filter-row">
-              <input className="s26-search" aria-label="Search notifications" placeholder="Search notifications" value={searchValue} onChange={(event) => queryChange({ search: event.target.value, page: 1 })} />
-              <select className="s26-control" aria-label="Filter notification priority" value={teamQuery?.priority || "all"} onChange={(event) => queryChange({ priority: event.target.value, page: 1 })}><option value="all">All Priority</option><option value="critical">Critical</option><option value="important">Important</option><option value="info">Info</option><option value="low">Low</option></select>
-              <select className="s26-control" aria-label="Filter notification category" value={teamQuery?.category || "all"} onChange={(event) => queryChange({ category: event.target.value, page: 1 })}>{categories.map((category) => <option key={category.key} value={category.key}>{category.label}</option>)}</select>
-              <select className="s26-control" aria-label="Filter unread notifications" value={teamQuery?.unread || "all"} onChange={(event) => queryChange({ unread: event.target.value, page: 1 })}><option value="all">All Read State</option><option value="true">Unread</option><option value="false">Read</option></select>
+              <input
+                className="s26-search"
+                aria-label={isId ? "Cari notifikasi" : "Search notifications"}
+                placeholder={isId ? "Cari notifikasi..." : "Search notifications"}
+                value={searchValue}
+                onChange={(event) => queryChange({ search: event.target.value, page: 1 })}
+              />
+              <select
+                className="s26-control"
+                aria-label={isId ? "Filter prioritas notifikasi" : "Filter notification priority"}
+                value={teamQuery?.priority || "all"}
+                onChange={(event) => queryChange({ priority: event.target.value, page: 1 })}
+              >
+                <option value="all">{isId ? "Semua Prioritas" : "All Priority"}</option>
+                <option value="critical">{isId ? "Kritis" : "Critical"}</option>
+                <option value="important">{isId ? "Penting" : "Important"}</option>
+                <option value="info">{isId ? "Info" : "Info"}</option>
+                <option value="low">{isId ? "Rendah" : "Low"}</option>
+              </select>
+              <select
+                className="s26-control"
+                aria-label={isId ? "Filter kategori notifikasi" : "Filter notification category"}
+                value={teamQuery?.category || "all"}
+                onChange={(event) => queryChange({ category: event.target.value, page: 1 })}
+              >
+                {categories.map((category) => (
+                  <option key={category.key} value={category.key}>
+                    {categoryLabelsLocalized[category.key] || category.label}
+                  </option>
+                ))}
+              </select>
+              <select
+                className="s26-control"
+                aria-label={isId ? "Filter status baca" : "Filter unread notifications"}
+                value={teamQuery?.unread || "all"}
+                onChange={(event) => queryChange({ unread: event.target.value, page: 1 })}
+              >
+                <option value="all">{isId ? "Semua Status" : "All Read State"}</option>
+                <option value="true">{isId ? "Belum Dibaca" : "Unread"}</option>
+                <option value="false">{isId ? "Sudah Dibaca" : "Read"}</option>
+              </select>
             </div>
             {teamState?.isLoading ? (
               <div className="s26-notification-list">
@@ -3096,7 +3221,12 @@ function TeamPage({
               </div>
             ) : null}
             {notificationActionStatus.message ? <p className={notificationActionStatus.type === "error" ? "s26-field-error" : "hint"}>{notificationActionStatus.message}</p> : null}
-            {!teamState?.isLoading && !teamState?.isError && rows.length === 0 ? <div className="s26-empty" style={{ padding: "40px 20px" }}><strong>No notifications found</strong><p>Try adjusting your search or priority filters.</p></div> : null}
+            {!teamState?.isLoading && !teamState?.isError && rows.length === 0 ? (
+              <div className="s26-empty" style={{ padding: "40px 20px" }}>
+                <strong>{isId ? "Tidak ada notifikasi ditemukan" : "No notifications found"}</strong>
+                <p>{isId ? "Coba sesuaikan pencarian atau filter prioritas Anda." : "Try adjusting your search or priority filters."}</p>
+              </div>
+            ) : null}
             {rows.length > 0 && !teamState?.isLoading && !teamState?.isError ? (
               <div className="s26-notification-list">
                 {rows.map((row) => (
@@ -3105,28 +3235,46 @@ function TeamPage({
                     <div className="s26-notification-body">
                       <div className="s26-notification-head">
                         <div>
-                          <strong>{row.title}</strong>
-                          <p>{row.message || "No details available."}</p>
+                          <strong>{getLocalizedTitle(row)}</strong>
+                          <p>{getLocalizedMessage(row)}</p>
                         </div>
                         <span className={statusClass(row.status)}>{formatNotificationLabel(row.status)}</span>
                       </div>
                       <div className="s26-notification-meta">
-                        <span>{categoryLabels[row.category] || formatNotificationLabel(row.category)}</span>
+                        <span>{categoryLabelsLocalized[row.category] || categoryLabels[row.category] || formatNotificationLabel(row.category)}</span>
                         <span>{formatNotificationLabel(row.priority)}</span>
-                        <span>{row.createdAt || "Recently"}</span>
+                        <span>{row.createdAt || (isId ? "Baru saja" : "Recently")}</span>
                       </div>
                     </div>
                     <div className="s26-notification-actions">
-                      {row.canonicalHref ? <Link className="s26-link" to={row.canonicalHref}>{row.actionLabel || "Open"}</Link> : null}
-                      <button type="button" className="s26-muted-action" disabled={!row.unread || !canMutateNotifications || isNotificationMutationPending} title={row.unread ? notificationActionTitle : "Notification is already read."} onClick={() => runNotificationAction(() => notificationMutation?.markRead(row.id), "Notification marked as read.")}>{notificationMutation?.isMarkingRead ? "Marking..." : row.unread ? "Mark as read" : "Read"}</button>
+                      {row.canonicalHref ? <Link className="s26-link" to={row.canonicalHref}>{isId ? "Buka" : (row.actionLabel || "Open")}</Link> : null}
+                      <button
+                        type="button"
+                        className="s26-muted-action"
+                        disabled={!row.unread || !canMutateNotifications || isNotificationMutationPending}
+                        title={row.unread ? notificationActionTitle : (isId ? "Notifikasi sudah dibaca." : "Notification is already read.")}
+                        onClick={() => runNotificationAction(() => notificationMutation?.markRead(row.id), isId ? "Notifikasi ditandai dibaca." : "Notification marked as read.")}
+                      >
+                        {notificationMutation?.isMarkingRead ? (isId ? "Memproses..." : "Marking...") : row.unread ? (isId ? "Tandai dibaca" : "Mark as read") : (isId ? "Dibaca" : "Read")}
+                      </button>
                     </div>
                   </article>
                 ))}
               </div>
             ) : null}
           </Card>
-          <Card title="Categories" hint="Notification grouping by operational domain.">
-            <div className="s26-checklist">{categories.map((category) => <button type="button" className="s26-check-row" key={category.key} onClick={() => queryChange({ category: category.key, page: 1 })}><span>{category.label}</span><strong>{category.count}</strong></button>)}</div>
+          <Card
+            title={isId ? "Kategori" : "Categories"}
+            hint={isId ? "Pengelompokan notifikasi berdasarkan domain operasional." : "Notification grouping by operational domain."}
+          >
+            <div className="s26-checklist">
+              {categories.map((category) => (
+                <button type="button" className="s26-check-row" key={category.key} onClick={() => queryChange({ category: category.key, page: 1 })}>
+                  <span>{categoryLabelsLocalized[category.key] || category.label}</span>
+                  <strong>{category.count}</strong>
+                </button>
+              ))}
+            </div>
           </Card>
         </div>
       </Shell>
@@ -3198,6 +3346,7 @@ export function Seller2026Workspace({
   teamQuery = null,
   onTeamQueryChange = null,
   notificationMutation = null,
+  isId = false,
 }) {
   const seller2026Permissions = useMemo(() => {
     if (mode !== "embedded") return new Set(SELLER_2026_PREVIEW_PERMISSIONS);
@@ -3275,6 +3424,7 @@ export function Seller2026Workspace({
       notificationMutation={notificationMutation}
       seller2026Permissions={seller2026Permissions}
       teamMutations={teamMutations}
+      isId={isId}
     />
   );
 }
