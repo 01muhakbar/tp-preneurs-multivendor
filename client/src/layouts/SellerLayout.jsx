@@ -1707,8 +1707,10 @@ export default function SellerLayout() {
       refetchSellerContext: sellerContextQuery.refetch,
       selectedLanguage,
       isId,
+      isDark,
+      theme,
     }),
-    [canonicalStoreId, canonicalStoreSlug, sellerContext, sellerContextQuery.refetch, selectedLanguage, isId]
+    [canonicalStoreId, canonicalStoreSlug, sellerContext, sellerContextQuery.refetch, selectedLanguage, isId, isDark, theme]
   );
 
   if (!normalizedStoreSlug) {
