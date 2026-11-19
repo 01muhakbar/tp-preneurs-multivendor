@@ -1339,37 +1339,60 @@ export default function AccountOrderDetail2026View({
             >
               {isPaying ? t.paying : t.payNow}
             </button>
-          ) : (() => {
-            const targetPid =
-              orderDetail.items?.find((it) => !it.isReviewed && Number(it.productId) > 0)?.productId ||
-              orderDetail.items?.find((it) => Number(it.productId) > 0)?.productId ||
-              null;
-            const isOrderFullyReviewed =
-              orderDetail.isReviewed ||
-              (Array.isArray(orderDetail.items) &&
-                orderDetail.items.length > 0 &&
-                orderDetail.items.every((it) => it.isReviewed));
+          ) : (isDelivered || isCompleted) ? (
+            (() => {
+              const targetPid =
+                orderDetail.items?.find((it) => !it.isReviewed && Number(it.productId) > 0)?.productId ||
+                orderDetail.items?.find((it) => Number(it.productId) > 0)?.productId ||
+                null;
+              const isOrderFullyReviewed =
+                orderDetail.isReviewed ||
+                (Array.isArray(orderDetail.items) &&
+                  orderDetail.items.length > 0 &&
+                  orderDetail.items.every((it) => it.isReviewed));
 
-            if (isOrderFullyReviewed) {
+              if (isOrderFullyReviewed) {
+                return (
+                  <LinkComponent
+                    to={`/user/my-reviews?tab=reviewed${targetPid ? `&productId=${targetPid}` : ""}`}
+                    className="tp-shopee-detail__btn-outline"
+                  >
+                    {t.viewReview}
+                  </LinkComponent>
+                );
+              }
+
               return (
                 <LinkComponent
-                  to={`/user/my-reviews?tab=reviewed${targetPid ? `&productId=${targetPid}` : ""}`}
-                  className="tp-shopee-detail__btn-outline"
+                  to={`/user/my-reviews${targetPid ? `?productId=${targetPid}` : ""}`}
+                  className="tp-shopee-detail__btn-orange"
                 >
-                  {t.viewReview}
+                  {t.review}
                 </LinkComponent>
               );
-            }
-
-            return (
-              <LinkComponent
-                to={`/user/my-reviews${targetPid ? `?productId=${targetPid}` : ""}`}
-                className="tp-shopee-detail__btn-orange"
-              >
-                {t.review}
-              </LinkComponent>
-            );
-          })()}
+            })()
+          ) : !banner.isCancelled && isOrderPaid ? (
+            <button
+              type="button"
+              onClick={() => {
+                if (onTrack && orderDetail?.actionability?.track) {
+                  onTrack(orderDetail.actionability.track);
+                } else if (shippingInfo?.officialTrackingUrl) {
+                  window.open(shippingInfo.officialTrackingUrl, "_blank", "noopener,noreferrer");
+                } else if (onTimeline) {
+                  onTimeline();
+                } else {
+                  const target = document.querySelector(".tp-shopee-detail__card--shipping");
+                  target?.scrollIntoView({ behavior: "smooth", block: "center" });
+                }
+              }}
+              className="tp-shopee-detail__btn-orange"
+              title={isIndo ? "Lacak Pengiriman Pesanan" : "Track Order Shipment"}
+            >
+              <Truck size={15} style={{ marginRight: 6 }} />
+              <span>{t.track}</span>
+            </button>
+          ) : null}
         </div>
       </div>
 
