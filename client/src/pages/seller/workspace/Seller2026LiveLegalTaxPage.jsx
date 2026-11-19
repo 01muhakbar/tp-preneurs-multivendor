@@ -56,9 +56,13 @@ export default function Seller2026LiveLegalTaxPage() {
   const submitMutation = useMutation({
     mutationFn: (payload) => submitSellerKycRequest(workspaceStoreId, payload),
     onSuccess: () => {
-      toast.success(isId ? "Permohonan pembaruan KYC berhasil dikirim" : "KYC update requested successfully");
+      toast.success(isId ? "Informasi hukum dan identitas berhasil disimpan ke database" : "Legal identity saved successfully to database");
       setIsEditing(false);
       queryClient.invalidateQueries({ queryKey: ["seller-kyc", workspaceStoreId] });
+      queryClient.invalidateQueries({ queryKey: ["seller2026", "store-profile"] });
+      queryClient.invalidateQueries({ queryKey: ["seller", "store-profile"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-store-profiles"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-kyc-requests"] });
     },
     onError: (error) => {
       toast.error(error?.message || (isId ? "Gagal mengirim permohonan" : "Failed to submit request"));
@@ -214,6 +218,17 @@ export default function Seller2026LiveLegalTaxPage() {
                 <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                   {isId ? "Anda belum mengajukan dokumen hukum untuk diverifikasi." : "You haven't submitted your legal documents for verification yet."}
                 </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (kycReq?.data) setFormData(kycReq.data);
+                    setIsEditing(true);
+                  }}
+                  className="mt-4 inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 transition-colors"
+                >
+                  <ShieldCheck className="h-4 w-4" />
+                  {isId ? "Lengkapi Data Identitas & Pajak" : "Complete Legal & Tax Data"}
+                </button>
               </div>
             )}
           </div>

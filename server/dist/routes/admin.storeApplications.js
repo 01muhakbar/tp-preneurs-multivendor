@@ -492,6 +492,8 @@ router.get("/store-applications/:applicationId", async (req, res) => {
                     name: String(liveStore.name || ""),
                     slug: String(liveStore.slug || ""),
                     status: String(liveStore.status || "INACTIVE").toUpperCase(),
+                    ownerIdentity: liveStore.ownerIdentity || null,
+                    businessDetails: liveStore.businessDetails || null,
                 };
             }
         }

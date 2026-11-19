@@ -1,5 +1,41 @@
 import { updateSellerStoreProfile } from "../sellerStoreProfile.ts";
 
+export type Seller2026OwnerIdentityPayload = {
+  fullName?: string | null;
+  email?: string | null;
+  phoneNumber?: string | null;
+  birthDate?: string | null;
+  identityType?: string | null;
+  identityNumber?: string | null;
+  taxNumber?: string | null;
+  residentialAddress?: string | null;
+  country?: string | null;
+  province?: string | null;
+  city?: string | null;
+  subdistrict?: string | null;
+  postalCode?: string | null;
+};
+
+export type Seller2026BusinessDetailsPayload = {
+  category?: string | null;
+  businessType?: string | null;
+  legalEntity?: string | null;
+  pickupSameAsBusiness?: boolean;
+  pickupAddress?: string | null;
+  businessAddress?: string | null;
+  businessProvince?: string | null;
+  businessCity?: string | null;
+  businessSubdistrict?: string | null;
+  businessPostalCode?: string | null;
+  businessCountry?: string | null;
+  timeZone?: string | null;
+  openTime?: string | null;
+  closeTime?: string | null;
+  workingDays?: string | null;
+  shippingMethod?: string | null;
+  processingTime?: string | null;
+};
+
 export type Seller2026StoreProfileUpdatePayload = {
   description?: string | null;
   logoUrl?: string | null;
@@ -34,6 +70,8 @@ export type Seller2026StoreProfileUpdatePayload = {
     enabledCouriers?: string[];
     enabledCategories?: string[];
   };
+  ownerIdentity?: Seller2026OwnerIdentityPayload;
+  businessDetails?: Seller2026BusinessDetailsPayload;
 };
 
 const allowedTopLevelFields = new Set([
@@ -54,6 +92,8 @@ const allowedTopLevelFields = new Set([
   "postalCode",
   "country",
   "shippingSetup",
+  "ownerIdentity",
+  "businessDetails",
 ]);
 
 const allowedShippingFields = new Set([
@@ -74,6 +114,42 @@ const allowedShippingFields = new Set([
   "enabledCategories",
 ]);
 
+const allowedOwnerIdentityFields = new Set([
+  "fullName",
+  "email",
+  "phoneNumber",
+  "birthDate",
+  "identityType",
+  "identityNumber",
+  "taxNumber",
+  "residentialAddress",
+  "country",
+  "province",
+  "city",
+  "subdistrict",
+  "postalCode",
+]);
+
+const allowedBusinessDetailsFields = new Set([
+  "category",
+  "businessType",
+  "legalEntity",
+  "pickupSameAsBusiness",
+  "pickupAddress",
+  "businessAddress",
+  "businessProvince",
+  "businessCity",
+  "businessSubdistrict",
+  "businessPostalCode",
+  "businessCountry",
+  "timeZone",
+  "openTime",
+  "closeTime",
+  "workingDays",
+  "shippingMethod",
+  "processingTime",
+]);
+
 const compactRecord = (value: Record<string, unknown>, allowed: Set<string>) =>
   Object.fromEntries(
     Object.entries(value).filter(([key, entryValue]) => allowed.has(key) && entryValue !== undefined)
@@ -90,10 +166,23 @@ export async function updateSeller2026StoreProfile({
     payload.shippingSetup && typeof payload.shippingSetup === "object"
       ? compactRecord(payload.shippingSetup as Record<string, unknown>, allowedShippingFields)
       : undefined;
+
+  const ownerIdentity =
+    payload.ownerIdentity && typeof payload.ownerIdentity === "object"
+      ? compactRecord(payload.ownerIdentity as Record<string, unknown>, allowedOwnerIdentityFields)
+      : undefined;
+
+  const businessDetails =
+    payload.businessDetails && typeof payload.businessDetails === "object"
+      ? compactRecord(payload.businessDetails as Record<string, unknown>, allowedBusinessDetailsFields)
+      : undefined;
+
   const safePayload = compactRecord(
     {
       ...payload,
       shippingSetup: shippingSetup && Object.keys(shippingSetup).length ? shippingSetup : undefined,
+      ownerIdentity: ownerIdentity && Object.keys(ownerIdentity).length ? ownerIdentity : undefined,
+      businessDetails: businessDetails && Object.keys(businessDetails).length ? businessDetails : undefined,
     },
     allowedTopLevelFields
   );

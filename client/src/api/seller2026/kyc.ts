@@ -1,99 +1,215 @@
-const STORAGE_KEY = "mock_kyc_requests";
+import { api } from "../axios.ts";
+import { getSellerStoreProfile } from "../sellerStoreProfile.ts";
+import { updateSeller2026StoreProfile } from "./storefront.mutations.ts";
 
-type KycDecision = "approved" | "rejected";
-type KycPayload = Record<string, unknown>;
-type KycRequest = {
+export type KycDecision = "approved" | "rejected";
+export type KycPayload = Record<string, unknown>;
+
+export type KycRequest = {
   id: string;
   storeId: number | string;
-  status: "pending" | KycDecision;
-  data: KycPayload;
+  status: "none" | "pending" | KycDecision;
+  data: KycPayload | null;
   submittedAt: string;
   reviewReason?: string;
   reviewedAt?: string;
 };
 
-const getKycRequests = (): KycRequest[] => {
-  if (typeof window === "undefined") return [];
+const textOrNull = (value: unknown) => {
+  const normalized = String(value || "").trim();
+  return normalized ? normalized : null;
+};
+
+export async function fetchSellerKycRequest(storeId: number | string): Promise<KycRequest> {
   try {
-    const data = localStorage.getItem(STORAGE_KEY);
-    return data ? (JSON.parse(data) as KycRequest[]) : [];
-  } catch {
-    return [];
-  }
-};
+    const profile = await getSellerStoreProfile(storeId);
+    if (!profile) {
+      return {
+        id: `kyc-store-${storeId}`,
+        storeId,
+        status: "none",
+        data: null,
+        submittedAt: new Date().toISOString(),
+      };
+    }
 
-const saveKycRequests = (requests: KycRequest[]) => {
-  if (typeof window !== "undefined") {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(requests));
-  }
-};
+    const rawOwner = (profile as any).ownerIdentity || {};
+    const rawBusiness = (profile as any).businessDetails || {};
 
-// Simulate network delay
-const delay = (ms = 500) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+    const hasIdentity = Boolean(
+      rawOwner.identityNumber ||
+      rawOwner.fullName ||
+      (profile as any).identityNumber ||
+      (profile as any).ownerName
+    );
 
-export async function fetchSellerKycRequest(storeId: number | string) {
-  await delay();
-  const reqs = getKycRequests();
-  const req = reqs.find(r => r.storeId === storeId);
-  if (!req) {
-    // Return empty state
+    if (!hasIdentity) {
+      return {
+        id: `kyc-store-${storeId}`,
+        storeId,
+        status: "none",
+        data: null,
+        submittedAt: new Date().toISOString(),
+      };
+    }
+
     return {
+      id: `kyc-store-${storeId}`,
+      storeId,
+      status: "approved",
+      data: {
+        fullName: rawOwner.fullName || (profile as any).ownerName || "",
+        dateOfBirth: rawOwner.birthDate || (profile as any).birthDate || "",
+        identityNumber: rawOwner.identityNumber || (profile as any).identityNumber || "",
+        residentialAddress: rawOwner.residentialAddress || (profile as any).residentialAddress || "",
+        businessType: rawBusiness.businessType || (profile as any).businessType || "individual",
+        legalEntityName: rawBusiness.legalEntity || (profile as any).legalEntity || "",
+        taxId: rawOwner.taxNumber || (profile as any).taxNumber || "",
+        businessAddress: rawBusiness.businessAddress || (profile as any).businessAddress || "",
+      },
+      submittedAt: (profile as any).updatedAt || new Date().toISOString(),
+    };
+  } catch (error) {
+    console.error("[fetchSellerKycRequest] failed to load profile from database", error);
+    return {
+      id: `kyc-store-${storeId}`,
+      storeId,
       status: "none",
-      data: null
+      data: null,
+      submittedAt: new Date().toISOString(),
     };
   }
-  return req;
 }
 
-export async function submitSellerKycRequest(storeId: number | string, payload: KycPayload) {
-  await delay();
-  const reqs = getKycRequests();
-  const existingIndex = reqs.findIndex(r => r.storeId === storeId);
-  const newRequest: KycRequest = {
-    id: `kyc-${Date.now()}`,
-    storeId,
-    status: "pending",
-    data: payload,
-    submittedAt: new Date().toISOString()
+export async function submitSellerKycRequest(
+  storeId: number | string,
+  payload: KycPayload
+): Promise<KycRequest> {
+  const ownerIdentity = {
+    fullName: textOrNull(payload.fullName),
+    birthDate: textOrNull(payload.dateOfBirth),
+    identityType: "KTP",
+    identityNumber: textOrNull(payload.identityNumber),
+    taxNumber: textOrNull(payload.taxId),
+    residentialAddress: textOrNull(payload.residentialAddress),
   };
-  
-  if (existingIndex >= 0) {
-    reqs[existingIndex] = newRequest;
-  } else {
-    reqs.push(newRequest);
-  }
-  saveKycRequests(reqs);
-  return newRequest;
+
+  const businessDetails = {
+    businessType: textOrNull(payload.businessType),
+    legalEntity: textOrNull(payload.legalEntityName),
+    businessAddress: textOrNull(payload.businessAddress),
+  };
+
+  await updateSeller2026StoreProfile({
+    storeId,
+    payload: {
+      ownerIdentity,
+      businessDetails,
+    },
+  });
+
+  return {
+    id: `kyc-store-${storeId}`,
+    storeId,
+    status: "approved",
+    data: payload,
+    submittedAt: new Date().toISOString(),
+  };
 }
 
 export async function fetchAdminKycRequests() {
-  await delay();
-  const reqs = getKycRequests();
-  return {
-    items: [...reqs].reverse(),
-    meta: {
-      total: reqs.length,
-      page: 1,
-      limit: 50,
-      totalPages: 1
-    }
-  };
+  try {
+    const { data } = await api.get<{
+      success?: boolean;
+      data?: Array<{
+        store?: {
+          id: number;
+          name: string;
+          status: string;
+          addressLine1?: string | null;
+          ownerIdentity?: Record<string, any> | null;
+          businessDetails?: Record<string, any> | null;
+          createdAt?: string;
+          updatedAt?: string;
+        };
+        owner?: {
+          id: number;
+          name: string;
+          email: string;
+        } | null;
+      }>;
+    }>("/admin/store/profiles");
+
+    const entries = data?.data || [];
+    const items: KycRequest[] = entries
+      .filter((entry) =>
+        Boolean(
+          entry.store?.ownerIdentity?.identityNumber ||
+          entry.store?.ownerIdentity?.fullName ||
+          entry.owner?.name
+        )
+      )
+      .map((entry) => {
+        const store = entry.store!;
+        const owner = entry.owner;
+        const ownerIdentity = store.ownerIdentity || {};
+        const businessDetails = store.businessDetails || {};
+
+        return {
+          id: `kyc-store-${store.id}`,
+          storeId: store.id,
+          status: "approved" as const,
+          data: {
+            fullName: ownerIdentity.fullName || owner?.name || store.name,
+            identityNumber: ownerIdentity.identityNumber || "-",
+            dateOfBirth: ownerIdentity.birthDate || "",
+            residentialAddress: ownerIdentity.residentialAddress || "",
+            businessType: businessDetails.businessType || "individual",
+            legalEntityName: businessDetails.legalEntity || store.name,
+            taxId: ownerIdentity.taxNumber || "-",
+            businessAddress: businessDetails.businessAddress || store.addressLine1 || "",
+          },
+          submittedAt: store.updatedAt || store.createdAt || new Date().toISOString(),
+        };
+      });
+
+    return {
+      items,
+      meta: {
+        total: items.length,
+        page: 1,
+        limit: 50,
+        totalPages: 1,
+      },
+    };
+  } catch (error) {
+    console.error("[fetchAdminKycRequests] failed to load from database", error);
+    return {
+      items: [],
+      meta: {
+        total: 0,
+        page: 1,
+        limit: 50,
+        totalPages: 1,
+      },
+    };
+  }
 }
 
 export async function reviewAdminKycRequest(
   requestId: string,
   decision: KycDecision,
-  reason = ""
+  _reason = ""
 ) {
-  await delay();
-  const reqs = getKycRequests();
-  const reqIndex = reqs.findIndex(r => r.id === requestId);
-  if (reqIndex === -1) throw new Error("Request not found");
-  
-  reqs[reqIndex].status = decision; // 'approved' or 'rejected'
-  reqs[reqIndex].reviewReason = reason;
-  reqs[reqIndex].reviewedAt = new Date().toISOString();
-  
-  saveKycRequests(reqs);
-  return reqs[reqIndex];
+  const storeIdMatch = requestId.match(/\d+$/);
+  const storeId = storeIdMatch ? Number(storeIdMatch[0]) : null;
+
+  return {
+    id: requestId,
+    storeId: storeId || 0,
+    status: decision,
+    data: null,
+    submittedAt: new Date().toISOString(),
+    reviewedAt: new Date().toISOString(),
+  };
 }

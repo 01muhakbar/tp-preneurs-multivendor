@@ -242,6 +242,11 @@ const normalizeDetail = (payload, fallbackId, isId) => {
         .filter(Boolean)
         .join(", "),
     },
+    liveStoreIdentity: {
+      number: application.liveStore?.ownerIdentity?.identityNumber || null,
+      fullName: application.liveStore?.ownerIdentity?.fullName || null,
+      type: application.liveStore?.ownerIdentity?.identityType || "KTP",
+    },
     identityMatch: {
       summary: matchSummary,
       name: getMatchValue(matchFields, "name"),
@@ -729,7 +734,21 @@ export default function AdminStoreApplicationDetailPage() {
                 { label: isId ? "No. Telepon / HP" : "Mobile / Phone", value: detail.applicant.phone },
                 { label: isId ? "Peran Akun" : "Account Role", value: detail.applicant.role },
                 { label: isId ? "Status Akun" : "Account Status", value: detail.applicant.status },
-                { label: isId ? "Nomor KTP / ID" : "ID Number", value: detail.identity.number },
+                ...(detail.liveStoreIdentity?.number && detail.liveStoreIdentity.number !== detail.identity.number
+                  ? [
+                      {
+                        label: isId ? "Nomor KTP (Snapshot Berkas)" : "ID Number (Snapshot)",
+                        value: detail.identity.number,
+                      },
+                      {
+                        label: isId ? "Nomor KTP Terkini (Profil Toko)" : "ID Number (Live Profile)",
+                        value: `${detail.liveStoreIdentity.number} (${isId ? "Pembaruan Terkini" : "Updated"})`,
+                        wide: true,
+                      },
+                    ]
+                  : [
+                      { label: isId ? "Nomor KTP / ID" : "ID Number", value: detail.identity.number },
+                    ]),
                 { label: isId ? "Tanggal Lahir" : "Birth Date", value: detail.identity.birthDate },
                 { label: isId ? "Jenis Identitas" : "ID Type", value: detail.identity.type },
                 { label: isId ? "Nama di KTP" : "ID Name", value: detail.identity.idName },

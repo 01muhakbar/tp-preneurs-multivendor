@@ -274,6 +274,8 @@ const normalizeDetail = (value: any) => {
           name: textOrFallback(value.liveStore.name),
           slug: textOrFallback(value.liveStore.slug),
           status: textOrFallback(value.liveStore.status, "INACTIVE"),
+          ownerIdentity: value.liveStore.ownerIdentity || null,
+          businessDetails: value.liveStore.businessDetails || null,
         }
       : null,
   };
