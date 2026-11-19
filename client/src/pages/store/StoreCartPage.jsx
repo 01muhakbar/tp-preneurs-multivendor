@@ -648,6 +648,20 @@ export default function StoreCartPage() {
     if (nextQuantity > item.quantity) return update(target, nextQuantity);
   };
 
+  const handleQuantityChange = (item, quantity) => {
+    const target = resolveCartTarget(item.raw || item);
+    if (!target.productId) return;
+    const hasStockValue = item.stock !== null && item.stock !== undefined && item.stock !== "";
+    const stockValue = Number(item.stock);
+    const stock = hasStockValue && Number.isFinite(stockValue) && stockValue >= 0
+      ? stockValue
+      : null;
+    let qty = Number.parseInt(quantity, 10);
+    if (Number.isNaN(qty) || qty < 1) qty = 1;
+    if (stock !== null && qty > stock) qty = stock;
+    if (qty !== item.quantity) return update(target, qty);
+  };
+
   const handleRemove = (item) => {
     const target = resolveCartTarget(item.raw || item);
     if (target.productId) remove(target);
@@ -711,6 +725,7 @@ export default function StoreCartPage() {
       }
       onIncrease={handleIncrease}
       onDecrease={handleDecrease}
+      onUpdateQuantity={handleQuantityChange}
       onRemove={handleRemove}
       onReselect={(item, invalidItem) =>
         handleReselectVariant(item.raw || item, invalidItem)

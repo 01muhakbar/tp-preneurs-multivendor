@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { FALLBACK_PRODUCT_IMAGE } from "./storeCart2026Adapter.js";
+import CartQuantityStepper from "../../../components/store/CartQuantityStepper.jsx";
 import "./store-cart-2026.css";
 
 function formatVariant(item) {
@@ -88,6 +89,7 @@ export default function StoreCart2026View({
   canReselect,
   onIncrease,
   onDecrease,
+  onUpdateQuantity,
   onRemove,
   onReselect,
   onRetry,
@@ -321,32 +323,14 @@ export default function StoreCart2026View({
                               {formatMoney(item.unitPrice)}
                             </span>
 
-                            <div className="sc26-shopee-stepper">
-                              <button
-                                type="button"
-                                className="sc26-shopee-step-btn"
-                                onClick={() => onDecrease(item)}
-                                disabled={status.busy}
-                                aria-label="Decrease quantity"
-                              >
-                                <Minus className="w-3 h-3" />
-                              </button>
-                              <span className="sc26-shopee-step-val">{item.quantity}</span>
-                              <button
-                                type="button"
-                                className="sc26-shopee-step-btn"
-                                onClick={() => onIncrease(item)}
-                                disabled={
-                                  (item.stock !== null &&
-                                    item.stock !== undefined &&
-                                    item.quantity >= item.stock) ||
-                                  status.busy
-                                }
-                                aria-label="Increase quantity"
-                              >
-                                <Plus className="w-3 h-3" />
-                              </button>
-                            </div>
+                            <CartQuantityStepper
+                              item={item}
+                              disabled={status.busy}
+                              onDecrease={onDecrease}
+                              onIncrease={onIncrease}
+                              onChangeQuantity={onUpdateQuantity}
+                              isIndo={isIndo}
+                            />
                           </div>
 
                           {/* Invalid Item Alert Banner */}

@@ -23,6 +23,7 @@ import {
 import StoreCartVoucherModal from "../../pages/store/cart2026/StoreCartVoucherModal.jsx";
 import { useStorefrontWishlist } from "../../utils/storefrontWishlist.js";
 import { fetchStoreProductById } from "../../api/public/storeProducts.ts";
+import CartQuantityStepper from "./CartQuantityStepper.jsx";
 import "./store-cart-drawer-2026.css";
 import "../../pages/store/cart2026/store-cart-2026.css";
 
@@ -343,6 +344,23 @@ export function StoreCartDrawer2026({
     }
   };
 
+  const handleQuantityChange = async (item, targetQuantity) => {
+    const target = resolveCartTarget(item.raw || item);
+    if (!target.productId) return;
+    const stock =
+      item.stock !== null && item.stock !== undefined ? Number(item.stock) : null;
+    let qty = Number.parseInt(targetQuantity, 10);
+    if (Number.isNaN(qty) || qty < 1) {
+      qty = 1;
+    }
+    if (stock !== null && stock !== undefined && !Number.isNaN(stock) && qty > stock) {
+      qty = stock;
+    }
+    if (qty !== item.quantity) {
+      await cart.update(target, qty);
+    }
+  };
+
   const handleBatchRemove = async () => {
     const toRemove = viewModel.items.filter((it) => selectedLineIds.has(it.lineId));
     if (toRemove.length === 0) return;
@@ -591,32 +609,14 @@ export function StoreCartDrawer2026({
                                   {rupiah(item.unitPrice)}
                                 </span>
 
-                                <div className="sc26-shopee-stepper">
-                                  <button
-                                    type="button"
-                                    className="sc26-shopee-step-btn"
-                                    onClick={() => handleDecrease(item)}
-                                    disabled={cart.isLoading}
-                                    aria-label="Decrease quantity"
-                                  >
-                                    <Minus className="w-3 h-3" />
-                                  </button>
-                                  <span className="sc26-shopee-step-val">{item.quantity}</span>
-                                  <button
-                                    type="button"
-                                    className="sc26-shopee-step-btn"
-                                    onClick={() => handleIncrease(item)}
-                                    disabled={
-                                      (item.stock !== null &&
-                                        item.stock !== undefined &&
-                                        item.quantity >= item.stock) ||
-                                      cart.isLoading
-                                    }
-                                    aria-label="Increase quantity"
-                                  >
-                                    <Plus className="w-3 h-3" />
-                                  </button>
-                                </div>
+                                <CartQuantityStepper
+                                  item={item}
+                                  disabled={cart.isLoading}
+                                  onDecrease={handleDecrease}
+                                  onIncrease={handleIncrease}
+                                  onChangeQuantity={handleQuantityChange}
+                                  isIndo={isIndo}
+                                />
                               </div>
                             </div>
                           </div>
