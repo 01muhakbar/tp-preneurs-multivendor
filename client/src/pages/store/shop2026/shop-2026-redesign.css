@@ -937,8 +937,8 @@
 }
 
 .tp-shopee-card__quick-cart {
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   background: rgba(3, 76, 133, 0.35);
   border: 1px solid rgba(3, 76, 133, 0.6);
@@ -955,7 +955,7 @@
   background: var(--tp-orange);
   border-color: var(--tp-orange);
   color: #ffffff;
-  transform: scale(1.1);
+  transform: scale(1.08);
 }
 
 /* ==========================================================================

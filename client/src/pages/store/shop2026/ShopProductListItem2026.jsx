@@ -1,7 +1,6 @@
 import {
   Heart,
   MapPin,
-  Plus,
   Star,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -9,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { formatCurrency } from "../../../utils/format.js";
 import { resolveAssetUrl } from "../../../lib/assetUrl.js";
+import { ShoppingCartPlus } from "./ShopProductCard2026.jsx";
 
 export default function ShopProductListItem2026({
   card,
@@ -200,10 +200,17 @@ export default function ShopProductListItem2026({
           <div className="tp-shopee-list-item__actions">
             <button
               type="button"
-              className="tp-shopee-btn-apply"
+              className="tp-shopee-btn-apply inline-flex items-center justify-center gap-1.5"
               onClick={handleQuickAdd}
             >
-              {isAdding ? "..." : (isIndo ? "+ Keranjang" : "+ Cart")}
+              {isAdding ? (
+                "..."
+              ) : (
+                <>
+                  <ShoppingCartPlus className="w-3.5 h-3.5" />
+                  <span>{isIndo ? "Keranjang" : "Cart"}</span>
+                </>
+              )}
             </button>
           </div>
         )}
