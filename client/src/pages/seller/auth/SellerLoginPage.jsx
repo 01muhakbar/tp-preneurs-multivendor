@@ -13,6 +13,7 @@ import {
   Mail,
   Moon,
   PackageCheck,
+  ShieldAlert,
   ShieldCheck,
   ShoppingBag,
   Store,
@@ -171,6 +172,7 @@ export default function SellerLoginPage() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [submitError, setSubmitError] = useState("");
   const [showAdminLink, setShowAdminLink] = useState(false);
+  const [isInvalidCredentials, setIsInvalidCredentials] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
 
@@ -282,6 +284,7 @@ export default function SellerLoginPage() {
     event.preventDefault();
     setSubmitError("");
     setShowAdminLink(false);
+    setIsInvalidCredentials(false);
 
     if (!validate()) return;
 
@@ -382,8 +385,9 @@ export default function SellerLoginPage() {
           rawMessage === "Invalid credentials" ||
           rawMessage === "Invalid credentials."
         ) {
-          displayError = t("login.We couldn't sign you in. Check your credentials and try again.", {
-            defaultValue: "We couldn't sign you in. Check your credentials and try again.",
+          setIsInvalidCredentials(true);
+          displayError = t("login.Email or password does not match", {
+            defaultValue: "Email atau kata sandi tidak sesuai",
           });
         } else if (
           rawMessage === "Please enter a valid email address." ||
@@ -619,17 +623,48 @@ export default function SellerLoginPage() {
               </label>
 
               {submitError ? (
-                <div className="seller-login-alert" role="alert">
-                  <ShieldCheck size={18} aria-hidden="true" />
-                  <span>
-                    {submitError}
-                    {showAdminLink ? (
-                      <>
-                        {" "}
-                        <Link to="/admin/login">{t("login.Open Admin Login")}</Link>
-                      </>
+                <div className="seller-login-alert" role="alert" aria-live="polite">
+                  <ShieldAlert size={19} className="seller-login-alert__icon" aria-hidden="true" />
+                  <div className="seller-login-alert__body">
+                    <p className="seller-login-alert__title">
+                      {isInvalidCredentials
+                        ? t("login.Email or password does not match", {
+                            defaultValue: "Email atau kata sandi tidak sesuai",
+                          })
+                        : submitError}
+                    </p>
+                    {isInvalidCredentials ? (
+                      <p className="seller-login-alert__desc">
+                        {t(
+                          "login.Please verify your email and password (check for Caps Lock or typos). You can reset your password if you forgot it, or create a seller account if you haven't registered.",
+                          {
+                            defaultValue:
+                              "Periksa kembali penulisan email dan kata sandi Anda (pastikan Caps Lock tidak aktif). Anda dapat mengatur ulang kata sandi jika lupa, atau mendaftar jika belum memiliki akun.",
+                          }
+                        )}
+                      </p>
                     ) : null}
-                  </span>
+                    {showAdminLink ? (
+                      <div className="seller-login-alert__actions">
+                        <Link to="/admin/login" className="seller-login-alert__link">
+                          {t("login.Open Admin Login")} &rarr;
+                        </Link>
+                      </div>
+                    ) : null}
+                    {isInvalidCredentials ? (
+                      <div className="seller-login-alert__actions">
+                        <Link to="/seller/forgot-password" className="seller-login-alert__link">
+                          {t("login.Forgot password?", { defaultValue: "Lupa kata sandi?" })}
+                        </Link>
+                        <span className="seller-login-alert__dot" aria-hidden="true">
+                          &bull;
+                        </span>
+                        <Link to="/seller/create-account" className="seller-login-alert__link">
+                          {t("login.Create an account", { defaultValue: "Buat akun" })}
+                        </Link>
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
               ) : null}
 
