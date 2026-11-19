@@ -1479,5 +1479,43 @@
     "Expires": "Berakhir",
     "Image Preview": "Pratinjau Gambar",
     "Selected Coupon": "Kupon Terpilih"
+  },
+  "notifications": {
+    "title": "Notifikasi",
+    "unreadCount": "{{count}} belum dibaca",
+    "unreadCountFull": "{{count}} notifikasi belum dibaca",
+    "markAllRead": "Tandai dibaca",
+    "showAll": "Lihat semua notifikasi",
+    "showAllWithCount": "Lihat semua notifikasi ({{count}})",
+    "empty": "Belum ada notifikasi baru.",
+    "loading": "Memuat notifikasi...",
+    "delete": "Hapus notifikasi",
+    "deleteSelected": "Hapus Terpilih",
+    "markAsRead": "Tandai Dibaca",
+    "pageTitle": "Pusat Notifikasi",
+    "pageSubtitle": "Pantau seluruh pesanan, penyelesaian pembayaran, dan aktivitas toko",
+    "all": "Semua",
+    "unread": "Belum Dibaca",
+    "read": "Sudah Dibaca",
+    "status": "Status",
+    "view": "Tampilan",
+    "searchPlaceholder": "Cari notifikasi...",
+    "columns": {
+      "status": "Status",
+      "notification": "Notifikasi",
+      "date": "Waktu",
+      "actions": "Aksi"
+    },
+    "types": {
+      "orderCreated": "Pesanan Baru",
+      "paymentSettled": "Pembayaran Duitku",
+      "contactMessage": "Pesan Kontak",
+      "orderStatusChanged": "Status Pesanan",
+      "general": "Notifikasi"
+    },
+    "noNotificationsFound": "Tidak ada notifikasi yang ditemukan.",
+    "noNotificationsFoundHint": "Coba ubah kata kunci pencarian atau filter status.",
+    "open": "Buka",
+    "clearAllConfirm": "Hapus semua notifikasi?"
   }
 }

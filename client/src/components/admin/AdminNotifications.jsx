@@ -1,6 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import {
+  Bell,
+  Trash2,
+  ShoppingBag,
+  CreditCard,
+  MessageSquare,
+  CheckCheck,
+  ArrowRight,
+} from "lucide-react";
 import {
   clearAllAdminNotifications,
   deleteAdminNotification,
@@ -12,39 +21,136 @@ import {
   updateAdminNotificationPreferences,
 } from "../../api/adminNotifications.ts";
 
-const MONTH_LABELS = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
+const MONTH_LABELS_EN = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
 ];
 
-const formatNotificationTimestamp = (input) => {
+const MONTH_LABELS_ID = [
+  "Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
+  "Jul", "Agu", "Sep", "Okt", "Nov", "Des"
+];
+
+const idrCurrencyFormatter = new Intl.NumberFormat("id-ID", {
+  style: "currency",
+  currency: "IDR",
+  maximumFractionDigits: 0,
+});
+
+const formatMoney = (val) => {
+  const num = Number(val);
+  if (!Number.isFinite(num) || num <= 0) return "";
+  return idrCurrencyFormatter.format(num);
+};
+
+export const formatNotificationTimestamp = (input, isIndo = false) => {
   const date = new Date(input || "");
   if (Number.isNaN(date.getTime())) return "-";
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffMinutes < 1) return isIndo ? "Baru saja" : "Just now";
+  if (diffMinutes < 60) return isIndo ? `${diffMinutes} mnt lalu` : `${diffMinutes}m ago`;
+  if (diffHours < 24) return isIndo ? `${diffHours} jam lalu` : `${diffHours}h ago`;
+  if (diffDays === 1) return isIndo ? "Kemarin" : "Yesterday";
+  if (diffDays < 7) return isIndo ? `${diffDays} hari lalu` : `${diffDays}d ago`;
+
+  const months = isIndo ? MONTH_LABELS_ID : MONTH_LABELS_EN;
   const day = String(date.getDate()).padStart(2, "0");
-  const month = MONTH_LABELS[date.getMonth()] || "";
+  const month = months[date.getMonth()] || "";
   const year = date.getFullYear();
   const hour24 = date.getHours();
   const minute = String(date.getMinutes()).padStart(2, "0");
+
+  if (isIndo) {
+    return `${day} ${month} ${year}, ${String(hour24).padStart(2, "0")}:${minute}`;
+  }
   const period = hour24 >= 12 ? "PM" : "AM";
   const hour12 = hour24 % 12 || 12;
   return `${day} ${month}, ${year} ${hour12}:${minute} ${period}`;
 };
 
-const toLabel = (type) => {
-  if (type === "ORDER_CREATED" || type === "NEW_ORDER") return "New Order";
-  if (type === "PAYMENT_SETTLED") return "Payment Settled";
-  if (type === "CONTACT_MESSAGE") return "Contact Message";
-  return type;
+export const formatNotificationContent = (item, isIndo = false) => {
+  if (!item || typeof item !== "object") {
+    return {
+      title: isIndo ? "Notifikasi Sistem" : "System Notification",
+      subtitle: "",
+      badge: isIndo ? "Umum" : "General",
+      typeKey: "general",
+    };
+  }
+
+  const type = String(item.type || "").trim().toUpperCase();
+  const rawTitle = String(item.title || "").trim();
+  const meta = item.meta && typeof item.meta === "object" ? item.meta : {};
+  const customerName = String(meta.customerName || meta.customer || "").trim();
+  const rawAmount = meta.amount ? formatMoney(meta.amount) : "";
+  const invoiceNo = String(meta.invoiceNo || meta.ref || "").trim();
+  const orderId = String(meta.orderId || meta.id || "").trim();
+  const orderRef = invoiceNo ? `#${invoiceNo}` : (orderId ? `#${orderId}` : "");
+
+  if (type === "ORDER_CREATED" || type === "NEW_ORDER") {
+    let name = customerName;
+    if (!name && rawTitle) {
+      const match = rawTitle.match(/^(.*?)\s+placed an order/i);
+      if (match && match[1]) name = match[1].trim();
+    }
+    const amountStr = rawAmount || (rawTitle.match(/Rp\s*[\d.]+/i)?.[0] || "");
+    const titleText = isIndo
+      ? (name ? `Pesanan Baru: ${name}` : "Pesanan Baru Masuk")
+      : (name ? `New Order: ${name}` : "New Order Received");
+
+    const subtitleText = [amountStr, orderRef].filter(Boolean).join(" • ");
+
+    return {
+      title: titleText,
+      subtitle: subtitleText || (isIndo ? "Pesanan perlu diproses" : "Order needs fulfillment"),
+      badge: isIndo ? "Pesanan Baru" : "New Order",
+      typeKey: "order",
+    };
+  }
+
+  if (type === "PAYMENT_SETTLED") {
+    const amountStr = rawAmount || (rawTitle.match(/Rp\s*[\d.]+/i)?.[0] || "");
+    const titleText = isIndo ? "Pembayaran Duitku Berhasil" : "Duitku Payment Received";
+    const subtitleText = [amountStr, orderRef, isIndo ? "Terverifikasi" : "Verified"].filter(Boolean).join(" • ");
+
+    return {
+      title: titleText,
+      subtitle: subtitleText || (isIndo ? "Transaksi otomatis terkonfirmasi" : "Transaction automatically confirmed"),
+      badge: isIndo ? "Pembayaran Duitku" : "Duitku Payment",
+      typeKey: "payment",
+    };
+  }
+
+  if (type === "CONTACT_MESSAGE") {
+    return {
+      title: isIndo ? "Pesan Kontak Pelanggan" : "Customer Support Message",
+      subtitle: String(meta.subject || rawTitle || (isIndo ? "Pesan bantuan masuk" : "New helpdesk inquiry")).replace(/!+$/, ""),
+      badge: isIndo ? "Pesan" : "Message",
+      typeKey: "contact",
+    };
+  }
+
+  if (type === "ORDER_STATUS_CHANGED" || type === "ORDER_STATUS_UPDATED") {
+    return {
+      title: isIndo ? "Status Pesanan Diperbarui" : "Order Status Updated",
+      subtitle: orderRef ? `${orderRef} • ${isIndo ? "Status diperbarui" : "Status changed"}` : rawTitle.replace(/!+$/, ""),
+      badge: isIndo ? "Status" : "Status",
+      typeKey: "status",
+    };
+  }
+
+  const cleaned = rawTitle.replace(/!+$/, "");
+  return {
+    title: cleaned || (isIndo ? "Notifikasi Admin" : "Admin Notification"),
+    subtitle: orderRef || "",
+    badge: isIndo ? "Notifikasi" : "Notification",
+    typeKey: "general",
+  };
 };
 
 const PAGE_LIMIT = 5;
@@ -85,6 +191,7 @@ const buildNotificationTargetUrl = (item) => {
 
   const isOrderNotification =
     type === "ORDER_CREATED" ||
+    type === "NEW_ORDER" ||
     type === "PAYMENT_SETTLED" ||
     type === "ORDER_STATUS_CHANGED" ||
     type === "ORDER_STATUS_UPDATED";
@@ -103,23 +210,20 @@ const buildNotificationTargetUrl = (item) => {
 const isNewTabIntent = (event) =>
   Boolean(event?.ctrlKey || event?.metaKey || event?.button === 1 || event?.which === 2);
 
-const getNotificationAvatarLabel = (item) => {
-  const title = String(item?.title || "").trim();
-  if (title) {
-    const parts = title.split(/\s+/).filter(Boolean).slice(0, 2);
-    if (parts.length > 0) {
-      return parts.map((part) => part.charAt(0).toUpperCase()).join("");
-    }
-  }
-  return "AD";
-};
-
 export default function AdminNotifications({
   open = false,
   onToggle,
   containerRef,
 }) {
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation("admin");
+  const [, setLangTick] = useState(0);
+
+  const isIndo = Boolean(
+    i18n.language?.toLowerCase().startsWith("id") ||
+    (typeof window !== "undefined" && window.localStorage?.getItem("adminLanguage")?.includes('"isoCode":"id"'))
+  );
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [items, setItems] = useState([]);
@@ -136,9 +240,21 @@ export default function AdminNotifications({
   const [preferencesError, setPreferencesError] = useState("");
   const [realtimeStatus, setRealtimeStatus] = useState("connected");
   const openRef = useRef(Boolean(open));
+  const previousOpenRef = useRef(Boolean(open));
   const eventSourceRef = useRef(null);
   const pollingTimerRef = useRef(null);
   const connectTimerRef = useRef(null);
+
+  // Sync re-render on language change
+  useEffect(() => {
+    const onLangChange = () => setLangTick((t) => t + 1);
+    window.addEventListener("adminLanguageChange", onLangChange);
+    i18n?.on?.("languageChanged", onLangChange);
+    return () => {
+      window.removeEventListener("adminLanguageChange", onLangChange);
+      i18n?.off?.("languageChanged", onLangChange);
+    };
+  }, [i18n]);
 
   useEffect(() => {
     openRef.current = Boolean(open);
@@ -246,6 +362,45 @@ export default function AdminNotifications({
     }
   }, [open]);
 
+  const handleMarkAllRead = useCallback(async () => {
+    if (isMutating) return;
+    try {
+      setIsMutating(true);
+      // Immediately reset badge in UI for responsive feedback
+      setUnreadCount(0);
+      setItems((previous) =>
+        previous.map((current) => ({ ...current, isRead: true }))
+      );
+      await markAllAdminNotificationsRead();
+      await loadUnreadCount();
+    } catch (err) {
+      const message = err?.response?.data?.message || "Failed to mark all notifications as read.";
+      setError(String(message));
+    } finally {
+      setIsMutating(false);
+    }
+  }, [isMutating, loadUnreadCount]);
+
+  // UX Requirement: When the user closes the notification popover (after viewing it),
+  // automatically mark all as read and clear the red badge number!
+  useEffect(() => {
+    if (previousOpenRef.current && !open) {
+      if (unreadCount > 0) {
+        void handleMarkAllRead();
+      }
+    }
+    previousOpenRef.current = Boolean(open);
+  }, [open, unreadCount, handleMarkAllRead]);
+
+  // Handle bell icon click:
+  // If popover is currently open, clicking again closes it and triggers mark all read!
+  const handleToggle = () => {
+    if (open && unreadCount > 0) {
+      void handleMarkAllRead();
+    }
+    onToggle?.();
+  };
+
   useEffect(() => {
     if (typeof window === "undefined" || typeof EventSource === "undefined") {
       return undefined;
@@ -344,10 +499,6 @@ export default function AdminNotifications({
     };
   }, [stopPolling]);
 
-  const handleToggle = () => {
-    onToggle?.();
-  };
-
   const handleDelete = async (id) => {
     try {
       setIsMutating(true);
@@ -415,26 +566,11 @@ export default function AdminNotifications({
     }
   };
 
-  const handleMarkAllRead = async () => {
-    if (isMutating) return;
-    try {
-      setIsMutating(true);
-      await markAllAdminNotificationsRead();
-      await Promise.all([
-        loadNotificationsPage({ nextOffset: 0, append: false, withLoading: false }),
-        loadUnreadCount(),
-      ]);
-    } catch (err) {
-      const message = err?.response?.data?.message || "Failed to mark all notifications as read.";
-      setError(String(message));
-    } finally {
-      setIsMutating(false);
-    }
-  };
-
   const handleClearAll = async () => {
     if (isMutating) return;
-    const confirmed = window.confirm("Clear all notifications?");
+    const confirmed = window.confirm(
+      t("notifications.clearAllConfirm", "Clear all notifications?")
+    );
     if (!confirmed) return;
     try {
       setIsMutating(true);
@@ -452,46 +588,13 @@ export default function AdminNotifications({
   };
 
   const handleShowAllNotifications = () => {
-    if (open) onToggle?.();
-    navigate("/admin/notifications");
-  };
-
-  const handleTogglePreferenceType = (type) => {
-    const normalizedType = String(type || "").trim().toUpperCase();
-    if (!normalizedType) return;
-    setDraftEnabledTypes((previous) => {
-      if (previous.includes(normalizedType)) {
-        return previous.filter((entry) => entry !== normalizedType);
+    if (open) {
+      if (unreadCount > 0) {
+        void handleMarkAllRead();
       }
-      return [...previous, normalizedType];
-    });
-  };
-
-  const handleSavePreferences = async () => {
-    if (isSavingPreferences || isLoadingPreferences) return;
-    try {
-      setIsSavingPreferences(true);
-      setPreferencesError("");
-      const data = await updateAdminNotificationPreferences({
-        enabledTypes: draftEnabledTypes,
-      });
-      const nextEnabledTypes = normalizeEnabledTypes(data?.enabledTypes);
-      setEnabledTypes(nextEnabledTypes);
-      setDraftEnabledTypes(nextEnabledTypes);
-      await Promise.all([
-        loadUnreadCount(),
-        open
-          ? loadNotificationsPage({ nextOffset: 0, append: false, withLoading: false })
-          : Promise.resolve(),
-      ]);
-      setPreferencesOpen(false);
-    } catch (err) {
-      const message =
-        err?.response?.data?.message || "Failed to update notification preferences.";
-      setPreferencesError(String(message));
-    } finally {
-      setIsSavingPreferences(false);
+      onToggle?.();
     }
+    navigate("/admin/notifications");
   };
 
   return (
@@ -499,92 +602,154 @@ export default function AdminNotifications({
       <button
         type="button"
         className="navbar__icon navbar__icon--notify"
-        aria-label="Notifications"
+        aria-label={t("notifications.title", "Notifications")}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={handleToggle}
+        title={t("notifications.title", "Notifications")}
       >
         <Bell size={18} />
-        {unreadCount > 0 ? <span className="navbar__badge">{unreadCount}</span> : null}
+        {unreadCount > 0 ? (
+          <span className="navbar__badge" aria-label={`${unreadCount} unread`}>
+            {unreadCount > 99 ? "99+" : unreadCount}
+          </span>
+        ) : null}
       </button>
 
       {open ? (
         <div className="navbar__notify-menu" role="menu">
+          {/* Header */}
           <div className="navbar__notify-head">
-            <div>
-              <p>Notifications</p>
-              <span>{unreadCount} unread</span>
+            <div className="navbar__notify-head-title-wrap">
+              <p className="navbar__notify-head-title">
+                {t("notifications.title", "Notifications")}
+              </p>
+              {unreadCount > 0 ? (
+                <span className="navbar__notify-unread-badge">
+                  {unreadCount} {isIndo ? "Baru" : "Unread"}
+                </span>
+              ) : (
+                <span className="navbar__notify-head-sub">
+                  {isIndo ? "Semua telah dibaca" : "All caught up"}
+                </span>
+              )}
             </div>
+
             {unreadCount > 0 ? (
               <button
                 type="button"
                 onClick={handleMarkAllRead}
-                disabled={isMutating || loading || items.length === 0 || unreadCount === 0}
+                disabled={isMutating || loading || items.length === 0}
                 className="navbar__notify-head-action"
+                title={t("notifications.markAllRead", "Mark all read")}
               >
-                Mark all
+                <CheckCheck size={13} />
+                <span>{t("notifications.markAllRead", "Mark all read")}</span>
               </button>
             ) : null}
           </div>
 
-          {loading ? <p className="navbar__notify-empty">Loading notifications...</p> : null}
-          {!loading && error ? <p className="navbar__notify-empty">{error}</p> : null}
-          {!loading && !error && items.length === 0 ? (
-            <p className="navbar__notify-empty">No notifications yet.</p>
+          {/* Loading state */}
+          {loading ? (
+            <div className="navbar__notify-empty">
+              <div className="tp-spin-loader" />
+              <span>{t("notifications.loading", "Loading notifications...")}</span>
+            </div>
           ) : null}
 
+          {/* Error state */}
+          {!loading && error ? (
+            <p className="navbar__notify-empty navbar__notify-empty--error">{error}</p>
+          ) : null}
+
+          {/* Empty state */}
+          {!loading && !error && items.length === 0 ? (
+            <div className="navbar__notify-empty">
+              <Bell size={24} className="navbar__notify-empty-icon" />
+              <span>{t("notifications.empty", "No notifications yet.")}</span>
+            </div>
+          ) : null}
+
+          {/* Notifications List */}
           {!loading && !error && items.length > 0 ? (
             <div className="navbar__notify-list">
-              {items.map((item) => (
-                <div
-                  key={item.id}
-                  className={`navbar__notify-item ${item.isRead ? "" : "is-unread"}`.trim()}
-                >
-                  <div className="navbar__notify-avatar" aria-hidden="true">
-                    {getNotificationAvatarLabel(item)}
-                  </div>
+              {items.map((item) => {
+                const parsed = formatNotificationContent(item, isIndo);
+                const IconComponent =
+                  parsed.typeKey === "order"
+                    ? ShoppingBag
+                    : parsed.typeKey === "payment"
+                    ? CreditCard
+                    : parsed.typeKey === "contact"
+                    ? MessageSquare
+                    : Bell;
+
+                return (
                   <div
-                    className="navbar__notify-main"
-                    role="button"
-                    tabIndex={0}
-                    onClick={(event) => {
-                      handleNotificationClick(item, event);
-                    }}
-                    onAuxClick={(event) => {
-                      if (event.button !== 1) return;
-                      handleNotificationClick(item, event, true);
-                    }}
-                    onMouseDown={(event) => {
-                      if (event.button === 1) {
-                        event.preventDefault();
-                      }
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        handleNotificationClick(item, event);
-                      }
-                    }}
+                    key={item.id}
+                    className={`navbar__notify-item ${item.isRead ? "is-read" : "is-unread"}`.trim()}
                   >
-                    <p className="navbar__notify-title" title={item.title}>
-                      {item.title}
-                    </p>
-                    <div className="navbar__notify-meta">
-                      <span className="navbar__notify-label">{toLabel(item.type)}</span>
-                      <span className="navbar__notify-time">
-                        {formatNotificationTimestamp(item.createdAt)}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="navbar__notify-side">
-                    <span
-                      className={`navbar__notify-dot ${item.isRead ? "is-read" : ""}`}
+                    {/* Category Icon */}
+                    <div
+                      className={`navbar__notify-icon-wrap navbar__notify-icon-wrap--${parsed.typeKey}`}
                       aria-hidden="true"
-                    />
+                    >
+                      <IconComponent size={15} />
+                    </div>
+
+                    {/* Notification Main Content */}
+                    <div
+                      className="navbar__notify-main"
+                      role="button"
+                      tabIndex={0}
+                      onClick={(event) => handleNotificationClick(item, event)}
+                      onAuxClick={(event) => {
+                        if (event.button !== 1) return;
+                        handleNotificationClick(item, event, true);
+                      }}
+                      onMouseDown={(event) => {
+                        if (event.button === 1) event.preventDefault();
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          handleNotificationClick(item, event);
+                        }
+                      }}
+                    >
+                      <div className="navbar__notify-row-top">
+                        <p className="navbar__notify-title" title={parsed.title}>
+                          {parsed.title}
+                        </p>
+                        {!item.isRead && (
+                          <span
+                            className="navbar__notify-dot"
+                            title={isIndo ? "Belum dibaca" : "Unread"}
+                            aria-label="Unread"
+                          />
+                        )}
+                      </div>
+
+                      {parsed.subtitle ? (
+                        <p className="navbar__notify-subtext">
+                          {parsed.subtitle}
+                        </p>
+                      ) : null}
+
+                      <div className="navbar__notify-meta">
+                        <span className="navbar__notify-label">{parsed.badge}</span>
+                        <span className="navbar__notify-time">
+                          {formatNotificationTimestamp(item.createdAt, isIndo)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Delete action button */}
                     <button
                       type="button"
                       className="navbar__notify-delete"
-                      aria-label="Delete notification"
+                      aria-label={t("notifications.delete", "Delete notification")}
+                      title={t("notifications.delete", "Delete notification")}
                       disabled={isMutating}
                       onClick={(event) => {
                         event.preventDefault();
@@ -592,13 +757,15 @@ export default function AdminNotifications({
                         handleDelete(item.id);
                       }}
                     >
-                      <Trash2 size={14} />
+                      <Trash2 size={13} />
                     </button>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : null}
+
+          {/* Footer Action */}
           {!loading && !error && items.length > 0 ? (
             <div className="navbar__notify-footer">
               <button
@@ -607,7 +774,8 @@ export default function AdminNotifications({
                 disabled={isMutating}
                 className="navbar__notify-footer-action"
               >
-                Show all notifications
+                <span>{t("notifications.showAll", "Show all notifications")}</span>
+                <ArrowRight size={14} />
               </button>
             </div>
           ) : null}

@@ -1,78 +1,39 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
+  Bell,
   CheckCheck,
   ChevronDown,
   MoreHorizontal,
   Search,
   SlidersHorizontal,
   Trash2,
+  ShoppingBag,
+  CreditCard,
+  MessageSquare,
+  ArrowRight,
+  Filter,
 } from "lucide-react";
 import {
+  clearAllAdminNotifications,
   deleteAdminNotification,
   fetchAdminNotifications,
   markAdminNotificationRead,
+  markAllAdminNotificationsRead,
 } from "../../api/adminNotifications.ts";
+import {
+  formatNotificationContent,
+  formatNotificationTimestamp,
+} from "../../components/admin/AdminNotifications.jsx";
 
 const PAGE_LIMIT = 50;
-
-const MONTH_LABELS = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-];
-
-const STATUS_OPTIONS = [
-  { value: "all", label: "All" },
-  { value: "read", label: "Read" },
-  { value: "unread", label: "Unread" },
-];
 
 const DEFAULT_COLUMN_VISIBILITY = {
   status: true,
   notification: true,
   date: true,
   actions: true,
-};
-
-const formatNotificationTimestamp = (input) => {
-  const date = new Date(input || "");
-  if (Number.isNaN(date.getTime())) return "-";
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = MONTH_LABELS[date.getMonth()] || "";
-  const year = date.getFullYear();
-  const hour24 = date.getHours();
-  const minute = String(date.getMinutes()).padStart(2, "0");
-  const period = hour24 >= 12 ? "PM" : "AM";
-  const hour12 = hour24 % 12 || 12;
-  return `${day} ${month}, ${year} ${hour12}:${minute} ${period}`;
-};
-
-const formatRelativeDate = (input) => {
-  const date = new Date(input || "");
-  if (Number.isNaN(date.getTime())) return "-";
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffDays = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
-  if (diffDays === 0) return "Today";
-  if (diffDays === 1) return "1 day ago";
-  return `${diffDays} days ago`;
-};
-
-const toLabel = (type) => {
-  if (type === "ORDER_CREATED" || type === "NEW_ORDER") return "New Order";
-  if (type === "PAYMENT_SETTLED") return "Payment Settled (Duitku)";
-  if (type === "CONTACT_MESSAGE") return "Contact Message";
-  return String(type || "Notification");
 };
 
 const toMetaString = (value) => {
@@ -91,6 +52,7 @@ const buildNotificationTargetUrl = (item) => {
 
   const isOrderNotification =
     type === "ORDER_CREATED" ||
+    type === "NEW_ORDER" ||
     type === "PAYMENT_SETTLED" ||
     type === "ORDER_STATUS_CHANGED" ||
     type === "ORDER_STATUS_UPDATED";
@@ -102,30 +64,37 @@ const buildNotificationTargetUrl = (item) => {
   return "/admin/orders";
 };
 
-const getNotificationAvatarLabel = (item) => {
-  const title = String(item?.title || "").trim();
-  if (title) {
-    const parts = title.split(/\s+/).filter(Boolean).slice(0, 2);
-    if (parts.length > 0) {
-      return parts.map((part) => part.charAt(0).toUpperCase()).join("");
-    }
-  }
-  return "AD";
-};
-
 export default function AdminNotificationsPage() {
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation("admin");
+  const [, setLangTick] = useState(0);
+
+  const isIndo = Boolean(
+    i18n.language?.toLowerCase().startsWith("id") ||
+    (typeof window !== "undefined" && window.localStorage?.getItem("adminLanguage")?.includes('"isoCode":"id"'))
+  );
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [items, setItems] = useState([]);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
-  const [statusMenuOpen, setStatusMenuOpen] = useState(false);
   const [viewMenuOpen, setViewMenuOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [columnVisibility, setColumnVisibility] = useState(DEFAULT_COLUMN_VISIBILITY);
   const [isMutating, setIsMutating] = useState(false);
   const [rowMenuOpenId, setRowMenuOpenId] = useState(null);
+
+  // Sync re-render on language change
+  useEffect(() => {
+    const onLangChange = () => setLangTick((t) => t + 1);
+    window.addEventListener("adminLanguageChange", onLangChange);
+    i18n?.on?.("languageChanged", onLangChange);
+    return () => {
+      window.removeEventListener("adminLanguageChange", onLangChange);
+      i18n?.off?.("languageChanged", onLangChange);
+    };
+  }, [i18n]);
 
   const loadNotifications = async () => {
     try {
@@ -134,7 +103,7 @@ export default function AdminNotificationsPage() {
       const data = await fetchAdminNotifications({ limit: PAGE_LIMIT, offset: 0 });
       setItems(Array.isArray(data?.items) ? data.items : []);
     } catch (requestError) {
-      setError(requestError?.response?.data?.message || "Failed to load notifications.");
+      setError(requestError?.response?.data?.message || t("notifications.error", "Failed to load notifications."));
     } finally {
       setLoading(false);
     }
@@ -148,7 +117,6 @@ export default function AdminNotificationsPage() {
     const onPointerDown = (event) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
-      if (!target.closest("[data-admin-notify-status-menu]")) setStatusMenuOpen(false);
       if (!target.closest("[data-admin-notify-view-menu]")) setViewMenuOpen(false);
       if (!target.closest("[data-admin-notify-row-menu]")) setRowMenuOpenId(null);
     };
@@ -157,17 +125,20 @@ export default function AdminNotificationsPage() {
     return () => document.removeEventListener("mousedown", onPointerDown);
   }, []);
 
+  const totalCount = items.length;
+  const unreadCount = useMemo(() => items.filter((item) => !item?.isRead).length, [items]);
+  const readCount = useMemo(() => items.filter((item) => item?.isRead).length, [items]);
+
   const filteredItems = useMemo(() => {
     const keyword = String(search || "").trim().toLowerCase();
     return items.filter((item) => {
+      const parsed = formatNotificationContent(item, isIndo);
       const matchesSearch =
         !keyword ||
-        String(item?.title || "")
-          .toLowerCase()
-          .includes(keyword) ||
-        String(toLabel(item?.type || ""))
-          .toLowerCase()
-          .includes(keyword);
+        String(parsed.title || "").toLowerCase().includes(keyword) ||
+        String(parsed.subtitle || "").toLowerCase().includes(keyword) ||
+        String(parsed.badge || "").toLowerCase().includes(keyword) ||
+        String(item?.title || "").toLowerCase().includes(keyword);
 
       const matchesStatus =
         status === "all" ||
@@ -176,12 +147,7 @@ export default function AdminNotificationsPage() {
 
       return matchesSearch && matchesStatus;
     });
-  }, [items, search, status]);
-
-  const unreadCount = useMemo(
-    () => items.filter((item) => !item?.isRead).length,
-    [items]
-  );
+  }, [items, search, status, isIndo]);
 
   const allVisibleSelected =
     filteredItems.length > 0 &&
@@ -224,6 +190,19 @@ export default function AdminNotificationsPage() {
       );
     } catch (requestError) {
       setError(requestError?.response?.data?.message || "Failed to mark notifications as read.");
+    } finally {
+      setIsMutating(false);
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    if (isMutating || unreadCount === 0) return;
+    try {
+      setIsMutating(true);
+      setItems((prev) => prev.map((item) => ({ ...item, isRead: true })));
+      await markAllAdminNotificationsRead();
+    } catch (requestError) {
+      setError(requestError?.response?.data?.message || "Failed to mark all notifications as read.");
     } finally {
       setIsMutating(false);
     }
@@ -273,330 +252,412 @@ export default function AdminNotificationsPage() {
   };
 
   const viewColumns = [
-    ["status", "Status"],
-    ["notification", "Notification"],
-    ["date", "Date"],
-    ["actions", "Actions"],
+    ["status", t("notifications.columns.status", "Status")],
+    ["notification", t("notifications.columns.notification", "Notification")],
+    ["date", t("notifications.columns.date", "Date")],
+    ["actions", t("notifications.columns.actions", "Actions")],
   ];
 
   return (
     <div className="space-y-4">
-      <div className="rounded-[20px] border border-slate-200 bg-white px-6 py-5 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      {/* 1. Header Card */}
+      <div className="rounded-2xl border border-slate-200/80 bg-white dark:border-slate-800 dark:bg-[#0c182c] px-6 py-5 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h1 className="text-[24px] font-semibold tracking-tight text-slate-900">
-              Notifications
-            </h1>
-            <p className="mt-1 text-sm text-slate-500">{unreadCount} unread notifications</p>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold tracking-tight text-[#034c85] dark:text-white">
+                {t("notifications.pageTitle", "Notification Center")}
+              </h1>
+              {unreadCount > 0 ? (
+                <span className="inline-flex items-center rounded-full bg-[#fe6f05]/10 px-2.5 py-0.5 text-xs font-bold text-[#fe6f05] border border-[#fe6f05]/20">
+                  {unreadCount} {isIndo ? "Baru" : "Unread"}
+                </span>
+              ) : null}
+            </div>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              {t("notifications.pageSubtitle", "Monitor all store orders, payment settlements, and activities")}
+            </p>
           </div>
 
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <button
-              type="button"
-              onClick={handleMarkSelectedRead}
-              disabled={isMutating || selectedItems.filter((item) => !item.isRead).length === 0}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-emerald-400 px-4 text-sm font-semibold text-white transition hover:bg-[var(--admin-primary-soft)]0 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <CheckCheck className="h-4 w-4" />
-              Mark as Read
-            </button>
-            <button
-              type="button"
-              onClick={() => handleDeleteMany(selectedItems.map((item) => Number(item.id)))}
-              disabled={isMutating || selectedItems.length === 0}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-rose-300 px-4 text-sm font-semibold text-white transition hover:bg-rose-400 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <Trash2 className="h-4 w-4" />
-              Delete Selected
-            </button>
+          {/* Top Actions */}
+          <div className="flex flex-wrap items-center gap-2">
+            {unreadCount > 0 && (
+              <button
+                type="button"
+                onClick={handleMarkAllRead}
+                disabled={isMutating}
+                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-[#034c85]/20 bg-[#034c85]/5 px-3.5 text-xs font-bold text-[#034c85] transition hover:bg-[#034c85] hover:text-white dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-400 dark:hover:bg-sky-600 dark:hover:text-white disabled:opacity-50"
+              >
+                <CheckCheck className="h-4 w-4" />
+                <span>{t("notifications.markAllRead", "Mark all read")}</span>
+              </button>
+            )}
+
+            {selectedItems.length > 0 && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleMarkSelectedRead}
+                  disabled={isMutating || selectedItems.filter((item) => !item.isRead).length === 0}
+                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-[#034c85] px-3.5 text-xs font-bold text-white transition hover:bg-[#023862] disabled:opacity-50"
+                >
+                  <CheckCheck className="h-4 w-4" />
+                  <span>{t("notifications.markAsRead", "Mark as Read")} ({selectedItems.length})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteMany(selectedItems.map((item) => Number(item.id)))}
+                  disabled={isMutating}
+                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-rose-50 px-3.5 text-xs font-bold text-rose-600 border border-rose-200 transition hover:bg-rose-100 dark:bg-rose-950/40 dark:border-rose-800 dark:text-rose-400 dark:hover:bg-rose-900/60 disabled:opacity-50"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span>{t("notifications.deleteSelected", "Delete Selected")}</span>
+                </button>
+              </>
+            )}
           </div>
         </div>
 
-        <div className="mt-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="relative min-w-0 flex-1 max-w-[320px]">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        {/* 2. Controls Bar: Tabs & Search */}
+        <div className="mt-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between border-t border-slate-100 dark:border-slate-800 pt-4">
+          {/* Segmented Filter Tabs */}
+          <div className="inline-flex items-center rounded-xl bg-slate-100 dark:bg-slate-800/80 p-1 text-xs font-semibold">
+            <button
+              type="button"
+              onClick={() => setStatus("all")}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition ${
+                status === "all"
+                  ? "bg-white dark:bg-[#0c182c] text-[#034c85] dark:text-white shadow-sm font-bold"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              }`}
+            >
+              <span>{t("notifications.all", "All")}</span>
+              <span className="rounded-full bg-slate-200 dark:bg-slate-700 px-1.5 py-0.2 text-[10px]">
+                {totalCount}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatus("unread")}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition ${
+                status === "unread"
+                  ? "bg-white dark:bg-[#0c182c] text-[#fe6f05] shadow-sm font-bold"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              }`}
+            >
+              <span>{t("notifications.unread", "Unread")}</span>
+              {unreadCount > 0 ? (
+                <span className="rounded-full bg-[#fe6f05]/15 text-[#fe6f05] px-1.5 py-0.2 text-[10px] font-bold">
+                  {unreadCount}
+                </span>
+              ) : null}
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatus("read")}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition ${
+                status === "read"
+                  ? "bg-white dark:bg-[#0c182c] text-[#034c85] dark:text-sky-400 shadow-sm font-bold"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              }`}
+            >
+              <span>{t("notifications.read", "Read")}</span>
+              <span className="rounded-full bg-slate-200 dark:bg-slate-700 px-1.5 py-0.2 text-[10px]">
+                {readCount}
+              </span>
+            </button>
+          </div>
+
+          {/* Search and Column Controls */}
+          <div className="flex items-center gap-2">
+            <div className="relative min-w-[220px] max-w-[320px] flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
               <input
                 type="search"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search notifications..."
-                className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-700 outline-none transition focus:border-[var(--admin-primary)]"
+                placeholder={t("notifications.searchPlaceholder", "Search notifications...")}
+                className="h-9 w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60 pl-8 pr-3 text-xs text-slate-800 dark:text-slate-100 outline-none transition focus:border-[#034c85] dark:focus:border-sky-500"
               />
             </div>
 
-            <div className="relative" data-admin-notify-status-menu>
+            {/* Column Visibility Menu */}
+            <div className="relative" data-admin-notify-view-menu>
               <button
                 type="button"
-                onClick={() => {
-                  setStatusMenuOpen((prev) => !prev);
-                  setViewMenuOpen(false);
-                }}
-                className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 border-dashed bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                onClick={() => setViewMenuOpen((prev) => !prev)}
+                className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 text-xs font-semibold text-slate-700 dark:text-slate-300 transition hover:bg-slate-50 dark:hover:bg-slate-800"
               >
-                <span className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-current/30 text-[10px]">
-                  +
-                </span>
-                Status
+                <SlidersHorizontal className="h-3.5 w-3.5" />
+                <span>{t("notifications.view", "View")}</span>
               </button>
-              {statusMenuOpen ? (
-                <div className="absolute left-0 z-30 mt-2 w-44 rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_18px_38px_rgba(15,23,42,0.12)]">
-                  {STATUS_OPTIONS.map((option) => {
-                    const checked = status === option.value;
-                    return (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => {
-                          setStatus(option.value);
-                          setStatusMenuOpen(false);
-                        }}
-                        className={`flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left text-sm transition ${
-                          checked ? "bg-[var(--admin-primary-soft)] text-[var(--admin-primary-strong)]" : "hover:bg-slate-50"
-                        }`}
-                      >
-                        <span
-                          className={`inline-flex h-4 w-4 rounded border ${
-                            checked
-                              ? "border-[var(--admin-primary)] bg-[var(--admin-primary-soft)]"
-                              : "border-slate-300 bg-white"
-                          }`}
-                        />
-                        <span>{option.label}</span>
-                      </button>
-                    );
-                  })}
+              {viewMenuOpen ? (
+                <div className="absolute right-0 z-30 mt-2 w-48 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0c182c] p-2 shadow-xl">
+                  {viewColumns.map(([key, label]) => (
+                    <label
+                      key={key}
+                      className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 dark:text-slate-300 transition hover:bg-slate-50 dark:hover:bg-slate-800"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={Boolean(columnVisibility[key])}
+                        onChange={() =>
+                          setColumnVisibility((prev) => ({ ...prev, [key]: !prev[key] }))
+                        }
+                        className="h-3.5 w-3.5 rounded border-slate-300 text-[#034c85] focus:ring-[#034c85]"
+                      />
+                      <span>{label}</span>
+                    </label>
+                  ))}
                 </div>
               ) : null}
             </div>
           </div>
-
-          <div className="relative" data-admin-notify-view-menu>
-            <button
-              type="button"
-              onClick={() => {
-                setViewMenuOpen((prev) => !prev);
-                setStatusMenuOpen(false);
-              }}
-              className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
-            >
-              <SlidersHorizontal className="h-4 w-4" />
-              View
-            </button>
-            {viewMenuOpen ? (
-              <div className="absolute right-0 z-30 mt-2 w-52 rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_18px_38px_rgba(15,23,42,0.12)]">
-                {viewColumns.map(([key, label]) => (
-                  <label
-                    key={key}
-                    className="flex cursor-pointer items-center gap-3 rounded-xl px-2.5 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={Boolean(columnVisibility[key])}
-                      onChange={() =>
-                        setColumnVisibility((prev) => ({ ...prev, [key]: !prev[key] }))
-                      }
-                      className="h-4 w-4 rounded border-slate-300 text-[var(--admin-primary)] focus:ring-emerald-300"
-                    />
-                    <span>{label}</span>
-                  </label>
-                ))}
-              </div>
-            ) : null}
-          </div>
         </div>
 
         {error ? (
-          <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs text-rose-700 dark:bg-rose-950/30 dark:border-rose-900 dark:text-rose-400">
             {error}
           </div>
         ) : null}
       </div>
 
-      <div className="rounded-[20px] border border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
+      {/* 3. Notification Table Card */}
+      <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white dark:border-slate-800 dark:bg-[#0c182c] shadow-sm">
         {loading ? (
-          <div className="px-6 py-10 text-sm text-slate-500">Loading notifications...</div>
+          <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+            <div className="tp-spin-loader mb-3" />
+            <p className="text-xs">{t("notifications.loading", "Loading notifications...")}</p>
+          </div>
         ) : filteredItems.length === 0 ? (
-          <div className="px-6 py-10 text-center">
-            <p className="text-sm font-medium text-slate-700">No notifications found.</p>
-            <p className="mt-1 text-xs text-slate-500">
-              Try changing the search keyword or status filter.
+          <div className="py-16 text-center">
+            <Bell className="mx-auto h-8 w-8 text-slate-300 dark:text-slate-600 mb-2" />
+            <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+              {t("notifications.noNotificationsFound", "No notifications found.")}
+            </p>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-500">
+              {t("notifications.noNotificationsFoundHint", "Try changing the search keyword or status filter.")}
             </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full table-fixed">
+            <table className="min-w-full table-fixed text-left">
               <colgroup>
-                <col style={{ width: "40px" }} />
-                {columnVisibility.status ? <col style={{ width: "150px" }} /> : null}
+                <col style={{ width: "44px" }} />
+                {columnVisibility.status ? <col style={{ width: "130px" }} /> : null}
                 {columnVisibility.notification ? <col /> : null}
-                {columnVisibility.date ? <col style={{ width: "160px" }} /> : null}
-                {columnVisibility.actions ? <col style={{ width: "80px" }} /> : null}
+                {columnVisibility.date ? <col style={{ width: "170px" }} /> : null}
+                {columnVisibility.actions ? <col style={{ width: "64px" }} /> : null}
               </colgroup>
               <thead>
-                <tr className="border-b border-slate-200">
+                <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60">
                   <th className="px-4 py-3 text-left">
                     <input
                       type="checkbox"
                       checked={allVisibleSelected}
                       onChange={toggleSelectAllVisible}
-                      className="h-4 w-4 rounded border-slate-300 text-[var(--admin-primary)] focus:ring-emerald-300"
+                      className="h-3.5 w-3.5 rounded border-slate-300 text-[#034c85] focus:ring-[#034c85]"
+                      aria-label="Select all notifications"
                     />
                   </th>
                   {columnVisibility.status ? (
-                    <th className="px-4 py-3 text-left text-[12px] font-semibold uppercase tracking-[0.06em] text-slate-500">
-                      Status
+                    <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      {t("notifications.columns.status", "Status")}
                     </th>
                   ) : null}
                   {columnVisibility.notification ? (
-                    <th className="px-4 py-3 text-left text-[12px] font-semibold uppercase tracking-[0.06em] text-slate-500">
-                      Notification
+                    <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      {t("notifications.columns.notification", "Notification")}
                     </th>
                   ) : null}
                   {columnVisibility.date ? (
-                    <th className="px-4 py-3 text-left text-[12px] font-semibold uppercase tracking-[0.06em] text-slate-500">
-                      Date
+                    <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      {t("notifications.columns.date", "Date")}
                     </th>
                   ) : null}
                   {columnVisibility.actions ? (
-                    <th className="px-4 py-3 text-right text-[12px] font-semibold uppercase tracking-[0.06em] text-slate-500">
-                      Actions
+                    <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      {t("notifications.columns.actions", "Actions")}
                     </th>
                   ) : null}
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
                 {filteredItems.map((item) => {
                   const isSelected = selectedIds.has(Number(item.id));
-                  const targetUrl = buildNotificationTargetUrl(item);
+                  const parsed = formatNotificationContent(item, isIndo);
+                  const IconComponent =
+                    parsed.typeKey === "order"
+                      ? ShoppingBag
+                      : parsed.typeKey === "payment"
+                      ? CreditCard
+                      : parsed.typeKey === "contact"
+                      ? MessageSquare
+                      : Bell;
+
                   return (
-                    <tr key={item.id} className="border-b border-slate-100 last:border-b-0">
-                      <td className="px-4 py-4 align-top">
+                    <tr
+                      key={item.id}
+                      className={`group transition hover:bg-slate-50/80 dark:hover:bg-slate-850/60 cursor-pointer ${
+                        !item.isRead
+                          ? "bg-[#fe6f05]/[0.02] dark:bg-[#fe6f05]/[0.05]"
+                          : ""
+                      }`}
+                      onClick={() => handleOpenNotification(item)}
+                    >
+                      {/* Checkbox */}
+                      <td
+                        className="px-4 py-3.5 align-middle"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <input
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => toggleSelectRow(item.id)}
-                          className="h-4 w-4 rounded border-slate-300 text-[var(--admin-primary)] focus:ring-emerald-300"
+                          className="h-3.5 w-3.5 rounded border-slate-300 text-[#034c85] focus:ring-[#034c85]"
                         />
                       </td>
+
+                      {/* Status Badge */}
                       {columnVisibility.status ? (
-                        <td className="px-4 py-4 align-top">
+                        <td className="px-4 py-3.5 align-middle">
                           <span
-                            className={`inline-flex h-7 items-center rounded-full px-3 text-xs font-semibold ${
+                            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold ${
                               item.isRead
-                                ? "bg-slate-100 text-slate-600"
-                                : "bg-[var(--admin-primary-soft)]0 text-white"
+                                ? "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
+                                : "bg-[#fe6f05]/12 text-[#fe6f05] border border-[#fe6f05]/25"
                             }`}
                           >
-                            {item.isRead ? "Read" : "Unread"}
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full ${
+                                item.isRead ? "bg-slate-400" : "bg-[#fe6f05]"
+                              }`}
+                            />
+                            {item.isRead
+                              ? t("notifications.read", "Read")
+                              : t("notifications.unread", "Unread")}
                           </span>
                         </td>
                       ) : null}
+
+                      {/* Notification Content */}
                       {columnVisibility.notification ? (
-                        <td className="px-4 py-4 align-top">
-                          <div className="flex items-start gap-4">
-                            <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-gradient-to-br from-slate-50 to-cyan-50 text-[11px] font-semibold text-slate-800">
-                              {getNotificationAvatarLabel(item)}
+                        <td className="px-4 py-3.5 align-middle">
+                          <div className="flex items-center gap-3 min-w-0">
+                            {/* Category Icon */}
+                            <div
+                              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition ${
+                                parsed.typeKey === "order"
+                                  ? "bg-[#034c85]/10 text-[#034c85] dark:bg-sky-500/15 dark:text-sky-400"
+                                  : parsed.typeKey === "payment"
+                                  ? "bg-[#fe6f05]/12 text-[#fe6f05] dark:bg-[#fe6f05]/20 dark:text-amber-400"
+                                  : "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400"
+                              }`}
+                              aria-hidden="true"
+                            >
+                              <IconComponent className="h-4 w-4" />
                             </div>
-                            <div className="min-w-0">
-                              <button
-                                type="button"
-                                onClick={() => handleOpenNotification(item)}
-                                className="truncate text-left text-[15px] font-semibold text-slate-900 transition hover:text-[var(--admin-primary)]"
-                                title={item.title}
-                              >
-                                {item.title}
-                              </button>
-                              <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                                <span className="inline-flex h-6 items-center rounded-full bg-[var(--admin-primary-soft)]0 px-2.5 text-[11px] font-semibold text-white">
-                                  {toLabel(item.type)}
-                                </span>
-                                <span className="text-xs text-slate-500">
-                                  {formatNotificationTimestamp(item.createdAt)}
+
+                            {/* Text Info */}
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <p
+                                  className={`truncate text-sm transition group-hover:text-[#034c85] dark:group-hover:text-sky-400 ${
+                                    item.isRead
+                                      ? "font-medium text-slate-800 dark:text-slate-200"
+                                      : "font-bold text-[#0f172a] dark:text-white"
+                                  }`}
+                                  title={parsed.title}
+                                >
+                                  {parsed.title}
+                                </p>
+                                <span className="inline-flex shrink-0 items-center rounded-full bg-[#034c85]/8 px-2 py-0.2 text-[10px] font-bold text-[#034c85] dark:bg-sky-500/15 dark:text-sky-300">
+                                  {parsed.badge}
                                 </span>
                               </div>
-                              {targetUrl ? (
-                                <div className="mt-2">
-                                  <Link
-                                    to={targetUrl}
-                                    className="text-xs font-medium text-[var(--admin-primary)] hover:text-[var(--admin-primary-strong)]"
-                                  >
-                                    Open related order
-                                  </Link>
-                                </div>
+
+                              {parsed.subtitle ? (
+                                <p className="mt-0.5 truncate text-xs font-semibold text-[#034c85] dark:text-sky-400">
+                                  {parsed.subtitle}
+                                </p>
                               ) : null}
                             </div>
                           </div>
                         </td>
                       ) : null}
+
+                      {/* Unified Date Column */}
                       {columnVisibility.date ? (
-                        <td className="px-4 py-4 align-top text-sm text-slate-500">
-                          {formatRelativeDate(item.createdAt)}
+                        <td className="px-4 py-3.5 align-middle text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                          {formatNotificationTimestamp(item.createdAt, isIndo)}
                         </td>
                       ) : null}
+
+                      {/* Actions Column */}
                       {columnVisibility.actions ? (
-                        <td className="px-4 py-4 align-top">
-                          <div className="flex justify-end">
-                            <div className="relative" data-admin-notify-row-menu>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setRowMenuOpenId((prev) =>
-                                    prev === Number(item.id) ? null : Number(item.id)
-                                  )
-                                }
-                                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50"
-                              >
-                                <MoreHorizontal className="h-4 w-4" />
-                              </button>
-                              {rowMenuOpenId === Number(item.id) ? (
-                                <div className="absolute right-0 z-20 mt-2 w-44 rounded-xl border border-slate-200 bg-white p-1.5 shadow-[0_16px_32px_rgba(15,23,42,0.12)]">
+                        <td
+                          className="px-4 py-3.5 align-middle text-right"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="relative inline-block text-left" data-admin-notify-row-menu>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setRowMenuOpenId((prev) =>
+                                  prev === Number(item.id) ? null : Number(item.id)
+                                )
+                              }
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 dark:border-slate-800 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                              title={t("notifications.actions", "Actions")}
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                            </button>
+
+                            {rowMenuOpenId === Number(item.id) ? (
+                              <div className="absolute right-0 z-30 mt-1.5 w-40 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0c182c] p-1.5 shadow-xl text-left">
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenNotification(item)}
+                                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+                                >
+                                  <ArrowRight className="h-3.5 w-3.5" />
+                                  <span>{t("notifications.open", "Open")}</span>
+                                </button>
+                                {!item.isRead && (
                                   <button
                                     type="button"
-                                    onClick={() => handleOpenNotification(item)}
-                                    className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-50"
+                                    onClick={async () => {
+                                      try {
+                                        setIsMutating(true);
+                                        await markAdminNotificationRead(Number(item.id));
+                                        setItems((prev) =>
+                                          prev.map((entry) =>
+                                            Number(entry.id) === Number(item.id)
+                                              ? { ...entry, isRead: true }
+                                              : entry
+                                          )
+                                        );
+                                      } finally {
+                                        setIsMutating(false);
+                                        setRowMenuOpenId(null);
+                                      }
+                                    }}
+                                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
                                   >
-                                    Open
+                                    <CheckCheck className="h-3.5 w-3.5" />
+                                    <span>{t("notifications.markAsRead", "Mark as Read")}</span>
                                   </button>
-                                  {!item.isRead ? (
-                                    <button
-                                      type="button"
-                                      onClick={async () => {
-                                        try {
-                                          setIsMutating(true);
-                                          await markAdminNotificationRead(Number(item.id));
-                                          setItems((prev) =>
-                                            prev.map((entry) =>
-                                              Number(entry.id) === Number(item.id)
-                                                ? { ...entry, isRead: true }
-                                                : entry
-                                            )
-                                          );
-                                        } catch (requestError) {
-                                          setError(
-                                            requestError?.response?.data?.message ||
-                                              "Failed to update notification."
-                                          );
-                                        } finally {
-                                          setIsMutating(false);
-                                          setRowMenuOpenId(null);
-                                        }
-                                      }}
-                                      className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-50"
-                                    >
-                                      Mark as read
-                                    </button>
-                                  ) : null}
-                                  <button
-                                    type="button"
-                                    onClick={() => handleDeleteMany([Number(item.id)])}
-                                    className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-rose-600 transition hover:bg-rose-50"
-                                  >
-                                    Delete
-                                  </button>
-                                </div>
-                              ) : null}
-                            </div>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteMany([Number(item.id)])}
+                                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                  <span>{t("notifications.delete", "Delete")}</span>
+                                </button>
+                              </div>
+                            ) : null}
                           </div>
                         </td>
                       ) : null}

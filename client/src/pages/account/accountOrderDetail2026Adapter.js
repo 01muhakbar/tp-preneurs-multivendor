@@ -1334,15 +1334,27 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false, is
     orderMeta: {
       orderNo: compactOrderNo,
       rawOrderNo: rawInvoiceNo,
-      gatewayOrderId:
-        text(
+      gatewayOrderId: (() => {
+        const candidate = text(
           source.gatewayOrderId ||
           source.merchantOrderId ||
           grouped.gatewayOrderId ||
           grouped.merchantOrderId ||
           paymentEntry.merchantOrderId ||
-          (rawInvoiceNo && rawInvoiceNo !== compactOrderNo ? rawInvoiceNo : "")
-        ) || "",
+          paymentEntry.reference ||
+          paymentEntry.providerReference ||
+          ""
+        );
+        if (!candidate) return "";
+        // Hide internal backend idempotency tokens and raw timestamp stores
+        if (/^STORE-IDEMP-/i.test(candidate) || /^STORE-\d+/i.test(candidate)) {
+          return "";
+        }
+        if (candidate === compactOrderNo) {
+          return "";
+        }
+        return candidate;
+      })(),
       paymentMethod: paymentMethodDisplay,
       sellerNote: customerNotes,
       invoiceUrl,

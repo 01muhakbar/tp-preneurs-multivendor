@@ -932,82 +932,59 @@ export default function AccountOrderDetail2026View({
 
         {/* Jaminan & Kebijakan Pengembalian */}
         {isOrderPaid && (isDelivered || isCompleted) && (
-          <section
-            className="tp-shopee-detail__card"
-            style={{
-              borderLeft: "4px solid #034c85",
-              background: "linear-gradient(135deg, rgba(3, 76, 133, 0.03) 0%, rgba(254, 111, 5, 0.03) 100%)",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: "10px",
-                flexWrap: "wrap",
-                gap: "8px",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <ShieldCheck size={18} style={{ color: "#034c85" }} />
-                <h3 style={{ margin: 0, fontSize: "0.92rem", fontWeight: 700, color: "#034c85" }}>
-                  {isIndo ? "Jaminan & Kebijakan Pengembalian" : "Return & Guarantee Policy"}
-                </h3>
-              </div>
+          <section className="tp-shopee-detail__card tp-shopee-detail__guarantee-card">
+            <div className="tp-shopee-detail__guarantee-head">
+              <h3 className="tp-shopee-detail__guarantee-title">
+                <ShieldCheck size={18} style={{ color: "var(--tp-navy, #034c85)" }} />
+                <span>{isIndo ? "Jaminan & Kebijakan Pengembalian" : "Return & Guarantee Policy"}</span>
+              </h3>
               <span
-                style={{
-                  fontSize: "0.72rem",
-                  fontWeight: 600,
-                  padding: "2px 8px",
-                  borderRadius: "999px",
-                  backgroundColor: isReturnExpired ? "#fee2e2" : "#e0f2fe",
-                  color: isReturnExpired ? "#b91c1c" : "#034c85",
-                }}
+                className={`tp-shopee-detail__guarantee-badge ${
+                  isReturnExpired ? "tp-shopee-detail__guarantee-badge--expired" : ""
+                }`}
               >
                 {isReturnExpired
-                  ? (isIndo ? "Batas Retur Berakhir" : "Return Window Expired")
-                  : (isIndo ? "Maksimal 7 Hari" : "Max 7 Days")}
+                  ? (isIndo ? "Masa Garansi Berakhir" : "Return Window Expired")
+                  : (isIndo ? "Proteksi TP Aktif (7 Hari)" : "Active TP Protection (7 Days)")}
               </span>
             </div>
 
-            <div style={{ fontSize: "0.82rem", color: "#334155", lineHeight: 1.55, display: "flex", flexDirection: "column", gap: "8px" }}>
-              <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
+            <div className="tp-shopee-detail__guarantee-body">
+              <div className="tp-shopee-detail__guarantee-row">
                 <Clock size={14} style={{ color: "#fe6f05", marginTop: "3px", flexShrink: 0 }} />
                 <span>
                   {isIndo
-                    ? "Batas pengajuan pengembalian barang dan dana maksimal 7 hari (dan 2 hari untuk penjual tertentu) setelah pesanan tiba di aplikasi TP Preneurs."
-                    : "Return and refund requests are allowed within 7 days (or 2 days for specific sellers) after delivery."}
+                    ? "Dana pembeli ditahan aman oleh TP Preneurs hingga pesanan dipastikan diterima dalam kondisi baik."
+                    : "Buyer payment is held securely by TP Preneurs until the order is verified in good condition."}
                 </span>
               </div>
 
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "flex-start",
-                  gap: "8px",
-                  padding: "8px 10px",
-                  borderRadius: "6px",
-                  backgroundColor: "#fff7ed",
-                  border: "1px solid #fed7aa",
-                  color: "#9a3412",
-                  fontWeight: 500,
-                }}
-              >
-                <AlertTriangle size={14} style={{ color: "#fe6f05", marginTop: "2px", flexShrink: 0 }} />
-                <span>
-                  {isIndo
-                    ? "Pengembalian barang dan dana tidak bisa diajukan jika melewati batas waktu yang telah ditentukan."
-                    : "Return and refund requests cannot be submitted after the specified deadline has passed."}
-                </span>
-              </div>
+              {isReturnExpired ? (
+                <div className="tp-shopee-detail__guarantee-notice tp-shopee-detail__guarantee-notice--expired">
+                  <CheckCircle2 size={14} style={{ color: "#64748b", marginTop: "2px", flexShrink: 0 }} />
+                  <span>
+                    {isIndo
+                      ? "Batas waktu pengajuan pengembalian (7 hari) telah berakhir. Pesanan ini telah selesai secara penuh dan dana telah diteruskan ke saldo toko."
+                      : "The 7-day return request deadline has passed. This order is fully finalized and funds have been released to the store."}
+                  </span>
+                </div>
+              ) : (
+                <div className="tp-shopee-detail__guarantee-notice">
+                  <ShieldCheck size={14} style={{ color: "#fe6f05", marginTop: "2px", flexShrink: 0 }} />
+                  <span>
+                    {isIndo
+                      ? `Pengajuan komplain atau retur barang/dana dapat dilakukan maksimal hingga ${returnPolicy?.returnDeadlineDisplay || "7 hari sejak barang tiba"}.`
+                      : `Return and refund requests are allowed within ${returnPolicy?.returnDeadlineDisplay ? `until ${returnPolicy.returnDeadlineDisplay}` : "7 days after delivery"}.`}
+                  </span>
+                </div>
+              )}
 
-              <div style={{ display: "flex", alignItems: "flex-start", gap: "8px", fontSize: "0.78rem", color: "#64748b" }}>
-                <CheckCircle2 size={13} style={{ color: "#034c85", marginTop: "2px", flexShrink: 0 }} />
+              <div className="tp-shopee-detail__guarantee-subtext">
+                <CheckCircle2 size={13} style={{ color: "var(--tp-navy, #034c85)", marginTop: "2px", flexShrink: 0 }} />
                 <span>
                   {isIndo
-                    ? "Jika Anda tidak mengajukan pengembalian dalam 7 hari atau klik 'Pesanan Diterima', sistem otomatis menyelesaikan pesanan dan meneruskan dana ke Saldo Tersedia penjual."
-                    : "If you do not request a return within 7 days or confirm receipt, the system automatically completes the order and releases funds to the seller's available balance."}
+                    ? "Jika Anda tidak mengajukan komplain dalam batas waktu, sistem otomatis menyelesaikan transaksi dan melepaskan dana ke saldo penjual."
+                    : "If you do not request a return within the window or click 'Order Received', the system automatically completes the transaction and releases funds to the seller."}
                 </span>
               </div>
             </div>
@@ -1020,7 +997,7 @@ export default function AccountOrderDetail2026View({
             {t.needHelp}
           </h3>
           <div className="tp-shopee-detail__help-list">
-            {!isDigitalOrder && (
+            {!isDigitalOrder && canRequestReturn && (
               <button
                 type="button"
                 onClick={() => setShowReturnModal(true)}
@@ -1086,8 +1063,10 @@ export default function AccountOrderDetail2026View({
 
           {/* Synchronized Gateway Order ID / Reference (Duitku) */}
           {Boolean(
-            (orderMeta.gatewayOrderId && orderMeta.gatewayOrderId !== orderMeta.orderNo) ||
-            (orderMeta.rawOrderNo && orderMeta.rawOrderNo !== orderMeta.orderNo)
+            orderMeta.gatewayOrderId &&
+            orderMeta.gatewayOrderId !== orderMeta.orderNo &&
+            !/^STORE-IDEMP-/i.test(orderMeta.gatewayOrderId) &&
+            !/^STORE-\d+/i.test(orderMeta.gatewayOrderId)
           ) && (
             <div className="tp-shopee-detail__meta-row tp-shopee-detail__meta-row--sub">
               <div className="tp-shopee-detail__meta-label-group">
@@ -1096,7 +1075,7 @@ export default function AccountOrderDetail2026View({
               </div>
               <div className="tp-shopee-detail__meta-val-copy">
                 <span className="tp-shopee-detail__gateway-id">
-                  {orderMeta.gatewayOrderId || orderMeta.rawOrderNo}
+                  {orderMeta.gatewayOrderId}
                 </span>
                 <button
                   type="button"
@@ -1104,7 +1083,7 @@ export default function AccountOrderDetail2026View({
                   title={t.copy}
                   onClick={() =>
                     handleCopyOrderNo(
-                      orderMeta.gatewayOrderId || orderMeta.rawOrderNo,
+                      orderMeta.gatewayOrderId,
                       t.gatewayOrderCopied
                     )
                   }

@@ -1479,5 +1479,43 @@
     "Expires": "Expires",
     "Image Preview": "Image Preview",
     "Selected Coupon": "Selected Coupon"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "unreadCount": "{{count}} unread",
+    "unreadCountFull": "{{count}} unread notifications",
+    "markAllRead": "Mark all read",
+    "showAll": "Show all notifications",
+    "showAllWithCount": "Show all notifications ({{count}})",
+    "empty": "No notifications yet.",
+    "loading": "Loading notifications...",
+    "delete": "Delete notification",
+    "deleteSelected": "Delete Selected",
+    "markAsRead": "Mark as Read",
+    "pageTitle": "Notification Center",
+    "pageSubtitle": "Monitor all store orders, payment settlements, and activities",
+    "all": "All",
+    "unread": "Unread",
+    "read": "Read",
+    "status": "Status",
+    "view": "View",
+    "searchPlaceholder": "Search notifications...",
+    "columns": {
+      "status": "Status",
+      "notification": "Notification",
+      "date": "Date",
+      "actions": "Actions"
+    },
+    "types": {
+      "orderCreated": "New Order",
+      "paymentSettled": "Payment Settled (Duitku)",
+      "contactMessage": "Contact Message",
+      "orderStatusChanged": "Status Updated",
+      "general": "Notification"
+    },
+    "noNotificationsFound": "No notifications found.",
+    "noNotificationsFoundHint": "Try changing the search keyword or status filter.",
+    "open": "Open",
+    "clearAllConfirm": "Clear all notifications?"
   }
 }
