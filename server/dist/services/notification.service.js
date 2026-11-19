@@ -360,9 +360,10 @@ export const createUserOrderStatusUpdatedNotification = async (input) => {
     const invoiceNo = String(input.invoiceNo || "").trim() || `#${orderId}`;
     const statusFrom = String(input.statusFrom || "").trim();
     const statusTo = String(input.statusTo || input.status || "").trim() || "updated";
+    const orderNumber = formatCompactOrderNumber(invoiceNo, orderId, new Date());
     const title = statusFrom
-        ? `Order ${invoiceNo} status changed: ${statusFrom} -> ${statusTo}`
-        : `Order ${invoiceNo} status updated to ${statusTo}`;
+        ? `Order ${orderNumber} status changed: ${statusFrom} -> ${statusTo}`
+        : `Order ${orderNumber} status updated to ${statusTo}`;
     return createNotification({
         type: "ORDER_STATUS_UPDATED",
         title,
@@ -370,6 +371,7 @@ export const createUserOrderStatusUpdatedNotification = async (input) => {
             userId,
             orderId,
             invoiceNo,
+            orderNumber,
             statusFrom: statusFrom || null,
             statusTo,
         },
@@ -476,6 +478,43 @@ export const listUserNotifications = async (userId, limit = 20, offset = 0) => {
     const userItems = items.filter((item) => isUserTargeted(item.meta) && toUserIdFromMeta(item.meta) === safeUserId);
     const filteredItems = userItems.slice(safeOffset, safeOffset + safeLimit);
     const unreadCount = unreadItems.filter((item) => isUserTargeted(item.meta) && toUserIdFromMeta(item.meta) === safeUserId).length;
+    // Batch-enrich missing orderId / orderNumber for user notifications with invoiceNo
+    const missingOrderInvoices = filteredItems
+        .map((item) => {
+        const meta = normalizeMeta(item.meta);
+        const inv = String(meta?.invoiceNo || meta?.ref || "").trim();
+        const oId = Number(meta?.orderId || meta?.id || 0);
+        return !oId && inv && inv.startsWith("STORE-") ? inv : null;
+    })
+        .filter((inv) => Boolean(inv));
+    if (missingOrderInvoices.length > 0) {
+        try {
+            const matchingOrders = await Order.findAll({
+                where: { invoiceNo: { [Op.in]: missingOrderInvoices } },
+                attributes: ["id", "invoiceNo", "createdAt"],
+            });
+            const orderMap = new Map();
+            matchingOrders.forEach((o) => {
+                if (o.invoiceNo)
+                    orderMap.set(o.invoiceNo, o);
+            });
+            filteredItems.forEach((item) => {
+                const meta = normalizeMeta(item.meta);
+                if (meta && meta.invoiceNo && !meta.orderId) {
+                    const invKey = String(meta.invoiceNo || "").trim();
+                    const match = invKey ? orderMap.get(invKey) : null;
+                    if (match) {
+                        meta.orderId = match.id;
+                        meta.orderNumber = formatCompactOrderNumber(match.invoiceNo, match.id, match.createdAt);
+                        item.meta = meta;
+                    }
+                }
+            });
+        }
+        catch {
+            // non-fatal enrichment fallback
+        }
+    }
     return {
         unreadCount,
         total: userItems.length,

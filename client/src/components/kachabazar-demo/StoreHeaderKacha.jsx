@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import {
   ChevronDown,
@@ -24,7 +24,7 @@ import { useDebounce } from "../../hooks/useDebounce.ts";
 import ThemeToggle from "../store/ThemeToggle.jsx";
 import NotificationPreviewDropdown from "../store/NotificationPreviewDropdown.jsx";
 import { useStorefrontWishlist } from "../../utils/storefrontWishlist.js";
-import { fetchUserUnreadNotificationCount } from "../../api/userNotifications.ts";
+import { fetchUserUnreadNotificationCount, markAllUserNotificationsRead } from "../../api/userNotifications.ts";
 import { getStoreHeaderCustomization, fetchPublicLanguages } from "../../api/public/storeCustomizationPublic.ts";
 
 import { CANONICAL_CLIENT_LOGO_URL, getCachedClientLogoUrl } from "../../lib/branding.js";
@@ -284,6 +284,7 @@ export default function StoreHeaderKacha({
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
+  const queryClient = useQueryClient();
   const { count } = useCart();
   const wishlist = useStorefrontWishlist();
   const { user, isAccountSession, logout } = useAccountAuth();
@@ -500,12 +501,27 @@ export default function StoreHeaderKacha({
 
   const closeCategories = () => setCategoriesOpen(false);
 
-  const handleToggleNotifications = () => {
+  const handleToggleNotifications = async () => {
     if (!isAccountSession) {
       navigate("/auth/login");
       return;
     }
-    setNotificationsOpen((value) => !value);
+    if (notificationsOpen) {
+      setNotificationsOpen(false);
+      if (unreadCount > 0) {
+        queryClient.setQueryData(["account", "notifications", "unread-count"], 0);
+        try {
+          await markAllUserNotificationsRead();
+        } catch {
+          // ignore non-fatal
+        } finally {
+          queryClient.invalidateQueries({ queryKey: ["account", "notifications"] });
+          queryClient.invalidateQueries({ queryKey: ["user", "notifications"] });
+        }
+      }
+    } else {
+      setNotificationsOpen(true);
+    }
   };
 
   const handleNotificationNavigate = (path) => {

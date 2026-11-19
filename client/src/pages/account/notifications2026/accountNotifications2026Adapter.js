@@ -154,6 +154,25 @@ const resolveUnread = (item, meta) => {
   return false;
 };
 
+export const formatCompactOrderNumber = (invoiceNo, orderId, createdAt) => {
+  const raw = String(invoiceNo || "").trim();
+  if (/^TP-\d{6}-\w+/i.test(raw)) return raw;
+
+  const d = createdAt ? new Date(createdAt) : null;
+  const dateStr =
+    d && !Number.isNaN(d.getTime())
+      ? `${String(d.getFullYear()).slice(-2)}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`
+      : "261119";
+
+  const numPart = orderId
+    ? String(orderId).padStart(4, "0")
+    : raw && !raw.startsWith("STORE-IDEMP-")
+      ? raw.replace(/[^A-Za-z0-9]/g, "").slice(-4) || "0001"
+      : "0001";
+
+  return `TP-${dateStr}-${numPart}`;
+};
+
 export const formatNotificationTimestamp = (input, isIndo = false) => {
   const date = new Date(input || "");
   if (Number.isNaN(date.getTime())) return "";
@@ -169,8 +188,8 @@ export const formatNotificationTimestamp = (input, isIndo = false) => {
     hour12: !isIndo,
   }).format(date);
 
-  if (diff === 0) return time;
-  if (diff === 1) return isIndo ? "Kemarin" : "Yesterday";
+  if (diff === 0) return isIndo ? `${time} WIB` : time;
+  if (diff === 1) return isIndo ? `Kemarin, ${time} WIB` : `Yesterday, ${time}`;
   return new Intl.DateTimeFormat(isIndo ? "id-ID" : "en-US", {
     month: "short",
     day: "numeric",
@@ -178,7 +197,7 @@ export const formatNotificationTimestamp = (input, isIndo = false) => {
   }).format(date);
 };
 
-const resolveRoute = (item, meta, kind, orderId) => {
+const resolveRoute = (item, meta, kind, orderId, orderCode) => {
   const provided = firstSafePath(
     item.route,
     item.actionUrl,
@@ -190,8 +209,9 @@ const resolveRoute = (item, meta, kind, orderId) => {
     meta.url
   );
   if (provided) return provided;
-  if ((kind === "order" || kind === "payment") && orderId) {
-    return `/user/my-orders/${encodeURIComponent(String(orderId))}`;
+  const targetOrderRef = orderCode || orderId;
+  if ((kind === "order" || kind === "payment") && targetOrderRef) {
+    return `/user/my-orders/${encodeURIComponent(String(targetOrderRef))}`;
   }
   if (kind === "invitation") return "/user/store-invitations";
   if (kind === "promotion") return "/offers";
@@ -261,30 +281,36 @@ const getPresentation = (kind, item, meta, isIndo) => {
 
 const getStatusCopy = (kind, item, meta, isIndo) => {
   const haystack = getHaystack(item, meta);
-  if (/\b(delivered|delivery complete)\b/.test(haystack)) {
+  if (/\b(cancel|cancelled|batal|dibatalkan)\b/.test(haystack)) {
+    return {
+      title: isIndo ? "Pesanan dibatalkan" : "Order cancelled",
+      message: isIndo ? "Pesanan Anda telah dibatalkan." : "Your order has been cancelled.",
+    };
+  }
+  if (/\b(delivered|delivery complete|sampai|selesai)\b/.test(haystack)) {
     return {
       title: isIndo ? "Pesanan terkirim" : "Order delivered",
-      message: isIndo ? "Pesanan Anda telah berhasil diantar." : "Your order has been delivered.",
+      message: isIndo ? "Pesanan Anda telah sampai di tujuan." : "Your order has been delivered.",
     };
   }
-  if (/\b(shipped|shipping|on the way|tracking)\b/.test(haystack)) {
+  if (/\b(shipped|shipping|on the way|tracking|kirim|dikirim)\b/.test(haystack)) {
     return {
       title: isIndo ? "Pesanan dikirim" : "Order shipped",
-      message: isIndo ? "Pesanan Anda sedang dalam perjalanan." : "Your order is on the way.",
+      message: isIndo ? "Pesanan Anda sedang dalam perjalanan kurir." : "Your order is on the way.",
     };
   }
-  if (/\b(packed|ready to ship|ready_to_ship)\b/.test(haystack)) {
+  if (/\b(packed|ready to ship|ready_to_ship|kemas|dikemas)\b/.test(haystack)) {
     return {
       title: isIndo ? "Pesanan dikemas" : "Order packed",
-      message: isIndo ? "Pesanan Anda telah dikemas dan siap dikirim." : "Packed and ready for pickup.",
+      message: isIndo ? "Pesanan Anda telah dikemas dan siap dikirim." : "Your order is packed and ready for pickup.",
     };
   }
-  if (/\b(payment|paid|approved|confirmed|duitku|settled|qris|proof)\b/.test(haystack) || kind === "payment") {
+  if (/\b(payment|paid|approved|confirmed|duitku|settled|qris|proof|lunas|bayar)\b/.test(haystack) || kind === "payment") {
     return {
       title: isIndo ? "Pembayaran berhasil" : "Payment confirmed",
       message: isIndo
-        ? "Pembayaran pesanan Anda via Duitku telah berhasil kami terima."
-        : "We've received your payment via Duitku Gateway.",
+        ? "Pembayaran via Duitku telah berhasil diterima."
+        : "Payment received via Duitku Gateway.",
     };
   }
   if (kind === "invitation") {
@@ -307,7 +333,7 @@ const getStatusCopy = (kind, item, meta, isIndo) => {
   }
   if (kind === "order") {
     return {
-      title: isIndo ? "Update pesanan" : "Order update",
+      title: isIndo ? "Pembaruan pesanan" : "Order update",
       message: isIndo ? "Status pesanan Anda telah diperbarui." : "Your order status changed.",
     };
   }
@@ -379,26 +405,20 @@ export const normalizeNotification = (notification, isIndo = false) => {
   const meta = getNotificationMeta(item);
   const kind = detectNotificationKind(item);
   const orderId = getOrderId(item, meta);
-  const orderCode = toText(
-    item.orderCode ||
+  const rawInvoice = toText(
+    item.orderNumber ||
+      item.orderCode ||
       item.orderRef ||
       item.invoiceNo ||
       item.invoice ||
       item.ref ||
+      meta.orderNumber ||
       meta.orderCode ||
       meta.orderRef ||
       meta.invoiceNo ||
       meta.invoice ||
       meta.ref
   );
-  const presentation = getPresentation(kind, item, meta, isIndo);
-  const statusCopy = getStatusCopy(kind, item, meta, isIndo);
-  const providedTitle = toText(item.title || meta.title);
-  const providedMessage = toText(
-    item.message || item.description || item.body || meta.message || meta.description
-  );
-  const title = localizeTitle(providedTitle, statusCopy.title, isIndo, kind);
-  const message = localizeMessage(providedMessage, statusCopy.message, isIndo);
   const createdAt =
     item.createdAt ||
     item.created_at ||
@@ -408,7 +428,40 @@ export const normalizeNotification = (notification, isIndo = false) => {
     meta.createdAt ||
     meta.timestamp ||
     null;
+
+  const canonicalOrderNo =
+    kind === "order" || kind === "payment" || orderId > 0 || rawInvoice
+      ? rawInvoice && /^TP-\d{6}-\w+/i.test(rawInvoice)
+        ? rawInvoice
+        : rawInvoice || orderId
+          ? formatCompactOrderNumber(rawInvoice, orderId, createdAt)
+          : ""
+      : "";
+  const orderCode = canonicalOrderNo || rawInvoice;
+
+  const presentation = getPresentation(kind, item, meta, isIndo);
+  const statusCopy = getStatusCopy(kind, item, meta, isIndo);
+  const providedTitle = toText(item.title || meta.title);
+  const providedMessage = toText(
+    item.message || item.description || item.body || meta.message || meta.description
+  );
+
+  let title;
+  if (canonicalOrderNo) {
+    title = isIndo ? `Pesanan #${canonicalOrderNo}` : `Order #${canonicalOrderNo}`;
+  } else {
+    title = localizeTitle(providedTitle, statusCopy.title, isIndo, kind);
+  }
+
+  const message = localizeMessage(providedMessage, statusCopy.message, isIndo);
   const isUnread = resolveUnread(item, meta);
+  const targetRoute = resolveRoute(item, meta, kind, orderId, canonicalOrderNo || rawInvoice);
+  const actionLabel =
+    kind === "order" || kind === "payment" || orderId > 0
+      ? isIndo
+        ? "Lihat Pesanan"
+        : "View Order"
+      : presentation.actionLabel;
 
   return {
     id: toPositiveId(item.id || item.notificationId || item.notification_id || item._id),
@@ -422,13 +475,13 @@ export const normalizeNotification = (notification, isIndo = false) => {
     tone: presentation.tone,
     iconTone: presentation.iconTone,
     iconName: presentation.iconName,
-    actionLabel: presentation.actionLabel,
+    actionLabel,
     isUnread,
     isRead: !isUnread,
     createdAt,
     timeLabel: formatNotificationTimestamp(createdAt, isIndo),
-    route: resolveRoute(item, meta, kind, orderId),
-    actionUrl: resolveRoute(item, meta, kind, orderId),
+    route: targetRoute,
+    actionUrl: targetRoute,
     orderId,
     orderCode,
     meta,

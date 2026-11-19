@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Bell } from "lucide-react";
 import CartIconButton from "./CartIconButton.jsx";
 import UserAccountMenuDropdown from "../user/UserAccountMenuDropdown.jsx";
 import NotificationPreviewDropdown from "../store/NotificationPreviewDropdown.jsx";
 import ThemeToggle from "../store/ThemeToggle.jsx";
-import { fetchUserUnreadNotificationCount } from "../../api/userNotifications.ts";
+import { fetchUserUnreadNotificationCount, markAllUserNotificationsRead } from "../../api/userNotifications.ts";
 
 export default function HeaderActions({
   totalQty,
@@ -15,6 +15,7 @@ export default function HeaderActions({
   className = "",
 }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const rootRef = useRef(null);
   const [openMenu, setOpenMenu] = useState(null);
   const unreadQuery = useQuery({
@@ -47,12 +48,27 @@ export default function HeaderActions({
     };
   }, [openMenu]);
 
-  const handleToggleNotif = () => {
+  const handleToggleNotif = async () => {
     if (!isAuthenticated) {
       navigate("/user/notifications");
       return;
     }
-    setOpenMenu((prev) => (prev === "notif" ? null : "notif"));
+    if (openMenu === "notif") {
+      setOpenMenu(null);
+      if (unreadCount > 0) {
+        queryClient.setQueryData(["account", "notifications", "unread-count"], 0);
+        try {
+          await markAllUserNotificationsRead();
+        } catch {
+          // ignore non-fatal
+        } finally {
+          queryClient.invalidateQueries({ queryKey: ["account", "notifications"] });
+          queryClient.invalidateQueries({ queryKey: ["user", "notifications"] });
+        }
+      }
+    } else {
+      setOpenMenu("notif");
+    }
   };
 
   const handleNotificationNavigate = (path) => {
@@ -93,7 +109,10 @@ export default function HeaderActions({
         >
           <Bell className="h-[18px] w-[18px]" />
           {isAuthenticated && unreadCount > 0 ? (
-            <span className="absolute -right-1 -top-1 inline-flex min-w-[18px] items-center justify-center rounded-full bg-rose-500 px-1.5 text-[10px] font-semibold leading-[18px] text-white">
+            <span
+              className="absolute -right-1 -top-1 inline-flex min-w-[18px] items-center justify-center rounded-full px-1.5 text-[10px] font-semibold leading-[18px] text-white"
+              style={{ backgroundColor: "#fe6f05" }}
+            >
               {unreadCount > 99 ? "99+" : unreadCount}
             </span>
           ) : null}

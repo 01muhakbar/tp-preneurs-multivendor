@@ -56,7 +56,17 @@ function PreviewIcon({ item }) {
 export default function NotificationPreviewDropdown({ open, onNavigate, onClose }) {
   const queryClient = useQueryClient();
   const { i18n } = useTranslation();
-  const isIndo = i18n.language === "id";
+  const isIndo = (() => {
+    if (i18n?.language?.toLowerCase().startsWith("id")) return true;
+    if (typeof window !== "undefined") {
+      const storeLang = (localStorage.getItem("store_language") || "").toLowerCase();
+      if (storeLang === "indonesia" || storeLang.startsWith("id")) return true;
+      const i18nLng = (localStorage.getItem("i18nextLng") || "").toLowerCase();
+      if (i18nLng.startsWith("id")) return true;
+    }
+    return false;
+  })();
+
   const previewQuery = useQuery({
     queryKey: ["account", "notifications", "preview", { limit: 5 }],
     queryFn: () => fetchUserNotifications({ limit: 5, offset: 0 }),
@@ -115,30 +125,40 @@ export default function NotificationPreviewDropdown({ open, onNavigate, onClose 
   };
 
   return (
-    <div className="tpn-preview-dropdown" role="dialog" aria-label="Notifications">
+    <div
+      className="tpn-preview-dropdown"
+      role="dialog"
+      aria-label={isIndo ? "Pusat Notifikasi" : "Notifications"}
+    >
       <div className="tpn-preview-arrow" aria-hidden="true" />
       <header className="tpn-preview-header">
-        <div>
-          <h2>Notifications</h2>
-          <span className="tpn-preview-unread">{unreadCount} unread</span>
-        </div>
-        <div className="tpn-preview-actions">
-          <button
-            type="button"
-            onClick={() => markAllReadMutation.mutate()}
-            disabled={markAllReadMutation.isPending || unreadCount <= 0}
-          >
-            <Check size={17} />
-            <span>{markAllReadMutation.isPending ? "Marking..." : "Mark all read"}</span>
-          </button>
-          <button type="button" onClick={() => goTo("/user/notifications")}>
-            <SlidersHorizontal size={17} />
-            <span>Filter</span>
-          </button>
-          <button type="button" onClick={() => goTo("/user/notifications")}>
-            <ExternalLink size={17} />
-            <span>View all</span>
-          </button>
+        <div className="tpn-preview-header-row">
+          <div className="tpn-preview-title-group">
+            <h2>{isIndo ? "Pusat Notifikasi" : "Notifications"}</h2>
+            <span className="tpn-preview-unread">
+              {isIndo ? `${unreadCount} belum dibaca` : `${unreadCount} unread`}
+            </span>
+          </div>
+          <div className="tpn-preview-actions">
+            <button
+              type="button"
+              className="tpn-preview-mark-btn"
+              onClick={() => markAllReadMutation.mutate()}
+              disabled={markAllReadMutation.isPending || unreadCount <= 0}
+              title={isIndo ? "Tandai semua sudah dibaca" : "Mark all as read"}
+            >
+              <Check size={16} />
+              <span>
+                {markAllReadMutation.isPending
+                  ? isIndo
+                    ? "Menandai..."
+                    : "Marking..."
+                  : isIndo
+                    ? "Tandai dibaca"
+                    : "Mark all read"}
+              </span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -154,11 +174,17 @@ export default function NotificationPreviewDropdown({ open, onNavigate, onClose 
         ) : null}
 
         {!previewQuery.isLoading && previewQuery.isError ? (
-          <div className="tpn-preview-state">Notifications are temporarily unavailable.</div>
+          <div className="tpn-preview-state">
+            {isIndo
+              ? "Notifikasi sementara tidak tersedia."
+              : "Notifications are temporarily unavailable."}
+          </div>
         ) : null}
 
         {!previewQuery.isLoading && !previewQuery.isError && rows.length === 0 ? (
-          <div className="tpn-preview-state">No notifications yet.</div>
+          <div className="tpn-preview-state">
+            {isIndo ? "Belum ada notifikasi baru." : "No new notifications yet."}
+          </div>
         ) : null}
 
         {!previewQuery.isLoading && !previewQuery.isError
@@ -178,15 +204,19 @@ export default function NotificationPreviewDropdown({ open, onNavigate, onClose 
                     {item.chip || item.label}
                   </em>
                 </span>
-                <time>{item.timeLabel || "Recent"}</time>
+                <time>{item.timeLabel || (isIndo ? "Baru saja" : "Recent")}</time>
                 <ChevronRight size={20} aria-hidden="true" />
               </button>
             ))
           : null}
       </div>
 
-      <button type="button" className="tpn-preview-footer" onClick={() => goTo("/user/notifications")}>
-        <span>View all notifications</span>
+      <button
+        type="button"
+        className="tpn-preview-footer"
+        onClick={() => goTo("/user/notifications")}
+      >
+        <span>{isIndo ? "Lihat semua notifikasi" : "View all notifications"}</span>
         <ChevronRight size={18} />
       </button>
     </div>

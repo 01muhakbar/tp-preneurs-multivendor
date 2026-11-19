@@ -161,7 +161,9 @@ export default function AccountNotifications2026View({
   // Translations
   const t = {
     title: isIndo ? "Notifikasi" : "Notifications",
-    subtitle: isIndo ? "Pembaruan pesanan dan akun." : "Order and account updates.",
+    subtitle: isIndo
+      ? "Pembaruan pesanan dan aktivitas akun Anda."
+      : "Order and account activity updates.",
     unreadBadge: isIndo
       ? `${Number(unreadCount || 0)} belum dibaca`
       : `${Number(unreadCount || 0)} unread`,
@@ -177,7 +179,7 @@ export default function AccountNotifications2026View({
     emptyMessage: isIndo
       ? "Pembaruan pesanan, akun, dan promo baru akan muncul di sini."
       : "New order, account, and offer updates will appear here.",
-    open: isIndo ? "Buka" : "Open",
+    open: isIndo ? "Lihat Detail" : "View Details",
     markRead: isIndo ? "Tandai dibaca" : "Mark read",
     delete: isIndo ? "Hapus" : "Delete",
     deleting: isIndo ? "Menghapus..." : "Deleting...",
@@ -248,10 +250,12 @@ export default function AccountNotifications2026View({
               <Check size={16} />
               <span>{isMarkingAllRead ? t.marking : t.markAllRead}</span>
             </button>
-            <button type="button" className="tpn-action-button" onClick={onClearFilters}>
-              <CheckCheck size={16} />
-              <span>{t.clearFilters}</span>
-            </button>
+            {filtersActive || activeFilter !== "all" ? (
+              <button type="button" className="tpn-action-button" onClick={onClearFilters}>
+                <CheckCheck size={16} />
+                <span>{t.clearFilters}</span>
+              </button>
+            ) : null}
             <button
               type="button"
               className={`tpn-action-button ${filtersActive ? "is-active" : ""}`}
