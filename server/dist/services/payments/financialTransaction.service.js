@@ -1,5 +1,6 @@
 import { Op } from "sequelize";
-import { sequelize, Order, OrderCollectionClaim, OrderPaymentAttempt, DuitkuCallbackInbox, OrderPaymentAttemptEvent, Suborder, Payment, PaymentProof, } from "../../models/index.js";
+import { sequelize, Order, OrderCollectionClaim, OrderPaymentAttempt, DuitkuCallbackInbox, OrderPaymentAttemptEvent, Suborder, Payment, PaymentProof, Store, } from "../../models/index.js";
+import { createNotification, createSellerNotificationsForStoreRecipients, createUserOrderStatusUpdatedNotification, } from "../notification.service.js";
 import { appendPaymentStatusLog } from "../paymentStatusLog.service.js";
 import { appendAuditNote } from "../operationalAudit.service.js";
 import { sha256Hex } from "../duitku/duitkuCallbackParser.service.js";
@@ -215,6 +216,112 @@ const upsertAttemptEventForCallback = async (input, transaction) => {
     }, { transaction });
     return { event, duplicate: false };
 };
+const idrCurrencyFormatter = new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0,
+});
+const dispatchDuitkuSettlementNotifications = async (orderId) => {
+    try {
+        const order = await Order.findByPk(orderId);
+        if (!order)
+            return;
+        const suborders = await Suborder.findAll({
+            where: { orderId },
+            order: [["id", "ASC"]],
+        });
+        if (suborders.length === 0)
+            return;
+        const storeIds = [...new Set(suborders.map((s) => toNumber(getAttr(s, "storeId"), 0)).filter(Boolean))];
+        const stores = await Store.findAll({
+            where: { id: { [Op.in]: storeIds } },
+            attributes: ["id", "slug", "name"],
+        });
+        const storeMap = new Map(stores.map((st) => [toNumber(getAttr(st, "id"), 0), st]));
+        const invoiceNo = String(getAttr(order, "invoiceNo") || `#${orderId}`);
+        const customerName = String(getAttr(order, "customerName") || "Pembeli");
+        const orderTotal = toNumber(getAttr(order, "totalAmount"), 0);
+        const formattedTotal = idrCurrencyFormatter.format(orderTotal);
+        // 1. Notify each store for each suborder
+        for (const suborder of suborders) {
+            const storeId = toNumber(getAttr(suborder, "storeId"), 0);
+            const suborderId = toNumber(getAttr(suborder, "id"), 0);
+            const store = storeMap.get(storeId);
+            const storeSlug = String(getAttr(store, "slug") || "");
+            const storeName = String(getAttr(store, "name") || `Toko #${storeId}`);
+            const subAmount = toNumber(getAttr(suborder, "totalAmount"), 0);
+            const formattedSubAmount = idrCurrencyFormatter.format(subAmount);
+            await createSellerNotificationsForStoreRecipients({
+                storeId,
+                type: "SELLER_PAYMENT_SETTLED",
+                title: `Pembayaran Lunas (Duitku): Pesanan ${invoiceNo} siap diproses`,
+                actionCode: "SELLER_PAYMENT_SETTLED",
+                orderId,
+                suborderId,
+                route: storeSlug && suborderId ? `/seller/stores/${encodeURIComponent(storeSlug)}/orders/${suborderId}` : null,
+                message: `${storeName} menerima pelunasan ${formattedSubAmount} via Duitku Gateway untuk pesanan ${invoiceNo}. Silakan siapkan pesanan pembeli.`,
+                meta: {
+                    invoiceNo,
+                    amount: subAmount,
+                    suborderId,
+                    paymentStatus: "PAID",
+                    paymentGateway: "DUITKU",
+                    customerName,
+                },
+            });
+        }
+        // 2. Notify buyer / client
+        const userId = toNumber(getAttr(order, "userId"), 0);
+        if (userId > 0) {
+            await createUserOrderStatusUpdatedNotification({
+                userId,
+                orderId,
+                invoiceNo,
+                status: "PAID",
+                statusFrom: "UNPAID",
+                statusTo: "PAID",
+            });
+        }
+        // 3. Notify Admin
+        await createNotification({
+            type: "PAYMENT_SETTLED",
+            title: `Pembayaran Lunas (Duitku): Pesanan ${invoiceNo} (${formattedTotal})`,
+            meta: {
+                orderId,
+                invoiceNo,
+                amount: orderTotal,
+                customerName,
+                gateway: "DUITKU",
+                settledAt: new Date().toISOString(),
+            },
+        });
+    }
+    catch (notifyErr) {
+        console.warn("[duitku:dispatchSettlementNotifications] failed to dispatch notifications", notifyErr);
+    }
+};
+const dispatchDuitkuFailureNotifications = async (orderId) => {
+    try {
+        const order = await Order.findByPk(orderId);
+        if (!order)
+            return;
+        const invoiceNo = String(getAttr(order, "invoiceNo") || `#${orderId}`);
+        const userId = toNumber(getAttr(order, "userId"), 0);
+        if (userId > 0) {
+            await createUserOrderStatusUpdatedNotification({
+                userId,
+                orderId,
+                invoiceNo,
+                status: "FAILED",
+                statusFrom: "UNPAID",
+                statusTo: "FAILED",
+            });
+        }
+    }
+    catch (notifyErr) {
+        console.warn("[duitku:dispatchFailureNotifications] failed to dispatch failure notifications", notifyErr);
+    }
+};
 export const applyDuitkuCallback = async (input) => {
     const callbackInboxId = asId(input.callbackInboxId, "callbackInboxId");
     const locator = await loadDuitkuCallbackLocator(callbackInboxId);
@@ -234,7 +341,7 @@ export const applyDuitkuCallback = async (input) => {
         }, input.lockTrace);
     }
     const orderId = toNumber(getAttr(locator.attempt, "orderId"), 0);
-    return withTransaction(async (ctx) => {
+    const result = await withTransaction(async (ctx) => {
         const order = await lockParentOrder(ctx, orderId);
         const claim = requireClaim(await lockClaim(ctx, orderId));
         const attempts = await lockAttempts(ctx, orderId, toNumber(getAttr(locator.attempt, "id"), 0));
@@ -407,6 +514,13 @@ export const applyDuitkuCallback = async (input) => {
             reason: "UNKNOWN_RESULT_CODE",
         };
     }, input.lockTrace);
+    if (result.action === "APPLIED_PAID" && !result.idempotent && orderId > 0) {
+        await dispatchDuitkuSettlementNotifications(orderId);
+    }
+    else if (result.action === "APPLIED_FAILED" && !result.idempotent && orderId > 0) {
+        await dispatchDuitkuFailureNotifications(orderId);
+    }
+    return result;
 };
 const loadPaymentLocator = async (paymentId) => {
     const payment = await Payment.findByPk(paymentId, {

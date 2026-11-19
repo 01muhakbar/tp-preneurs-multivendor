@@ -127,7 +127,7 @@ export const detectNotificationKind = (notification) => {
 
   if (/\b(promo|promotion|coupon|offer|deal|discount)\b/.test(haystack)) return "promotion";
   if (/\b(invitation|invite|store invitation|member)\b/.test(haystack)) return "invitation";
-  if (/\b(payment|paid|qris|invoice|proof)\b/.test(haystack)) return "payment";
+  if (/\b(payment|paid|duitku|settled|qris|invoice|proof)\b/.test(haystack)) return "payment";
   if (/\b(account|profile|password|address|security)\b/.test(haystack)) return "account";
   if (/\b(order|shipment|shipping|shipped|delivered|tracking|package|fulfill)\b/.test(haystack)) {
     return "order";
@@ -279,10 +279,12 @@ const getStatusCopy = (kind, item, meta, isIndo) => {
       message: isIndo ? "Pesanan Anda telah dikemas dan siap dikirim." : "Packed and ready for pickup.",
     };
   }
-  if (/\b(payment|paid|approved|confirmed|qris|proof)\b/.test(haystack) || kind === "payment") {
+  if (/\b(payment|paid|approved|confirmed|duitku|settled|qris|proof)\b/.test(haystack) || kind === "payment") {
     return {
-      title: isIndo ? "Pembayaran dikonfirmasi" : "Payment confirmed",
-      message: isIndo ? "Kami telah menerima pembayaran Anda." : "We've received your payment.",
+      title: isIndo ? "Pembayaran berhasil" : "Payment confirmed",
+      message: isIndo
+        ? "Pembayaran pesanan Anda via Duitku telah berhasil kami terima."
+        : "We've received your payment via Duitku Gateway.",
     };
   }
   if (kind === "invitation") {

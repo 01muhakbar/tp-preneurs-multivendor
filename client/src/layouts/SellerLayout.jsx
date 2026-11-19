@@ -149,11 +149,63 @@ const getSellerNotificationLabel = (notification, isId = false) => {
   const actionCode = String(notification?.meta?.actionCode || notification?.type || "")
     .trim()
     .toUpperCase();
-  if (actionCode === "SELLER_SUBORDER_CREATED") return isId ? "Subpesanan baru" : "New suborder";
-  if (actionCode === "SELLER_PAYMENT_REVIEW_REQUIRED") return isId ? "Perlu ditinjau" : "Needs review";
+  if (actionCode === "SELLER_SUBORDER_CREATED") return isId ? "Pesanan baru" : "New order";
+  if (actionCode === "SELLER_PAYMENT_SETTLED") return isId ? "Pembayaran lunas" : "Payment settled";
+  if (actionCode === "SELLER_PAYMENT_REVIEW_REQUIRED") return isId ? "Riwayat pembayaran" : "Payment record";
   if (actionCode === "SELLER_PAYMENT_FAILED") return isId ? "Pembayaran gagal" : "Payment failed";
   if (actionCode === "SELLER_PAYMENT_CANCELLED") return isId ? "Pembayaran dibatalkan" : "Payment cancelled";
   return isId ? "Pembaruan penjual" : "Seller update";
+};
+
+const formatSellerNotificationTitle = (notification, isId = false) => {
+  const rawTitle = String(notification?.title || "").trim();
+  const meta = notification?.meta && typeof notification.meta === "object" ? notification.meta : {};
+  const actionCode = String(meta.actionCode || notification?.type || "").trim().toUpperCase();
+
+  if (rawTitle.includes("STORE-IDEMP-") || rawTitle.includes("is awaiting buyer payment")) {
+    const invoiceNo = meta.invoiceNo || meta.ref;
+    const amount = Number(meta.amount || 0);
+    const amountStr =
+      amount > 0
+        ? new Intl.NumberFormat("id-ID", {
+            style: "currency",
+            currency: "IDR",
+            maximumFractionDigits: 0,
+          }).format(amount)
+        : "";
+
+    if (actionCode === "SELLER_SUBORDER_CREATED") {
+      if (invoiceNo && amountStr) {
+        return isId
+          ? `Pesanan Baru: ${invoiceNo} (${amountStr}) • Menunggu Pembayaran via Duitku`
+          : `New Order: ${invoiceNo} (${amountStr}) • Awaiting Duitku Payment`;
+      }
+      return isId
+        ? "Pesanan Baru: Menunggu Pembayaran via Duitku"
+        : "New Order: Awaiting Duitku Payment";
+    }
+  }
+
+  return rawTitle || (isId ? "Notifikasi penjual" : "Seller notification");
+};
+
+const formatSellerNotificationMessage = (notification, isId = false) => {
+  const meta = notification?.meta && typeof notification.meta === "object" ? notification.meta : {};
+  let rawMessage = String(meta.message || "").trim();
+
+  if (rawMessage.includes("STORE-IDEMP-")) {
+    const invoiceNo = meta.invoiceNo || meta.ref;
+    if (invoiceNo && !invoiceNo.includes("STORE-IDEMP-")) {
+      rawMessage = rawMessage.replace(/checkout\s+STORE-IDEMP-[^\s.]+/gi, `checkout ${invoiceNo}`);
+    } else {
+      rawMessage = rawMessage.replace(
+        /from checkout STORE-IDEMP-[^\s.]+/gi,
+        isId ? "melalui Payment Gateway Duitku." : "via Duitku Payment Gateway."
+      );
+    }
+  }
+
+  return rawMessage;
 };
 
 const resolveSellerNotificationRoute = (notification, sellerRoutes) => {
@@ -191,7 +243,12 @@ const resolveSellerNotificationRoute = (notification, sellerRoutes) => {
     return sellerRoutes.productDetail(productId);
   }
   if (
-    ["SELLER_SUBORDER_CREATED", "SELLER_PAYMENT_FAILED", "SELLER_PAYMENT_CANCELLED"].includes(actionCode) &&
+    [
+      "SELLER_SUBORDER_CREATED",
+      "SELLER_PAYMENT_SETTLED",
+      "SELLER_PAYMENT_FAILED",
+      "SELLER_PAYMENT_CANCELLED",
+    ].includes(actionCode) &&
     Number.isFinite(suborderId) &&
     suborderId > 0
   ) {
@@ -492,15 +549,17 @@ function SellerNotificationsMenu({
                       aria-hidden="true"
                     />
                     <div className="navbar__notify-main">
-                      <p className="navbar__notify-title">{notification?.title || (isId ? "Notifikasi penjual" : "Seller notification")}</p>
-                      {message ? (
+                      <p className="navbar__notify-title">
+                        {formatSellerNotificationTitle(notification, isId)}
+                      </p>
+                      {formatSellerNotificationMessage(notification, isId) || message ? (
                         <p
                           className={joinClassNames(
                             "mt-1 text-[11px] leading-5",
                             isDark ? "text-slate-400" : "text-slate-500"
                           )}
                         >
-                          {message}
+                          {formatSellerNotificationMessage(notification, isId) || message}
                         </p>
                       ) : null}
                       <div className="navbar__notify-meta">

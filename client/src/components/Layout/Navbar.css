@@ -544,6 +544,25 @@
   max-height: 392px;
   overflow-y: auto;
   padding: 6px 8px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.4) transparent;
+}
+
+.navbar__notify-list::-webkit-scrollbar {
+  width: 5px;
+}
+
+.navbar__notify-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.navbar__notify-list::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 9999px;
+}
+
+.navbar__notify-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.6);
 }
 
 .navbar__notify-item {
@@ -844,6 +863,18 @@
   border-color: #334155;
   background: #0f172a;
   box-shadow: 0 16px 34px rgba(2, 6, 23, 0.55);
+}
+
+.admin-theme-dark .navbar__notify-list {
+  scrollbar-color: rgba(148, 163, 184, 0.3) transparent;
+}
+
+.admin-theme-dark .navbar__notify-list::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+}
+
+.admin-theme-dark .navbar__notify-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.55);
 }
 
 .admin-theme-dark .navbar__notify-head {

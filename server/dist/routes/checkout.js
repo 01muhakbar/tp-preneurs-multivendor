@@ -3244,25 +3244,33 @@ router.post("/create-multi-store", checkoutSubmitRateLimit, async (req, res) => 
                         orderId: Number(parentOrder.id || 0),
                         invoiceNo,
                     }),
-                    ...createdSellerSuborders.map((suborder) => createSellerNotificationsForStoreRecipients({
-                        storeId: suborder.storeId,
-                        type: "SELLER_SUBORDER_CREATED",
-                        title: `New suborder ${suborder.suborderNumber} is awaiting buyer payment`,
-                        actionCode: "SELLER_SUBORDER_CREATED",
-                        orderId: Number(parentOrder.id || 0),
-                        suborderId: suborder.suborderId,
-                        route: suborder.storeSlug && suborder.suborderId
-                            ? `/seller/stores/${encodeURIComponent(suborder.storeSlug)}/orders/${suborder.suborderId}`
-                            : null,
-                        message: `${suborder.storeName} received a new suborder from checkout ${invoiceNo}.`,
-                        meta: {
-                            invoiceNo,
-                            amount: suborder.totalAmount,
-                            suborderNumber: suborder.suborderNumber,
-                            paymentStatus: "UNPAID",
-                            fulfillmentStatus: "UNFULFILLED",
-                        },
-                    })),
+                    ...createdSellerSuborders.map((suborder) => {
+                        const formattedSubAmount = new Intl.NumberFormat("id-ID", {
+                            style: "currency",
+                            currency: "IDR",
+                            maximumFractionDigits: 0,
+                        }).format(Number(suborder.totalAmount || 0));
+                        return createSellerNotificationsForStoreRecipients({
+                            storeId: suborder.storeId,
+                            type: "SELLER_SUBORDER_CREATED",
+                            title: `Pesanan Baru: ${invoiceNo} (${formattedSubAmount}) • Menunggu Pembayaran via Duitku`,
+                            actionCode: "SELLER_SUBORDER_CREATED",
+                            orderId: Number(parentOrder.id || 0),
+                            suborderId: suborder.suborderId,
+                            route: suborder.storeSlug && suborder.suborderId
+                                ? `/seller/stores/${encodeURIComponent(suborder.storeSlug)}/orders/${suborder.suborderId}`
+                                : null,
+                            message: `${suborder.storeName} menerima pesanan baru dari checkout ${invoiceNo}. Menunggu pembayaran pembeli melalui Payment Gateway Duitku.`,
+                            meta: {
+                                invoiceNo,
+                                amount: suborder.totalAmount,
+                                suborderNumber: suborder.suborderNumber,
+                                paymentStatus: "UNPAID",
+                                paymentGateway: "DUITKU",
+                                fulfillmentStatus: "UNFULFILLED",
+                            },
+                        });
+                    }),
                 ]);
             }
             catch (notifyError) {

@@ -7,6 +7,8 @@ const KNOWN_ADMIN_NOTIFICATION_TYPES = [
     "ORDER_CREATED",
     "ORDER_STATUS_CHANGED",
     "ORDER_STATUS_UPDATED",
+    "PAYMENT_SETTLED",
+    "CONTACT_MESSAGE",
 ];
 const toNumber = (value, fallback = 0) => {
     const parsed = Number(value);

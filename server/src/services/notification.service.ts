@@ -60,6 +60,8 @@ const KNOWN_ADMIN_NOTIFICATION_TYPES = [
   "ORDER_CREATED",
   "ORDER_STATUS_CHANGED",
   "ORDER_STATUS_UPDATED",
+  "PAYMENT_SETTLED",
+  "CONTACT_MESSAGE",
 ] as const;
 
 const toNumber = (value: unknown, fallback = 0) => {

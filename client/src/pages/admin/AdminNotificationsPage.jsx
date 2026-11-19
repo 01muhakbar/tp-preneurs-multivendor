@@ -70,6 +70,8 @@ const formatRelativeDate = (input) => {
 
 const toLabel = (type) => {
   if (type === "ORDER_CREATED" || type === "NEW_ORDER") return "New Order";
+  if (type === "PAYMENT_SETTLED") return "Payment Settled (Duitku)";
+  if (type === "CONTACT_MESSAGE") return "Contact Message";
   return String(type || "Notification");
 };
 
@@ -89,9 +91,11 @@ const buildNotificationTargetUrl = (item) => {
 
   const isOrderNotification =
     type === "ORDER_CREATED" ||
+    type === "PAYMENT_SETTLED" ||
     type === "ORDER_STATUS_CHANGED" ||
     type === "ORDER_STATUS_UPDATED";
 
+  if (type === "CONTACT_MESSAGE") return "/admin/settings";
   if (!isOrderNotification) return null;
   if (invoiceNo) return `/admin/orders/${encodeURIComponent(invoiceNo)}`;
   if (orderId) return `/admin/orders?search=${encodeURIComponent(orderId)}`;

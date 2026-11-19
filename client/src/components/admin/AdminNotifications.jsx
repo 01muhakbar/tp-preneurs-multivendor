@@ -42,6 +42,8 @@ const formatNotificationTimestamp = (input) => {
 
 const toLabel = (type) => {
   if (type === "ORDER_CREATED" || type === "NEW_ORDER") return "New Order";
+  if (type === "PAYMENT_SETTLED") return "Payment Settled";
+  if (type === "CONTACT_MESSAGE") return "Contact Message";
   return type;
 };
 
@@ -49,8 +51,10 @@ const PAGE_LIMIT = 5;
 const NOTIFICATION_STREAM_CONNECT_DELAY_MS = 4000;
 const NOTIFICATION_TYPE_OPTIONS = [
   { value: "ORDER_CREATED", label: "Order Created" },
+  { value: "PAYMENT_SETTLED", label: "Payment Settled (Duitku)" },
   { value: "ORDER_STATUS_CHANGED", label: "Order Status Changed" },
   { value: "ORDER_STATUS_UPDATED", label: "Order Status Updated" },
+  { value: "CONTACT_MESSAGE", label: "Contact Message" },
 ];
 const DEFAULT_ENABLED_TYPES = NOTIFICATION_TYPE_OPTIONS.map((item) => item.value);
 
@@ -81,9 +85,11 @@ const buildNotificationTargetUrl = (item) => {
 
   const isOrderNotification =
     type === "ORDER_CREATED" ||
+    type === "PAYMENT_SETTLED" ||
     type === "ORDER_STATUS_CHANGED" ||
     type === "ORDER_STATUS_UPDATED";
 
+  if (type === "CONTACT_MESSAGE") return "/admin/settings";
   if (!isOrderNotification) return null;
   if (invoiceNo) {
     return `/admin/orders/${encodeURIComponent(invoiceNo)}`;
