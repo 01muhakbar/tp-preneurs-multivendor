@@ -103,10 +103,10 @@ const getSortOptions = (t) => [
 ];
 
 const getProductTypeOptions = (t) => [
-  { value: "all", label: t("products.All Types") || "Semua Tipe" },
-  { value: "physical", label: "📦 " + (t("products.Physical") || "Fisik") },
-  { value: "digital", label: "⚡ " + (t("products.Digital") || "Digital") },
-  { value: "service", label: "🛠️ " + (t("products.Service") || "Layanan / Jasa") },
+  { value: "all", label: t("products.All Types", "All Types") },
+  { value: "physical", label: "📦 " + t("products.Physical", "Physical") },
+  { value: "digital", label: "⚡ " + t("products.Digital", "Digital") },
+  { value: "service", label: "🛠️ " + t("products.Service", "Service") },
 ];
 
 function ProductTypeBadge({ product }) {
@@ -596,17 +596,17 @@ export default function AdminProducts2026View({
             name="search"
             value={filters.q}
             onChange={(event) => onFilterChange({ q: event.target.value })}
-            placeholder={t("products.Search...") || "Cari produk..."}
+            placeholder={t("products.Search...", "Search products...")}
           />
         </label>
         <FieldSelect
-          label={t("products.Category")}
+          label={t("products.Category", "Category")}
           value={filters.categoryId}
           onChange={(value) => onFilterChange({ categoryId: value })}
-          options={[{ value: "all", label: t("products.All") }, ...categories.map((category) => ({ value: category.id, label: category.name }))]}
+          options={[{ value: "all", label: t("products.All", "All") }, ...categories.map((category) => ({ value: category.id, label: category.name }))]}
         />
         <FieldSelect
-          label={t("products.Type") || "Tipe"}
+          label={t("products.Type", "Type")}
           value={filters.productType || "all"}
           onChange={(value) => onFilterChange({ productType: value })}
           options={getProductTypeOptions(t)}
