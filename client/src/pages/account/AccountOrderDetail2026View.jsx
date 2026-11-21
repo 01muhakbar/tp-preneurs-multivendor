@@ -1184,7 +1184,7 @@ export default function AccountOrderDetail2026View({
 
         {/* 8. Bottom Sticky Action Bar */}
         <div className="tp-shopee-detail__bottom-bar">
-          {(() => {
+          {!banner.isUnpaid && (() => {
             const handleBuyAgain = async () => {
               if (isBuyingAgain) return;
               setIsBuyingAgain(true);
@@ -1223,7 +1223,7 @@ export default function AccountOrderDetail2026View({
                 type="button"
                 onClick={handleBuyAgain}
                 disabled={isBuyingAgain}
-                className="tp-shopee-detail__btn-outline"
+                className="tp-shopee-detail__btn-outline inline-flex items-center justify-center gap-2 whitespace-nowrap shrink-0"
               >
                 {isBuyingAgain ? t.addingToCart : t.buyAgain}
               </button>
@@ -1288,11 +1288,11 @@ export default function AccountOrderDetail2026View({
             <button
               type="button"
               onClick={() => setShowChangePaymentModal(true)}
-              className="tp-shopee-detail__btn-outline tp-shopee-detail__btn-outline--change"
+              className="tp-shopee-detail__btn-outline tp-shopee-detail__btn-outline--change inline-flex items-center justify-center gap-2 whitespace-nowrap shrink-0"
               title={t.changePaymentMethod}
             >
-              <CreditCard size={14} />
-              <span>{t.changeMethod}</span>
+              <CreditCard size={15} className="shrink-0" />
+              <span className="whitespace-nowrap">{t.changeMethod}</span>
             </button>
           )}
 

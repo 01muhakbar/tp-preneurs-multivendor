@@ -980,21 +980,21 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false, is
           shipmentStatus.code === "READY_TO_FULFILL")
       );
 
-  const isUnpaid = isPaymentSuccessReturn
-    ? false
-    : (
-        paymentStatus.code === "UNPAID" ||
-        paymentStatus.code === "PENDING" ||
-        orderStatus.code === "UNPAID" ||
-        orderStatus.code === "PENDING"
-      );
-
   const isCancelled =
     orderStatus.code === "CANCELLED" ||
     orderStatus.code === "FAILED" ||
     orderStatus.code === "EXPIRED" ||
     paymentStatus.code === "FAILED" ||
     paymentStatus.code === "EXPIRED";
+
+  const isUnpaid = isPaymentSuccessReturn
+    ? false
+    : !isCancelled && (
+        paymentStatus.code === "UNPAID" ||
+        paymentStatus.code === "PENDING" ||
+        orderStatus.code === "UNPAID" ||
+        orderStatus.code === "PENDING"
+      );
 
   const isPaid =
     isPaymentSuccessReturn ||
