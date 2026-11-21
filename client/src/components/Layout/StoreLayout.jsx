@@ -366,7 +366,7 @@ gtag('config', '${key}');`;
         brandingLogoUrl={storeSettings.branding.clientLogoUrl}
         storeSettings={storeSettings}
       />
-      <main className={isShopRoute ? "w-full" : "mx-auto w-full max-w-7xl px-4 sm:px-5 lg:px-6 py-6 pb-24 sm:pb-8"}>
+      <main className={isShopRoute ? "w-full pb-28 sm:pb-8" : "mx-auto w-full max-w-7xl px-4 sm:px-5 lg:px-6 py-6 pb-28 sm:pb-8"}>
         <Outlet context={{ storeSettings, footerConfig }} />
       </main>
       {!isCheckoutRoute ? (
@@ -379,43 +379,51 @@ gtag('config', '${key}');`;
       {showFloatingCartWidget ? (
         <FloatingCartWidget />
       ) : null}
-      <nav className="fixed inset-x-0 bottom-0 z-40 h-[72px] border-t border-[var(--tp-primary)]/70 bg-[var(--tp-primary)] px-2 py-1.5 text-white shadow-[0_-8px_24px_rgba(3,76,133,0.4)] sm:hidden">
-        <div className="mx-auto grid h-full max-w-7xl grid-cols-4 gap-1">
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--tp-primary)]/70 bg-[var(--tp-primary)] px-2 pt-1 pb-[max(0.45rem,env(safe-area-inset-bottom,0.45rem))] text-white shadow-[0_-8px_24px_rgba(3,76,133,0.4)] sm:hidden">
+        <div className="mx-auto grid max-w-7xl grid-cols-4 gap-1">
           <Link
             to="/"
-            className="flex h-full flex-col items-center justify-center text-[11px] tracking-[0.01em] text-white transition-colors min-w-0"
+            className="flex flex-col items-center justify-center py-0.5 text-[11px] tracking-[0.01em] text-white transition-colors min-w-0"
           >
-            <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full mb-1 transition-colors ${isHomeActive ? "bg-[var(--tp-accent)]" : "bg-transparent"}`}>
-              <Home className="h-5 w-5" />
+            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full mb-0.5 transition-colors ${isHomeActive ? "bg-[var(--tp-accent)]" : "bg-transparent"}`}>
+              <Home className="h-[18px] w-[18px]" />
             </div>
-            <span className={`text-[10px] w-full text-center truncate leading-none ${isHomeActive ? "font-bold" : "font-medium"}`}>Home</span>
+            <span className={`text-[10px] w-full text-center truncate leading-tight ${isHomeActive ? "font-bold" : "font-medium"}`}>
+              {isIndo ? "Beranda" : "Home"}
+            </span>
           </Link>
           <Link
             to="/shop"
-            className="flex h-full flex-col items-center justify-center text-[11px] tracking-[0.01em] text-white transition-colors min-w-0"
+            className="flex flex-col items-center justify-center py-0.5 text-[11px] tracking-[0.01em] text-white transition-colors min-w-0"
           >
-            <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full mb-1 transition-colors ${isShopNavActive ? "bg-[var(--tp-accent)]" : "bg-transparent"}`}>
-              <Store className="h-5 w-5" />
+            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full mb-0.5 transition-colors ${isShopNavActive ? "bg-[var(--tp-accent)]" : "bg-transparent"}`}>
+              <Store className="h-[18px] w-[18px]" />
             </div>
-            <span className={`text-[10px] w-full text-center truncate leading-none ${isShopNavActive ? "font-bold" : "font-medium"}`}>Shop</span>
+            <span className={`text-[10px] w-full text-center truncate leading-tight ${isShopNavActive ? "font-bold" : "font-medium"}`}>
+              {isIndo ? "Belanja" : "Shop"}
+            </span>
           </Link>
           <Link
             to="/user/notifications"
-            className="relative flex h-full flex-col items-center justify-center text-[11px] tracking-[0.01em] text-white transition-colors min-w-0"
+            className="relative flex flex-col items-center justify-center py-0.5 text-[11px] tracking-[0.01em] text-white transition-colors min-w-0"
           >
-            <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full mb-1 transition-colors ${isNotificationsActive ? "bg-[var(--tp-accent)]" : "bg-transparent"}`}>
-              <Bell className="h-5 w-5" />
+            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full mb-0.5 transition-colors ${isNotificationsActive ? "bg-[var(--tp-accent)]" : "bg-transparent"}`}>
+              <Bell className="h-[18px] w-[18px]" />
             </div>
-            <span className={`text-[10px] w-full text-center truncate leading-none ${isNotificationsActive ? "font-bold" : "font-medium"}`}>Notifications</span>
+            <span className={`text-[10px] w-full text-center truncate leading-tight ${isNotificationsActive ? "font-bold" : "font-medium"}`}>
+              {isIndo ? "Notifikasi" : "Notifications"}
+            </span>
           </Link>
           <Link
             to="/user/my-account"
-            className="flex h-full flex-col items-center justify-center text-[11px] tracking-[0.01em] text-white transition-colors min-w-0"
+            className="flex flex-col items-center justify-center py-0.5 text-[11px] tracking-[0.01em] text-white transition-colors min-w-0"
           >
-            <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full mb-1 transition-colors ${isProfileActive ? "bg-[var(--tp-accent)]" : "bg-transparent"}`}>
-              <UserRound className="h-5 w-5" />
+            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full mb-0.5 transition-colors ${isProfileActive ? "bg-[var(--tp-accent)]" : "bg-transparent"}`}>
+              <UserRound className="h-[18px] w-[18px]" />
             </div>
-            <span className={`text-[10px] w-full text-center truncate leading-none ${isProfileActive ? "font-bold" : "font-medium"}`}>Profile</span>
+            <span className={`text-[10px] w-full text-center truncate leading-tight ${isProfileActive ? "font-bold" : "font-medium"}`}>
+              {isIndo ? "Akun" : "Profile"}
+            </span>
           </Link>
         </div>
       </nav>
