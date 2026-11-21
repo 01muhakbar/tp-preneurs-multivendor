@@ -1206,7 +1206,7 @@ export default function AccountOrderDetail2026View({
 
         {/* 8. Bottom Sticky Action Bar */}
         <div className="tp-shopee-detail__bottom-bar">
-          {!banner.isUnpaid && (() => {
+          {!banner.isUnpaid && !isCompleted && (() => {
             const handleBuyAgain = async () => {
               if (isBuyingAgain) return;
               setIsBuyingAgain(true);
@@ -1269,7 +1269,7 @@ export default function AccountOrderDetail2026View({
               ) : (
                 <>
                   <CheckCircle2 size={14} />
-                  <span>{isIndo ? "Pesanan Diterima" : "Order Received"}</span>
+                  <span>{isIndo ? "Konfirmasi Pesanan Diterima" : "Confirm Order Received"}</span>
                 </>
               )}
             </button>

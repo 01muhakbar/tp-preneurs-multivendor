@@ -350,14 +350,6 @@ function ShopeeOrderCard({ order, LinkComponent, t, activeTab = "all" }) {
       <footer className="tp-shopee-card__actions">
         {bucket === "completed" && (
           <>
-            <button
-              type="button"
-              onClick={handleBuyAgain}
-              disabled={isBuyingAgain}
-              className="tp-shopee-btn tp-shopee-btn--secondary"
-            >
-              {isBuyingAgain ? t.addingToCart : t.buyAgain}
-            </button>
             {(() => {
               const targetPid =
                 items.find((it) => !it.isReviewed && Number(it.productId) > 0)?.productId ||
@@ -474,14 +466,24 @@ function ShopeeOrderCard({ order, LinkComponent, t, activeTab = "all" }) {
         )}
 
         {bucket === "cancelled" && (
-          <LinkComponent
-            to={detailHref}
-            state={navigationState}
-            onClick={handleSaveTab}
-            className="tp-shopee-btn tp-shopee-btn--secondary"
-          >
-            {t.viewDetails}
-          </LinkComponent>
+          <>
+            <button
+              type="button"
+              onClick={handleBuyAgain}
+              disabled={isBuyingAgain}
+              className="tp-shopee-btn tp-shopee-btn--secondary"
+            >
+              {isBuyingAgain ? t.addingToCart : t.buyAgain}
+            </button>
+            <LinkComponent
+              to={detailHref}
+              state={navigationState}
+              onClick={handleSaveTab}
+              className="tp-shopee-btn tp-shopee-btn--secondary"
+            >
+              {t.viewDetails}
+            </LinkComponent>
+          </>
         )}
       </footer>
     </article>

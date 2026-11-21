@@ -153,7 +153,8 @@ const toCanonicalOrderStatus = (raw: any) => {
     return "processing";
   }
   if (["shipped", "shipping", "in_transit"].includes(value)) return "shipping";
-  if (["delivered", "completed", "complete"].includes(value)) return "complete";
+  if (["delivered"].includes(value)) return "delivered";
+  if (["completed", "complete"].includes(value)) return "complete";
   if (["cancelled", "canceled", "cancel", "refunded", "failed"].includes(value)) {
     return "cancelled";
   }
