@@ -261,3 +261,17 @@ export const createStoreStripeCheckoutSession = async (ref: string) => {
   });
   return data;
 };
+
+export const requestStoreOrderReturn = async (
+  orderId: string | number,
+  payload: {
+    suborderId?: number | null;
+    reason: string;
+    solutionType?: string;
+    notes?: string;
+    bankDetails: string;
+  }
+) => {
+  const { data } = await api.post(`/store/orders/my/${orderId}/return-request`, payload);
+  return data;
+};

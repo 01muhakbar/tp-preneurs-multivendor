@@ -750,3 +750,15 @@ export const updateSellerSuborderInternalNote = async (
   );
   return data;
 };
+
+export const respondSellerSuborderReturn = async (
+  storeId: number | string,
+  suborderId: number | string,
+  payload: { action: "APPROVE" | "DISPUTE"; sellerNotes?: string }
+) => {
+  const { data } = await api.post(
+    `/seller/stores/${storeId}/suborders/${suborderId}/return-response`,
+    payload
+  );
+  return data;
+};

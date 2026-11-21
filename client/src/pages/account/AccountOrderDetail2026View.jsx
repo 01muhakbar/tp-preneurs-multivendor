@@ -33,6 +33,7 @@ import { toast } from "react-hot-toast";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { fetchStoreProducts } from "../../api/storeProducts.ts";
+import { requestStoreOrderReturn } from "../../api/storeOrders.ts";
 import { getStorePublicIdentityBySlug } from "../../api/storePublicIdentity.ts";
 import { resolveAssetUrl } from "../../lib/assetUrl.js";
 import { formatCurrency } from "../../utils/format.js";
@@ -382,6 +383,10 @@ export default function AccountOrderDetail2026View({
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [returnReason, setReturnReason] = useState("DAMAGED");
   const [returnNotes, setReturnNotes] = useState("");
+  const [returnSolutionType, setReturnSolutionType] = useState("REFUND_ONLY");
+  const [returnBankDetails, setReturnBankDetails] = useState("");
+  const [isSubmittingReturn, setIsSubmittingReturn] = useState(false);
+  const [returnSubmitError, setReturnSubmitError] = useState("");
   const [showChangePaymentModal, setShowChangePaymentModal] = useState(false);
   const [selectedPaymentCode, setSelectedPaymentCode] = useState("SP");
 
@@ -435,6 +440,64 @@ export default function AccountOrderDetail2026View({
       toast.success(msg);
     } catch {
       toast.error(isIndo ? "Gagal menyalin teks." : "Copy failed.");
+    }
+  };
+
+  const handleSendReturnRequest = async () => {
+    if (!returnBankDetails.trim()) {
+      setReturnSubmitError(
+        isIndo
+          ? "Harap cantumkan informasi rekening bank atau e-wallet untuk pengembalian dana."
+          : "Please specify your bank or e-wallet account details for the refund."
+      );
+      return;
+    }
+    try {
+      setIsSubmittingReturn(true);
+      setReturnSubmitError("");
+      const resolvedReason =
+        returnReason === "DAMAGED"
+          ? (isIndo ? "Barang rusak cacat saat diterima" : "Item damaged or defective upon arrival")
+          : returnReason === "NOT_MATCH"
+          ? (isIndo ? "Produk tidak sesuai foto/deskripsi" : "Product doesn't match description or photo")
+          : returnReason === "INCOMPLETE"
+          ? (isIndo ? "Jumlah barang kurang / paket tidak lengkap" : "Incomplete package / missing items")
+          : returnReason === "WRONG_ITEM"
+          ? (isIndo ? "Salah kirim barang atau beda varian" : "Wrong item or different variant received")
+          : (isIndo ? "Kendala pengiriman lainnya" : "Other shipping issue");
+
+      const suborderId = shopee?.returnDispute?.suborderId || null;
+      const orderId = orderDetail?.id || rawOrder?.id;
+
+      await requestStoreOrderReturn(orderId, {
+        suborderId,
+        reason: resolvedReason,
+        solutionType: returnSolutionType,
+        notes: returnNotes,
+        bankDetails: returnBankDetails.trim(),
+      });
+
+      toast.success(
+        isIndo
+          ? "Pengajuan pengembalian berhasil dikirim ke Penjual!"
+          : "Return request submitted successfully to the seller!"
+      );
+      setShowReturnModal(false);
+      if (onRetry) {
+        onRetry();
+      } else {
+        window.location.reload();
+      }
+    } catch (err) {
+      console.error("[AccountOrderDetail2026View] submit return error", err);
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        (isIndo ? "Gagal mengirim pengajuan pengembalian." : "Failed to submit return request.");
+      setReturnSubmitError(msg);
+      toast.error(msg);
+    } finally {
+      setIsSubmittingReturn(false);
     }
   };
 
@@ -510,10 +573,17 @@ export default function AccountOrderDetail2026View({
       String(orderDetail?.status?.code || rawOrder?.status || banner?.title || "")
     );
 
+  const returnDispute = shopee?.returnDispute || null;
+  const hasActiveReturn = Boolean(returnDispute?.isActive);
+  const isReturnApproved = Boolean(returnDispute?.isApproved);
+  const isRefunded = Boolean(returnDispute?.isRefunded);
+  const isReturnRejected = Boolean(returnDispute?.isRejected);
+  const hasReturnHistory = Boolean(returnDispute && returnDispute.returnStatus && returnDispute.returnStatus !== "NONE");
+
   const returnPolicy = shopee?.returnPolicy || null;
   const isReturnExpired = Boolean(returnPolicy?.isReturnExpired);
-  const canConfirmReceipt = isOrderPaid && isDelivered && !isCompleted;
-  const canRequestReturn = isOrderPaid && (isDelivered || isCompleted) && !isReturnExpired;
+  const canConfirmReceipt = isOrderPaid && isDelivered && !isCompleted && !hasActiveReturn;
+  const canRequestReturn = isOrderPaid && (isDelivered || isCompleted) && !isReturnExpired && !hasReturnHistory;
 
   const shippingAddress = shopee?.shippingAddress || {
     name: orderDetail.account?.customerName || "Pelanggan",
@@ -963,57 +1033,165 @@ export default function AccountOrderDetail2026View({
             <div className="tp-shopee-detail__guarantee-head">
               <h3 className="tp-shopee-detail__guarantee-title">
                 <ShieldCheck size={18} style={{ color: "var(--tp-navy, #034c85)" }} />
-                <span>{isIndo ? "Jaminan & Kebijakan Pengembalian" : "Return & Guarantee Policy"}</span>
+                <span>
+                  {hasReturnHistory
+                    ? (isIndo ? "Status Pengajuan Pengembalian" : "Return & Refund Dispute Status")
+                    : (isIndo ? "Jaminan & Kebijakan Pengembalian" : "Return & Guarantee Policy")}
+                </span>
               </h3>
               <span
                 className={`tp-shopee-detail__guarantee-badge ${
-                  isReturnExpired ? "tp-shopee-detail__guarantee-badge--expired" : ""
+                  hasReturnHistory
+                    ? "tp-shopee-detail__guarantee-badge--active"
+                    : isReturnExpired
+                    ? "tp-shopee-detail__guarantee-badge--expired"
+                    : ""
                 }`}
+                style={
+                  hasReturnHistory
+                    ? {
+                        backgroundColor:
+                          returnDispute?.returnStatus === "RETURN_APPROVED" || returnDispute?.returnStatus === "REFUNDED"
+                            ? "#ecfdf5"
+                            : returnDispute?.returnStatus === "RETURN_DISPUTED"
+                            ? "#eff6ff"
+                            : returnDispute?.returnStatus === "RETURN_REJECTED"
+                            ? "#fef2f2"
+                            : "#fff7ed",
+                        color:
+                          returnDispute?.returnStatus === "RETURN_APPROVED" || returnDispute?.returnStatus === "REFUNDED"
+                            ? "#059669"
+                            : returnDispute?.returnStatus === "RETURN_DISPUTED"
+                            ? "#2563eb"
+                            : returnDispute?.returnStatus === "RETURN_REJECTED"
+                            ? "#dc2626"
+                            : "#d97706",
+                        borderColor:
+                          returnDispute?.returnStatus === "RETURN_APPROVED" || returnDispute?.returnStatus === "REFUNDED"
+                            ? "#a7f3d0"
+                            : returnDispute?.returnStatus === "RETURN_DISPUTED"
+                            ? "#bfdbfe"
+                            : returnDispute?.returnStatus === "RETURN_REJECTED"
+                            ? "#fecaca"
+                            : "#fde68a",
+                        fontWeight: 600,
+                      }
+                    : undefined
+                }
               >
-                {isReturnExpired
+                {hasReturnHistory
+                  ? returnDispute?.returnStatus === "RETURN_APPROVED"
+                    ? (isIndo ? "Disetujui Penjual" : "Approved by Seller")
+                    : returnDispute?.returnStatus === "REFUNDED"
+                    ? (isIndo ? "Refund Selesai" : "Refund Completed")
+                    : returnDispute?.returnStatus === "RETURN_DISPUTED"
+                    ? (isIndo ? "Mediasi Admin TP Preneurs" : "Admin Mediation")
+                    : returnDispute?.returnStatus === "RETURN_REJECTED"
+                    ? (isIndo ? "Pengembalian Ditolak" : "Return Rejected")
+                    : (isIndo ? "Menunggu Respon Penjual (3 Hari)" : "Awaiting Seller Response")
+                  : isReturnExpired
                   ? (isIndo ? "Masa Garansi Berakhir" : "Return Window Expired")
                   : (isIndo ? "Proteksi TP Aktif (7 Hari)" : "Active TP Protection (7 Days)")}
               </span>
             </div>
 
             <div className="tp-shopee-detail__guarantee-body">
-              <div className="tp-shopee-detail__guarantee-row">
-                <Clock size={14} style={{ color: "#fe6f05", marginTop: "3px", flexShrink: 0 }} />
-                <span>
-                  {isIndo
-                    ? "Dana pembeli ditahan aman oleh TP Preneurs hingga pesanan dipastikan diterima dalam kondisi baik."
-                    : "Buyer payment is held securely by TP Preneurs until the order is verified in good condition."}
-                </span>
-              </div>
-
-              {isReturnExpired ? (
-                <div className="tp-shopee-detail__guarantee-notice tp-shopee-detail__guarantee-notice--expired">
-                  <CheckCircle2 size={14} style={{ color: "#64748b", marginTop: "2px", flexShrink: 0 }} />
-                  <span>
-                    {isIndo
-                      ? "Batas waktu pengajuan pengembalian (7 hari) telah berakhir. Pesanan ini telah selesai secara penuh dan dana telah diteruskan ke saldo toko."
-                      : "The 7-day return request deadline has passed. This order is fully finalized and funds have been released to the store."}
-                  </span>
+              {hasReturnHistory ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "0.85rem" }}>
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <span style={{ color: "#64748b", minWidth: "130px" }}>{isIndo ? "Alasan Retur:" : "Reason:"}</span>
+                    <strong style={{ color: "#1e293b" }}>{returnDispute.returnReason || "-"}</strong>
+                  </div>
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <span style={{ color: "#64748b", minWidth: "130px" }}>{isIndo ? "Solusi Diajukan:" : "Solution:"}</span>
+                    <span style={{ color: "#1e293b" }}>
+                      {returnDispute.returnSolutionType === "RETURN_AND_REFUND"
+                        ? (isIndo ? "Pengembalian Barang & Dana" : "Return Item & Refund")
+                        : (isIndo ? "Pengembalian Dana Saja" : "Refund Only")}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <span style={{ color: "#64748b", minWidth: "130px" }}>{isIndo ? "Rekening Tujuan:" : "Refund Bank:"}</span>
+                    <span style={{ color: "#1e293b" }}>{returnDispute.returnBankDetails || "-"}</span>
+                  </div>
+                  {returnDispute.returnNotes && (
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <span style={{ color: "#64748b", minWidth: "130px" }}>{isIndo ? "Catatan Anda:" : "Your Notes:"}</span>
+                      <span style={{ color: "#475569" }}>{returnDispute.returnNotes}</span>
+                    </div>
+                  )}
+                  {returnDispute.returnSellerNotes && (
+                    <div style={{ display: "flex", gap: "8px", padding: "6px 10px", backgroundColor: "#fff7ed", borderRadius: "6px" }}>
+                      <span style={{ color: "#b45309", minWidth: "130px", fontWeight: 600 }}>{isIndo ? "Respon Penjual:" : "Seller Response:"}</span>
+                      <span style={{ color: "#78350f" }}>{returnDispute.returnSellerNotes}</span>
+                    </div>
+                  )}
+                  {returnDispute.returnAdminNotes && (
+                    <div style={{ display: "flex", gap: "8px", padding: "6px 10px", backgroundColor: "#eff6ff", borderRadius: "6px" }}>
+                      <span style={{ color: "#1d4ed8", minWidth: "130px", fontWeight: 600 }}>{isIndo ? "Keputusan Admin:" : "Admin Decision:"}</span>
+                      <span style={{ color: "#1e3a8a" }}>{returnDispute.returnAdminNotes}</span>
+                    </div>
+                  )}
+                  <div style={{ marginTop: "6px" }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowReturnModal(true)}
+                      style={{
+                        padding: "6px 12px",
+                        fontSize: "0.8rem",
+                        fontWeight: 600,
+                        color: "#fe6f05",
+                        backgroundColor: "transparent",
+                        border: "1px solid #fe6f05",
+                        borderRadius: "6px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {isIndo ? "Lihat Status / Hubungi Toko" : "View Details / Contact Store"}
+                    </button>
+                  </div>
                 </div>
               ) : (
-                <div className="tp-shopee-detail__guarantee-notice">
-                  <ShieldCheck size={14} style={{ color: "#fe6f05", marginTop: "2px", flexShrink: 0 }} />
-                  <span>
-                    {isIndo
-                      ? `Pengajuan komplain atau retur barang/dana dapat dilakukan maksimal hingga ${returnPolicy?.returnDeadlineDisplay || "7 hari sejak barang tiba"}.`
-                      : `Return and refund requests are allowed within ${returnPolicy?.returnDeadlineDisplay ? `until ${returnPolicy.returnDeadlineDisplay}` : "7 days after delivery"}.`}
-                  </span>
-                </div>
-              )}
+                <>
+                  <div className="tp-shopee-detail__guarantee-row">
+                    <Clock size={14} style={{ color: "#fe6f05", marginTop: "3px", flexShrink: 0 }} />
+                    <span>
+                      {isIndo
+                        ? "Dana pembeli ditahan aman oleh TP Preneurs hingga pesanan dipastikan diterima dalam kondisi baik."
+                        : "Buyer payment is held securely by TP Preneurs until the order is verified in good condition."}
+                    </span>
+                  </div>
 
-              <div className="tp-shopee-detail__guarantee-subtext">
-                <CheckCircle2 size={13} style={{ color: "var(--tp-navy, #034c85)", marginTop: "2px", flexShrink: 0 }} />
-                <span>
-                  {isIndo
-                    ? "Jika Anda tidak mengajukan komplain dalam batas waktu, sistem otomatis menyelesaikan transaksi dan melepaskan dana ke saldo penjual."
-                    : "If you do not request a return within the window or click 'Order Received', the system automatically completes the transaction and releases funds to the seller."}
-                </span>
-              </div>
+                  {isReturnExpired ? (
+                    <div className="tp-shopee-detail__guarantee-notice tp-shopee-detail__guarantee-notice--expired">
+                      <CheckCircle2 size={14} style={{ color: "#64748b", marginTop: "2px", flexShrink: 0 }} />
+                      <span>
+                        {isIndo
+                          ? "Batas waktu pengajuan pengembalian (7 hari) telah berakhir. Pesanan ini telah selesai secara penuh dan dana telah diteruskan ke saldo toko."
+                          : "The 7-day return request deadline has passed. This order is fully finalized and funds have been released to the store."}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="tp-shopee-detail__guarantee-notice">
+                      <ShieldCheck size={14} style={{ color: "#fe6f05", marginTop: "2px", flexShrink: 0 }} />
+                      <span>
+                        {isIndo
+                          ? `Pengajuan komplain atau retur barang/dana dapat dilakukan maksimal hingga ${returnPolicy?.returnDeadlineDisplay || "7 hari sejak barang tiba"}.`
+                          : `Return and refund requests are allowed within ${returnPolicy?.returnDeadlineDisplay ? `until ${returnPolicy.returnDeadlineDisplay}` : "7 days after delivery"}.`}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="tp-shopee-detail__guarantee-subtext">
+                    <CheckCircle2 size={13} style={{ color: "var(--tp-navy, #034c85)", marginTop: "2px", flexShrink: 0 }} />
+                    <span>
+                      {isIndo
+                        ? "Jika Anda tidak mengajukan komplain dalam batas waktu, sistem otomatis menyelesaikan transaksi dan melepaskan dana ke saldo penjual."
+                        : "If you do not request a return within the window or click 'Order Received', the system automatically completes the transaction and releases funds to the seller."}
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
           </section>
         )}
@@ -1290,6 +1468,23 @@ export default function AccountOrderDetail2026View({
             >
               <RotateCcw size={14} />
               <span>{isIndo ? "Ajukan Pengembalian" : "Request Return"}</span>
+            </button>
+          )}
+
+          {hasReturnHistory && (
+            <button
+              type="button"
+              onClick={() => setShowReturnModal(true)}
+              className="tp-shopee-detail__btn-outline inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0"
+              style={{
+                borderColor: "#fe6f05",
+                color: "#fe6f05",
+                backgroundColor: "rgba(254, 111, 5, 0.08)",
+                fontWeight: 600,
+              }}
+            >
+              <RotateCcw size={14} />
+              <span>{isIndo ? "Status Pengembalian" : "Return Status"}</span>
             </button>
           )}
 
@@ -1572,104 +1767,337 @@ export default function AccountOrderDetail2026View({
 
             <div className="tp-cancel-modal__content">
               <h3 id="tp-return-modal-title" className="tp-cancel-modal__title">
-                {isIndo ? "Ajukan Pengembalian Barang & Dana" : "Request Return & Refund"}
+                {hasReturnHistory
+                  ? (isIndo ? "Rincian Status Pengembalian" : "Return & Refund Details")
+                  : (isIndo ? "Ajukan Pengembalian Barang & Dana" : "Request Return & Refund")}
               </h3>
               <div className="tp-cancel-modal__order-badge">
                 <span className="tp-cancel-modal__order-label">{t.orderNo}:</span>
                 <span className="tp-cancel-modal__order-code">{orderMeta.orderNo}</span>
               </div>
 
-              <div
-                style={{
-                  padding: "10px 12px",
-                  borderRadius: "8px",
-                  backgroundColor: "#fff7ed",
-                  border: "1px solid #fed7aa",
-                  color: "#9a3412",
-                  fontSize: "0.82rem",
-                  lineHeight: 1.5,
-                  marginBottom: "14px",
-                }}
-              >
-                <strong>{isIndo ? "Perhatian Penting: " : "Important Note: "}</strong>
-                {isIndo
-                  ? "Batas pengajuan pengembalian barang dan dana maksimal 7 hari (dan 2 hari untuk penjual tertentu) setelah pesanan tiba di aplikasi TP Preneurs. Pengembalian barang dan dana tidak bisa diajukan jika melewati batas waktu yang telah ditentukan."
-                  : "Return and refund requests are allowed within 7 days (or 2 days for specific sellers) after delivery. Returns cannot be submitted once the deadline has expired."}
-              </div>
+              {hasReturnHistory ? (
+                /* View Active Dispute Status */
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "12px" }}>
+                  <div
+                    style={{
+                      padding: "10px 14px",
+                      borderRadius: "8px",
+                      backgroundColor:
+                        returnDispute?.returnStatus === "RETURN_APPROVED" || returnDispute?.returnStatus === "REFUNDED"
+                          ? "#ecfdf5"
+                          : returnDispute?.returnStatus === "RETURN_DISPUTED"
+                          ? "#eff6ff"
+                          : returnDispute?.returnStatus === "RETURN_REJECTED"
+                          ? "#fef2f2"
+                          : "#fff7ed",
+                      border: `1px solid ${
+                        returnDispute?.returnStatus === "RETURN_APPROVED" || returnDispute?.returnStatus === "REFUNDED"
+                          ? "#a7f3d0"
+                          : returnDispute?.returnStatus === "RETURN_DISPUTED"
+                          ? "#bfdbfe"
+                          : returnDispute?.returnStatus === "RETURN_REJECTED"
+                          ? "#fecaca"
+                          : "#fed7aa"
+                      }`,
+                    }}
+                  >
+                    <strong
+                      style={{
+                        display: "block",
+                        fontSize: "0.88rem",
+                        color:
+                          returnDispute?.returnStatus === "RETURN_APPROVED" || returnDispute?.returnStatus === "REFUNDED"
+                            ? "#059669"
+                            : returnDispute?.returnStatus === "RETURN_DISPUTED"
+                            ? "#1d4ed8"
+                            : returnDispute?.returnStatus === "RETURN_REJECTED"
+                            ? "#dc2626"
+                            : "#c2410c",
+                        marginBottom: "4px",
+                      }}
+                    >
+                      {returnDispute?.returnStatus === "RETURN_APPROVED"
+                        ? (isIndo ? "✓ Pengembalian Disetujui Penjual" : "✓ Return Approved by Seller")
+                        : returnDispute?.returnStatus === "REFUNDED"
+                        ? (isIndo ? "✓ Pengembalian Dana Berhasil (Refund)" : "✓ Refund Completed")
+                        : returnDispute?.returnStatus === "RETURN_DISPUTED"
+                        ? (isIndo ? "⚖ Dalam Mediasi Admin TP Preneurs" : "⚖ In Admin Dispute Mediation")
+                        : returnDispute?.returnStatus === "RETURN_REJECTED"
+                        ? (isIndo ? "✕ Pengajuan Pengembalian Ditolak" : "✕ Return Request Rejected")
+                        : (isIndo ? "⏳ Menunggu Respon Penjual (Batas 3 Hari)" : "⏳ Awaiting Seller Response")}
+                    </strong>
+                    <p style={{ margin: 0, fontSize: "0.82rem", color: "#475569", lineHeight: 1.4 }}>
+                      {returnDispute?.returnStatus === "RETURN_REQUESTED"
+                        ? (isIndo
+                            ? "Pengajuan Anda telah diteruskan ke penjual. Penjual memiliki waktu maksimal 3 hari untuk merespon. Selama proses ini, saldo penjual ditahan aman oleh TP Preneurs."
+                            : "Your request has been forwarded to the seller with a 3-day window to respond.")
+                        : returnDispute?.returnStatus === "RETURN_DISPUTED"
+                        ? (isIndo
+                            ? "Penjual mengajukan sanggahan/banding. Tim kepatuhan platform TP Preneurs sedang meneliti bukti untuk memberikan keputusan yang adil."
+                            : "Seller submitted a dispute. Platform team is mediating.")
+                        : returnDispute?.returnStatus === "RETURN_APPROVED"
+                        ? (isIndo
+                            ? "Penjual telah menyetujui pengembalian. Dana akan diproses untuk pencairan ke rekening Anda."
+                            : "Seller approved return & refund.")
+                        : returnDispute?.returnStatus === "REFUNDED"
+                        ? (isIndo
+                            ? "Dana transaksi telah berhasil direfund ke rekening/e-wallet Anda."
+                            : "Funds have been refunded to your account.")
+                        : (isIndo
+                            ? "Pengembalian tidak dapat disetujui berdasarkan hasil evaluasi bukti mediasi."
+                            : "Return was not approved.")}
+                    </p>
+                  </div>
 
-              <label
-                style={{
-                  display: "block",
-                  fontSize: "0.82rem",
-                  fontWeight: 600,
-                  marginBottom: "6px",
-                  color: "#334155",
-                }}
-              >
-                {isIndo ? "Alasan Pengembalian:" : "Reason for Return:"}
-              </label>
-              <select
-                value={returnReason}
-                onChange={(e) => setReturnReason(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "9px 12px",
-                  borderRadius: "8px",
-                  border: "1px solid #cbd5e1",
-                  fontSize: "0.85rem",
-                  marginBottom: "12px",
-                  backgroundColor: "#ffffff",
-                  color: "#0f172a",
-                }}
-              >
-                <option value="DAMAGED">
-                  {isIndo ? "Barang rusak atau cacat saat diterima" : "Item damaged or defective upon arrival"}
-                </option>
-                <option value="NOT_MATCH">
-                  {isIndo ? "Produk tidak sesuai foto / deskripsi" : "Product doesn't match description or photo"}
-                </option>
-                <option value="INCOMPLETE">
-                  {isIndo ? "Jumlah barang kurang / paket tidak lengkap" : "Incomplete package / missing items"}
-                </option>
-                <option value="WRONG_ITEM">
-                  {isIndo ? "Salah kirim barang atau beda varian" : "Wrong item or different variant received"}
-                </option>
-                <option value="OTHER">
-                  {isIndo ? "Kendala pengiriman lainnya" : "Other shipping issue"}
-                </option>
-              </select>
+                  <div style={{ fontSize: "0.84rem", display: "flex", flexDirection: "column", gap: "6px" }}>
+                    <div>
+                      <span style={{ color: "#64748b" }}>{isIndo ? "Alasan: " : "Reason: "}</span>
+                      <strong>{returnDispute.returnReason || "-"}</strong>
+                    </div>
+                    <div>
+                      <span style={{ color: "#64748b" }}>{isIndo ? "Solusi: " : "Solution: "}</span>
+                      <span>
+                        {returnDispute.returnSolutionType === "RETURN_AND_REFUND"
+                          ? (isIndo ? "Pengembalian Barang & Dana" : "Return & Refund")
+                          : (isIndo ? "Pengembalian Dana Saja" : "Refund Only")}
+                      </span>
+                    </div>
+                    <div>
+                      <span style={{ color: "#64748b" }}>{isIndo ? "Rekening Tujuan Refund: " : "Refund Account: "}</span>
+                      <span>{returnDispute.returnBankDetails || "-"}</span>
+                    </div>
+                    {returnDispute.returnNotes && (
+                      <div>
+                        <span style={{ color: "#64748b" }}>{isIndo ? "Catatan Anda: " : "Your Notes: "}</span>
+                        <p style={{ margin: "2px 0 0 0", color: "#334155" }}>{returnDispute.returnNotes}</p>
+                      </div>
+                    )}
+                    {returnDispute.returnSellerNotes && (
+                      <div style={{ padding: "8px 10px", backgroundColor: "#fff7ed", borderRadius: "6px" }}>
+                        <span style={{ color: "#b45309", fontWeight: 600 }}>{isIndo ? "Catatan Penjual: " : "Seller Note: "}</span>
+                        <p style={{ margin: "2px 0 0 0", color: "#78350f" }}>{returnDispute.returnSellerNotes}</p>
+                      </div>
+                    )}
+                    {returnDispute.returnAdminNotes && (
+                      <div style={{ padding: "8px 10px", backgroundColor: "#eff6ff", borderRadius: "6px" }}>
+                        <span style={{ color: "#1d4ed8", fontWeight: 600 }}>{isIndo ? "Catatan Admin Platform: " : "Admin Decision Note: "}</span>
+                        <p style={{ margin: "2px 0 0 0", color: "#1e3a8a" }}>{returnDispute.returnAdminNotes}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                /* Form for New Return Request */
+                <>
+                  <div
+                    style={{
+                      padding: "10px 12px",
+                      borderRadius: "8px",
+                      backgroundColor: "#fff7ed",
+                      border: "1px solid #fed7aa",
+                      color: "#9a3412",
+                      fontSize: "0.82rem",
+                      lineHeight: 1.5,
+                      marginBottom: "14px",
+                    }}
+                  >
+                    <strong>{isIndo ? "Perhatian Penting: " : "Important Note: "}</strong>
+                    {isIndo
+                      ? "Batas pengajuan pengembalian barang dan dana maksimal 7 hari setelah pesanan tiba di aplikasi TP Preneurs. Pengembalian barang dan dana tidak bisa diajukan jika melewati batas waktu yang telah ditentukan."
+                      : "Return and refund requests are allowed within 7 days after delivery. Returns cannot be submitted once the deadline has expired."}
+                  </div>
 
-              <label
-                style={{
-                  display: "block",
-                  fontSize: "0.82rem",
-                  fontWeight: 600,
-                  marginBottom: "6px",
-                  color: "#334155",
-                }}
-              >
-                {isIndo ? "Rincian / Catatan Tambahan (Opsional):" : "Additional Notes (Optional):"}
-              </label>
-              <textarea
-                value={returnNotes}
-                onChange={(e) => setReturnNotes(e.target.value)}
-                rows={3}
-                placeholder={
-                  isIndo
-                    ? "Jelaskan kendala produk yang Anda temukan secara singkat..."
-                    : "Briefly describe the issue encountered with the product..."
-                }
-                style={{
-                  width: "100%",
-                  padding: "9px 12px",
-                  borderRadius: "8px",
-                  border: "1px solid #cbd5e1",
-                  fontSize: "0.85rem",
-                  marginBottom: "16px",
-                  resize: "vertical",
-                  boxSizing: "border-box",
-                }}
-              />
+                  {returnSubmitError && (
+                    <div
+                      style={{
+                        padding: "8px 12px",
+                        borderRadius: "6px",
+                        backgroundColor: "#fef2f2",
+                        border: "1px solid #fecaca",
+                        color: "#b91c1c",
+                        fontSize: "0.82rem",
+                        marginBottom: "12px",
+                      }}
+                    >
+                      {returnSubmitError}
+                    </div>
+                  )}
+
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "0.82rem",
+                      fontWeight: 600,
+                      marginBottom: "6px",
+                      color: "#334155",
+                    }}
+                  >
+                    {isIndo ? "Alasan Pengembalian:" : "Reason for Return:"}
+                  </label>
+                  <select
+                    value={returnReason}
+                    onChange={(e) => setReturnReason(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "9px 12px",
+                      borderRadius: "8px",
+                      border: "1px solid #cbd5e1",
+                      fontSize: "0.85rem",
+                      marginBottom: "12px",
+                      backgroundColor: "#ffffff",
+                      color: "#0f172a",
+                    }}
+                  >
+                    <option value="DAMAGED">
+                      {isIndo ? "Barang rusak cacat saat diterima" : "Item damaged or defective upon arrival"}
+                    </option>
+                    <option value="NOT_MATCH">
+                      {isIndo ? "Produk tidak sesuai foto/deskripsi" : "Product doesn't match photo/description"}
+                    </option>
+                    <option value="INCOMPLETE">
+                      {isIndo ? "Jumlah barang kurang / paket tidak lengkap" : "Incomplete package / missing items"}
+                    </option>
+                    <option value="WRONG_ITEM">
+                      {isIndo ? "Salah kirim barang atau beda varian" : "Wrong item or different variant received"}
+                    </option>
+                    <option value="OTHER">
+                      {isIndo ? "Kendala pengiriman lainnya" : "Other shipping issue"}
+                    </option>
+                  </select>
+
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "0.82rem",
+                      fontWeight: 600,
+                      marginBottom: "6px",
+                      color: "#334155",
+                    }}
+                  >
+                    {isIndo ? "Pilihan Solusi Pengembalian:" : "Return Solution Type:"}
+                  </label>
+                  <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
+                    <label
+                      style={{
+                        flex: 1,
+                        padding: "8px 10px",
+                        border: `1.5px solid ${returnSolutionType === "REFUND_ONLY" ? "#fe6f05" : "#cbd5e1"}`,
+                        borderRadius: "8px",
+                        backgroundColor: returnSolutionType === "REFUND_ONLY" ? "rgba(254, 111, 5, 0.05)" : "#ffffff",
+                        cursor: "pointer",
+                        fontSize: "0.82rem",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        color: returnSolutionType === "REFUND_ONLY" ? "#fe6f05" : "#334155",
+                        fontWeight: returnSolutionType === "REFUND_ONLY" ? 600 : 400,
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="solutionType"
+                        value="REFUND_ONLY"
+                        checked={returnSolutionType === "REFUND_ONLY"}
+                        onChange={() => setReturnSolutionType("REFUND_ONLY")}
+                        style={{ accentColor: "#fe6f05" }}
+                      />
+                      <span>{isIndo ? "Pengembalian Dana Saja" : "Refund Only"}</span>
+                    </label>
+                    <label
+                      style={{
+                        flex: 1,
+                        padding: "8px 10px",
+                        border: `1.5px solid ${returnSolutionType === "RETURN_AND_REFUND" ? "#fe6f05" : "#cbd5e1"}`,
+                        borderRadius: "8px",
+                        backgroundColor: returnSolutionType === "RETURN_AND_REFUND" ? "rgba(254, 111, 5, 0.05)" : "#ffffff",
+                        cursor: "pointer",
+                        fontSize: "0.82rem",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        color: returnSolutionType === "RETURN_AND_REFUND" ? "#fe6f05" : "#334155",
+                        fontWeight: returnSolutionType === "RETURN_AND_REFUND" ? 600 : 400,
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="solutionType"
+                        value="RETURN_AND_REFUND"
+                        checked={returnSolutionType === "RETURN_AND_REFUND"}
+                        onChange={() => setReturnSolutionType("RETURN_AND_REFUND")}
+                        style={{ accentColor: "#fe6f05" }}
+                      />
+                      <span>{isIndo ? "Pengembalian Barang & Dana" : "Return & Refund"}</span>
+                    </label>
+                  </div>
+
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "0.82rem",
+                      fontWeight: 600,
+                      marginBottom: "6px",
+                      color: "#334155",
+                    }}
+                  >
+                    {isIndo ? "Rekening / E-Wallet Pengembalian Dana *" : "Refund Bank / E-Wallet Account *"}
+                  </label>
+                  <input
+                    type="text"
+                    value={returnBankDetails}
+                    onChange={(e) => setReturnBankDetails(e.target.value)}
+                    placeholder={
+                      isIndo
+                        ? "Cth: BCA 1234567890 a/n Budi Santoso atau GoPay 08123456789"
+                        : "e.g., Bank Name, Account Number, and Account Holder Name"
+                    }
+                    style={{
+                      width: "100%",
+                      padding: "9px 12px",
+                      borderRadius: "8px",
+                      border: "1px solid #cbd5e1",
+                      fontSize: "0.85rem",
+                      marginBottom: "12px",
+                      boxSizing: "border-box",
+                      backgroundColor: "#ffffff",
+                      color: "#0f172a",
+                    }}
+                  />
+
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "0.82rem",
+                      fontWeight: 600,
+                      marginBottom: "6px",
+                      color: "#334155",
+                    }}
+                  >
+                    {isIndo ? "Rincian / Catatan Tambahan (Opsional):" : "Additional Notes (Optional):"}
+                  </label>
+                  <textarea
+                    value={returnNotes}
+                    onChange={(e) => setReturnNotes(e.target.value)}
+                    rows={3}
+                    placeholder={
+                      isIndo
+                        ? "Jelaskan kendala produk yang Anda temukan secara singkat..."
+                        : "Briefly describe the issue encountered with the product..."
+                    }
+                    style={{
+                      width: "100%",
+                      padding: "9px 12px",
+                      borderRadius: "8px",
+                      border: "1px solid #cbd5e1",
+                      fontSize: "0.85rem",
+                      marginBottom: "16px",
+                      resize: "vertical",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </>
+              )}
             </div>
 
             <div
@@ -1681,7 +2109,7 @@ export default function AccountOrderDetail2026View({
                 className="tp-cancel-modal__btn-back"
                 onClick={() => setShowReturnModal(false)}
               >
-                {isIndo ? "Batal" : "Cancel"}
+                {isIndo ? "Tutup" : "Close"}
               </button>
               <a
                 href={
@@ -1703,24 +2131,35 @@ export default function AccountOrderDetail2026View({
                 rel="noopener noreferrer"
                 className="tp-cancel-modal__btn-confirm"
                 style={{ backgroundColor: "#25D366", borderColor: "#25D366" }}
-                onClick={() => setShowReturnModal(false)}
               >
                 <MessageCircle size={15} />
                 <span>{isIndo ? "Hubungi Penjual (WA)" : "Contact Seller (WA)"}</span>
               </a>
-              <button
-                type="button"
-                className="tp-cancel-modal__btn-confirm"
-                style={{ backgroundColor: "#fe6f05", borderColor: "#fe6f05" }}
-                onClick={() => {
-                  setShowReturnModal(false);
-                  navigate(
-                    `/contact-us?topic=return&ref=${encodeURIComponent(orderMeta.orderNo)}&reason=${encodeURIComponent(returnReason)}&notes=${encodeURIComponent(returnNotes)}`
-                  );
-                }}
-              >
-                <span>{isIndo ? "Kirim ke CS Prioritas" : "Submit to CS Support"}</span>
-              </button>
+
+              {!hasReturnHistory && (
+                <button
+                  type="button"
+                  className="tp-cancel-modal__btn-confirm"
+                  style={{
+                    backgroundColor: "#fe6f05",
+                    borderColor: "#fe6f05",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
+                  onClick={handleSendReturnRequest}
+                  disabled={isSubmittingReturn}
+                >
+                  {isSubmittingReturn ? (
+                    <>
+                      <Loader2 size={15} className="tp-spin" />
+                      <span>{isIndo ? "Mengirim..." : "Submitting..."}</span>
+                    </>
+                  ) : (
+                    <span>{isIndo ? "Kirim Pengajuan Resmi ke Sistem" : "Submit Official Return Request"}</span>
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </div>

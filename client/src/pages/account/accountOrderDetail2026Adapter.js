@@ -1491,13 +1491,84 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false, is
   const isDigitalOrder = items.length > 0 && items.every((it) => it.isDigital);
   const hasDigitalItems = items.some((it) => it.isDigital);
 
-  const resolvedBannerTitle = isDigitalOrder && isPaid
+  // Return & Dispute extraction
+  const primarySplit = Array.isArray(source.storeSplits) && source.storeSplits.length > 0 ? source.storeSplits[0] : null;
+  const returnStatus = String(primarySplit?.returnStatus || source.returnStatus || "NONE").toUpperCase();
+  const returnReason = primarySplit?.returnReason || source.returnReason || null;
+  const returnNotes = primarySplit?.returnNotes || source.returnNotes || null;
+  const returnSolutionType = primarySplit?.returnSolutionType || source.returnSolutionType || "REFUND_ONLY";
+  const returnBankDetails = primarySplit?.returnBankDetails || source.returnBankDetails || null;
+  const returnRequestedAt = primarySplit?.returnRequestedAt || source.returnRequestedAt || null;
+  const returnSellerNotes = primarySplit?.returnSellerNotes || source.returnSellerNotes || null;
+  const returnSellerRespondedAt = primarySplit?.returnSellerRespondedAt || source.returnSellerRespondedAt || null;
+  const returnAdminNotes = primarySplit?.returnAdminNotes || source.returnAdminNotes || null;
+  const returnAdminDecidedAt = primarySplit?.returnAdminDecidedAt || source.returnAdminDecidedAt || null;
+  const suborderId = primarySplit?.id || source.suborderId || null;
+
+  const returnDispute = {
+    suborderId,
+    returnStatus,
+    returnReason,
+    returnNotes,
+    returnSolutionType,
+    returnBankDetails,
+    returnRequestedAt,
+    returnSellerNotes,
+    returnSellerRespondedAt,
+    returnAdminNotes,
+    returnAdminDecidedAt,
+    isActive: ["RETURN_REQUESTED", "RETURN_DISPUTED"].includes(returnStatus),
+    isApproved: returnStatus === "RETURN_APPROVED",
+    isRefunded: returnStatus === "REFUNDED",
+    isRejected: returnStatus === "RETURN_REJECTED",
+  };
+
+  const isReturnActive = returnDispute.isActive;
+
+  let finalBannerTitle = isDigitalOrder && isPaid
     ? (isIndo ? "Pesanan Selesai • File Siap Diunduh" : "Order Completed • Digital Files Ready")
     : bannerTitle;
 
-  const resolvedBannerSubnote = isDigitalOrder && isPaid
+  let finalBannerSubnote = isDigitalOrder && isPaid
     ? (isIndo ? "Akses produk digital telah aktif. Anda dapat langsung mengunduh file pada rincian produk di bawah." : "Digital product access is active. You can download your files below.")
     : bannerSubnote;
+
+  let finalBannerTone = isDigitalOrder && isPaid ? "green" : bannerTone;
+
+  if (returnStatus === "RETURN_REQUESTED") {
+    finalBannerTitle = isIndo ? "Pengajuan Pengembalian Sedang Diproses" : "Return Request in Progress";
+    finalBannerSubnote = isIndo
+      ? "Menunggu tanggapan dari penjual dalam batas waktu 3 hari. Saldo toko ditahan aman oleh TP Preneurs."
+      : "Awaiting response from seller within 3 days. Store balance is safely held by TP Preneurs.";
+    finalBannerTone = "amber";
+  } else if (returnStatus === "RETURN_DISPUTED") {
+    finalBannerTitle = isIndo ? "Dalam Mediasi Admin TP Preneurs" : "In Admin Dispute Mediation";
+    finalBannerSubnote = isIndo
+      ? "Penjual mengajukan sanggahan/banding. Tim kepatuhan platform TP Preneurs sedang memeriksa kasus ini."
+      : "Seller submitted a dispute. TP Preneurs moderation team is investigating.";
+    finalBannerTone = "blue";
+  } else if (returnStatus === "RETURN_APPROVED") {
+    finalBannerTitle = isIndo ? "Pengembalian Disetujui Penjual" : "Return Approved by Seller";
+    finalBannerSubnote = isIndo
+      ? "Penjual telah menyetujui pengembalian barang & dana. Dana akan diselesaikan sistem."
+      : "Seller approved return & refund. Funds will be processed by system.";
+    finalBannerTone = "green";
+  } else if (returnStatus === "REFUNDED") {
+    finalBannerTitle = isIndo ? "Pengembalian Dana Berhasil" : "Refund Completed";
+    finalBannerSubnote = isIndo
+      ? "Dana pesanan telah berhasil direfund ke rekening/e-wallet Anda."
+      : "Refund has been transferred to your designated account.";
+    finalBannerTone = "green";
+  } else if (returnStatus === "RETURN_REJECTED") {
+    finalBannerTitle = isIndo ? "Pengajuan Pengembalian Ditolak" : "Return Request Rejected";
+    finalBannerSubnote = isIndo
+      ? "Hasil mediasi admin: Pengembalian ditolak dan transaksi dinyatakan selesai."
+      : "Admin mediation result: Return rejected and order completed.";
+    finalBannerTone = "red";
+  }
+
+  const resolvedBannerTitle = finalBannerTitle;
+  const resolvedBannerSubnote = finalBannerSubnote;
 
   const resolvedCourier = isDigitalOrder
     ? (isIndo ? "Pengiriman Digital (Cloud Download)" : "Digital Delivery (Cloud Download)")
@@ -1529,23 +1600,25 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false, is
     isReturnExpired,
     returnDeadlineDisplay,
     deliveryDateDisplay: realDeliveredAt ? formatDateTime(realDeliveredAt, isIndo) : "-",
-    canRequestReturn: isPaid && isDelivered && !isReturnExpired,
+    canRequestReturn: isPaid && isDelivered && !isReturnExpired && !isReturnActive && returnStatus !== "REFUNDED",
   };
 
   const shopeeDetail = {
     isDigitalOrder,
     hasDigitalItems,
+    returnDispute,
     banner: {
       title: resolvedBannerTitle,
-      tone: isDigitalOrder && isPaid ? "green" : bannerTone,
+      tone: finalBannerTone,
       subnote: resolvedBannerSubnote,
       isDelivered: isDigitalOrder ? isPaid : isDelivered,
       isCompleted: isDigitalOrder ? isPaid : isCompleted,
-      canConfirmReceipt: isPaid && isDelivered && !isCompleted,
+      canConfirmReceipt: isPaid && isDelivered && !isCompleted && !isReturnActive,
       isShipping: isDigitalOrder ? false : isShipping,
       isPacking: isDigitalOrder ? false : isPacking,
       isUnpaid,
       isCancelled,
+      isReturnActive,
     },
     returnPolicy,
     shippingInfo: {

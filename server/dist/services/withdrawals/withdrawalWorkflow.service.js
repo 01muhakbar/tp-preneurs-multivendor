@@ -80,6 +80,7 @@ export const calculateWithdrawalBalance = async (storeIdInput, options = {}) => 
             "serviceFeeAmount",
             "paymentStatus",
             "fulfillmentStatus",
+            "returnStatus",
             "updatedAt",
             "createdAt",
         ],
@@ -110,6 +111,7 @@ export const calculateWithdrawalBalance = async (storeIdInput, options = {}) => 
         return buildWithdrawalEligibilityMeta({
             paymentStatus: getAttr(suborder, "paymentStatus"),
             fulfillmentStatus: getAttr(suborder, "fulfillmentStatus"),
+            returnStatus: getAttr(suborder, "returnStatus"),
             orderStatus: getAttr(parentOrder, "status"),
             totalAmount: getAttr(suborder, "totalAmount"),
             serviceFeeAmount: getAttr(suborder, "serviceFeeAmount"),

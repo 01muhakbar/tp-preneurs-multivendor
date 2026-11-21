@@ -719,8 +719,90 @@ export const normalizeSellerSuborderDetailFor2026 = ({ suborder, routes = {}, is
   const safeTracking =
     rawTracking && !rawTracking.toLowerCase().includes("no tracking") ? rawTracking : "";
 
+  // Return & Dispute extraction
+  const returnStatus = String(detail.returnStatus || order.returnStatus || "NONE").toUpperCase();
+  const returnReason = detail.returnReason || order.returnReason || null;
+  const returnNotes = detail.returnNotes || order.returnNotes || null;
+  const returnSolutionType = detail.returnSolutionType || order.returnSolutionType || "REFUND_ONLY";
+  const returnBankDetails = detail.returnBankDetails || order.returnBankDetails || null;
+  const returnRequestedAt = detail.returnRequestedAt || order.returnRequestedAt || null;
+  const returnSellerNotes = detail.returnSellerNotes || order.returnSellerNotes || null;
+  const returnSellerRespondedAt = detail.returnSellerRespondedAt || order.returnSellerRespondedAt || null;
+  const returnAdminNotes = detail.returnAdminNotes || order.returnAdminNotes || null;
+  const returnAdminDecidedAt = detail.returnAdminDecidedAt || order.returnAdminDecidedAt || null;
+
+  const returnDispute = {
+    returnStatus,
+    returnReason,
+    returnNotes,
+    returnSolutionType,
+    returnBankDetails,
+    returnRequestedAt,
+    returnSellerNotes,
+    returnSellerRespondedAt,
+    returnAdminNotes,
+    returnAdminDecidedAt,
+    isActive: ["RETURN_REQUESTED", "RETURN_DISPUTED"].includes(returnStatus),
+    isApproved: returnStatus === "RETURN_APPROVED",
+    isDisputed: returnStatus === "RETURN_DISPUTED",
+    isRefunded: returnStatus === "REFUNDED",
+    isRejected: returnStatus === "RETURN_REJECTED",
+  };
+
   // Next step guidance for the seller
   const nextStep = (() => {
+    if (returnStatus === "RETURN_REQUESTED") {
+      return {
+        bucket: "warning",
+        title: isIndo ? "Pengajuan Pengembalian Aktif dari Pembeli" : "Return Request Active from Buyer",
+        description: isIndo
+          ? "Pembeli telah mengajukan pengembalian barang & dana. Mohon tinjau alasan komplain dan pilih respon Anda (Setujui atau Ajukan Banding)."
+          : "Buyer requested a return. Please review and respond.",
+        icon: "alert-triangle",
+        badge: isIndo ? "Tindakan Diperlukan" : "Action Required",
+        badgeTone: "amber",
+      };
+    }
+
+    if (returnStatus === "RETURN_DISPUTED") {
+      return {
+        bucket: "warning",
+        title: isIndo ? "Dalam Mediasi Admin TP Preneurs" : "In Admin Dispute Mediation",
+        description: isIndo
+          ? "Anda telah mengajukan sanggahan/banding. Tim kepatuhan platform TP Preneurs sedang meneliti bukti untuk keputusan penengah."
+          : "Dispute in moderation by TP Preneurs platform team.",
+        icon: "alert-triangle",
+        badge: isIndo ? "Mediasi Admin" : "Mediation",
+        badgeTone: "blue",
+      };
+    }
+
+    if (returnStatus === "RETURN_APPROVED") {
+      return {
+        bucket: "completed",
+        title: isIndo ? "Pengembalian Disetujui Penjual" : "Return Approved by Seller",
+        description: isIndo
+          ? "Anda telah menyetujui pengembalian. Dana transaksi pembeli akan diselesaikan sistem."
+          : "You approved this return & refund.",
+        icon: "check",
+        badge: isIndo ? "Disetujui" : "Approved",
+        badgeTone: "green",
+      };
+    }
+
+    if (returnStatus === "REFUNDED") {
+      return {
+        bucket: "completed",
+        title: isIndo ? "Pesanan Direfund" : "Order Refunded",
+        description: isIndo
+          ? "Dana pesanan ini telah direfund kepada pembeli berdasarkan keputusan mediasi."
+          : "Order funds were refunded to buyer.",
+        icon: "check",
+        badge: isIndo ? "Refund Selesai" : "Refunded",
+        badgeTone: "green",
+      };
+    }
+
     if (isDigitalOrder) {
       if (isPaid) {
         return {
@@ -939,6 +1021,18 @@ export const normalizeSellerSuborderDetailFor2026 = ({ suborder, routes = {}, is
     createdAt,
     createdAtLabel: formatDateTime(createdAt, isIndo),
     paidAtLabel: formatDateTime(paidAt, isIndo),
+
+    returnStatus,
+    returnReason,
+    returnNotes,
+    returnSolutionType,
+    returnBankDetails,
+    returnRequestedAt,
+    returnSellerNotes,
+    returnSellerRespondedAt,
+    returnAdminNotes,
+    returnAdminDecidedAt,
+    returnDispute,
 
     statusBucket: syncStatus.bucket,
     syncStatus,

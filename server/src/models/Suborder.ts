@@ -27,6 +27,23 @@ export interface SuborderAttributes {
     | "SHIPPED"
     | "DELIVERED"
     | "CANCELLED";
+  returnStatus?:
+    | "NONE"
+    | "RETURN_REQUESTED"
+    | "RETURN_APPROVED"
+    | "RETURN_DISPUTED"
+    | "RETURN_REJECTED"
+    | "REFUNDED"
+    | null;
+  returnReason?: string | null;
+  returnNotes?: string | null;
+  returnSolutionType?: "REFUND_ONLY" | "RETURN_AND_REFUND" | null;
+  returnBankDetails?: string | null;
+  returnRequestedAt?: Date | null;
+  returnSellerNotes?: string | null;
+  returnSellerRespondedAt?: Date | null;
+  returnAdminNotes?: string | null;
+  returnAdminDecidedAt?: Date | null;
   expiresAt?: Date | null;
   paidAt?: Date | null;
   internalNotes?: string | null;
@@ -46,6 +63,16 @@ type SuborderCreationAttributes = Optional<
   | "paymentMethod"
   | "paymentStatus"
   | "fulfillmentStatus"
+  | "returnStatus"
+  | "returnReason"
+  | "returnNotes"
+  | "returnSolutionType"
+  | "returnBankDetails"
+  | "returnRequestedAt"
+  | "returnSellerNotes"
+  | "returnSellerRespondedAt"
+  | "returnAdminNotes"
+  | "returnAdminDecidedAt"
   | "expiresAt"
   | "paidAt"
   | "internalNotes"
@@ -81,6 +108,23 @@ export class Suborder
     | "SHIPPED"
     | "DELIVERED"
     | "CANCELLED";
+  declare returnStatus?:
+    | "NONE"
+    | "RETURN_REQUESTED"
+    | "RETURN_APPROVED"
+    | "RETURN_DISPUTED"
+    | "RETURN_REJECTED"
+    | "REFUNDED"
+    | null;
+  declare returnReason?: string | null;
+  declare returnNotes?: string | null;
+  declare returnSolutionType?: "REFUND_ONLY" | "RETURN_AND_REFUND" | null;
+  declare returnBankDetails?: string | null;
+  declare returnRequestedAt?: Date | null;
+  declare returnSellerNotes?: string | null;
+  declare returnSellerRespondedAt?: Date | null;
+  declare returnAdminNotes?: string | null;
+  declare returnAdminDecidedAt?: Date | null;
   declare expiresAt?: Date | null;
   declare paidAt?: Date | null;
   declare internalNotes?: string | null;
@@ -230,6 +274,58 @@ export class Suborder
           allowNull: false,
           defaultValue: "UNFULFILLED",
           field: "fulfillment_status",
+        },
+        returnStatus: {
+          type: DataTypes.STRING(40),
+          allowNull: false,
+          defaultValue: "NONE",
+          field: "return_status",
+        },
+        returnReason: {
+          type: DataTypes.STRING(255),
+          allowNull: true,
+          field: "return_reason",
+        },
+        returnNotes: {
+          type: DataTypes.TEXT,
+          allowNull: true,
+          field: "return_notes",
+        },
+        returnSolutionType: {
+          type: DataTypes.STRING(40),
+          allowNull: true,
+          defaultValue: "REFUND_ONLY",
+          field: "return_solution_type",
+        },
+        returnBankDetails: {
+          type: DataTypes.STRING(255),
+          allowNull: true,
+          field: "return_bank_details",
+        },
+        returnRequestedAt: {
+          type: DataTypes.DATE,
+          allowNull: true,
+          field: "return_requested_at",
+        },
+        returnSellerNotes: {
+          type: DataTypes.TEXT,
+          allowNull: true,
+          field: "return_seller_notes",
+        },
+        returnSellerRespondedAt: {
+          type: DataTypes.DATE,
+          allowNull: true,
+          field: "return_seller_responded_at",
+        },
+        returnAdminNotes: {
+          type: DataTypes.TEXT,
+          allowNull: true,
+          field: "return_admin_notes",
+        },
+        returnAdminDecidedAt: {
+          type: DataTypes.DATE,
+          allowNull: true,
+          field: "return_admin_decided_at",
         },
         expiresAt: {
           type: DataTypes.DATE,

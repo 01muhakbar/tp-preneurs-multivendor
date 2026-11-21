@@ -25,6 +25,7 @@ import {
 import { resolveAssetUrl } from "../../../lib/assetUrl.js";
 import "../../../pages/seller/workspace/seller-suborder-detail-2026.css";
 import "./admin-order-detail-2026.css";
+import { decideAdminReturnDispute } from "../../../api/adminOrders.ts";
 
 const I18N = {
   id: {
@@ -254,6 +255,37 @@ export default function AdminOrderDetail2026View({
   const t = isIndo ? I18N.id : I18N.en;
   const [copiedKey, setCopiedKey] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
+  const [showAdminDisputeModal, setShowAdminDisputeModal] = useState(false);
+  const [adminDecisionType, setAdminDecisionType] = useState("REFUND_BUYER");
+  const [adminDecisionNotes, setAdminDecisionNotes] = useState("");
+  const [isSubmittingDecision, setIsSubmittingDecision] = useState(false);
+  const [adminDecisionError, setAdminDecisionError] = useState("");
+
+  const handleOpenDisputeModal = (decision) => {
+    setAdminDecisionType(decision);
+    setAdminDecisionNotes("");
+    setAdminDecisionError("");
+    setShowAdminDisputeModal(true);
+  };
+
+  const handleAdminDecisionSubmit = async () => {
+    try {
+      setIsSubmittingDecision(true);
+      setAdminDecisionError("");
+      await decideAdminReturnDispute(orderId, suborderId, {
+        decision: adminDecisionType,
+        adminNotes: adminDecisionNotes.trim(),
+      });
+      setShowAdminDisputeModal(false);
+      window.location.reload();
+    } catch (err) {
+      setAdminDecisionError(
+        err?.response?.data?.message || err?.message || "Gagal menyimpan keputusan mediasi admin."
+      );
+    } finally {
+      setIsSubmittingDecision(false);
+    }
+  };
 
   const groups = Array.isArray(order?.groups) ? order.groups : [];
   const primaryGroup = groups[0] || null;
@@ -689,6 +721,143 @@ export default function AdminOrderDetail2026View({
           </section>
         )}
 
+        {/* Admin Dispute Mediation Card */}
+        {primaryGroup?.returnStatus && primaryGroup.returnStatus !== "NONE" && (
+          <section
+            className="tpsodp2026-card"
+            style={{
+              border: "1.5px solid #fe6f05",
+              backgroundColor: "rgba(254, 111, 5, 0.03)",
+              marginBottom: "20px",
+              boxShadow: "0 4px 14px rgba(254, 111, 5, 0.08)",
+            }}
+          >
+            <header
+              className="tpsodp2026-card__header"
+              style={{
+                borderBottom: "1px solid rgba(254, 111, 5, 0.2)",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: "8px",
+              }}
+            >
+              <div className="tpsodp2026-card__header-title" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <RotateCcw size={18} style={{ color: "#fe6f05" }} />
+                <h2 style={{ fontSize: "1rem", fontWeight: 700, margin: 0, color: "#f8fafc" }}>
+                  {isIndo
+                    ? "Panel Mediasi & Keputusan Pengembalian Barang / Dana"
+                    : "Return & Refund Dispute Arbitration Panel"}
+                </h2>
+              </div>
+              <span
+                className={`tpsodp2026-pill tpsodp2026-pill--${
+                  primaryGroup.returnStatus === "RETURN_APPROVED" || primaryGroup.returnStatus === "REFUNDED"
+                    ? "green"
+                    : primaryGroup.returnStatus === "RETURN_DISPUTED"
+                    ? "blue"
+                    : primaryGroup.returnStatus === "RETURN_REJECTED"
+                    ? "red"
+                    : "orange"
+                }`}
+              >
+                <span className="tpsodp2026-pill__dot" />
+                {primaryGroup.returnStatus === "RETURN_DISPUTED"
+                  ? (isIndo ? "Sengketa Aktif (Banding Penjual)" : "Active Dispute")
+                  : primaryGroup.returnStatus === "RETURN_REQUESTED"
+                  ? (isIndo ? "Menunggu Tanggapan Toko (Batas 3 Hari)" : "Awaiting Seller Response")
+                  : primaryGroup.returnStatus === "RETURN_APPROVED"
+                  ? (isIndo ? "Disetujui Toko" : "Approved by Store")
+                  : primaryGroup.returnStatus === "REFUNDED"
+                  ? (isIndo ? "Refund Selesai" : "Refunded")
+                  : (isIndo ? "Pengembalian Ditolak" : "Return Rejected")}
+              </span>
+            </header>
+
+            <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "12px", fontSize: "0.88rem" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "12px" }}>
+                <div style={{ padding: "10px 12px", backgroundColor: "#0b1526", borderRadius: "8px", border: "1px solid #1e293b" }}>
+                  <span style={{ fontSize: "0.75rem", color: "#94a3b8", display: "block", marginBottom: "4px" }}>
+                    {isIndo ? "Alasan Komplain Pembeli:" : "Buyer Complaint Reason:"}
+                  </span>
+                  <strong style={{ color: "#f8fafc" }}>{primaryGroup.returnReason || "-"}</strong>
+                </div>
+
+                <div style={{ padding: "10px 12px", backgroundColor: "#0b1526", borderRadius: "8px", border: "1px solid #1e293b" }}>
+                  <span style={{ fontSize: "0.75rem", color: "#94a3b8", display: "block", marginBottom: "4px" }}>
+                    {isIndo ? "Tuntutan Solusi Pembeli:" : "Requested Solution:"}
+                  </span>
+                  <strong style={{ color: "#f8fafc" }}>
+                    {primaryGroup.returnSolutionType === "RETURN_AND_REFUND"
+                      ? (isIndo ? "Pengembalian Barang & Dana (Retur Fisik)" : "Return Item & Refund")
+                      : (isIndo ? "Pengembalian Dana Saja" : "Refund Only")}
+                  </strong>
+                </div>
+
+                <div style={{ padding: "10px 12px", backgroundColor: "#0b1526", borderRadius: "8px", border: "1px solid #1e293b" }}>
+                  <span style={{ fontSize: "0.75rem", color: "#94a3b8", display: "block", marginBottom: "4px" }}>
+                    {isIndo ? "Rekening Tujuan Refund Pembeli:" : "Buyer Refund Account:"}
+                  </span>
+                  <strong style={{ color: "#f8fafc" }}>{primaryGroup.returnBankDetails || "-"}</strong>
+                </div>
+              </div>
+
+              {primaryGroup.returnNotes && (
+                <div style={{ padding: "10px 12px", backgroundColor: "#0b1526", borderRadius: "8px", border: "1px solid #1e293b" }}>
+                  <span style={{ fontSize: "0.75rem", color: "#94a3b8", display: "block", marginBottom: "4px" }}>
+                    {isIndo ? "Rincian / Catatan Keluhan Pembeli:" : "Buyer Complaint Notes:"}
+                  </span>
+                  <p style={{ margin: 0, color: "#e2e8f0", lineHeight: 1.5 }}>{primaryGroup.returnNotes}</p>
+                </div>
+              )}
+
+              {primaryGroup.returnSellerNotes && (
+                <div style={{ padding: "10px 12px", backgroundColor: "rgba(254, 111, 5, 0.08)", borderRadius: "8px", border: "1px solid rgba(254, 111, 5, 0.3)" }}>
+                  <span style={{ fontSize: "0.75rem", color: "#fe6f05", fontWeight: 600, display: "block", marginBottom: "4px" }}>
+                    {isIndo ? "Catatan Sanggahan Penjual:" : "Seller Rebuttal Notes:"}
+                  </span>
+                  <p style={{ margin: 0, color: "#fdba74", lineHeight: 1.5 }}>{primaryGroup.returnSellerNotes}</p>
+                </div>
+              )}
+
+              {primaryGroup.returnAdminNotes && (
+                <div style={{ padding: "10px 12px", backgroundColor: "rgba(59, 130, 246, 0.08)", borderRadius: "8px", border: "1px solid rgba(59, 130, 246, 0.3)" }}>
+                  <span style={{ fontSize: "0.75rem", color: "#60a5fa", fontWeight: 600, display: "block", marginBottom: "4px" }}>
+                    {isIndo ? "Catatan Keputusan Mediasi Admin:" : "Admin Decision Notes:"}
+                  </span>
+                  <p style={{ margin: 0, color: "#93c5fd", lineHeight: 1.5 }}>{primaryGroup.returnAdminNotes}</p>
+                </div>
+              )}
+
+              {/* Admin decision buttons */}
+              {["RETURN_DISPUTED", "RETURN_REQUESTED"].includes(primaryGroup.returnStatus) && (
+                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginTop: "6px", paddingTop: "12px", borderTop: "1px solid #1e293b" }}>
+                  <button
+                    type="button"
+                    className="tpsodp2026-btn-accent"
+                    style={{ backgroundColor: "#16a34a", borderColor: "#16a34a", color: "#ffffff", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                    onClick={() => handleOpenDisputeModal("REFUND_BUYER")}
+                  >
+                    <Check size={16} />
+                    <span>{isIndo ? "Putuskan: Setujui Refund Pembeli" : "Arbitrate: Approve Refund to Buyer"}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="tpsodp2026-btn-outline"
+                    style={{ borderColor: "#ef4444", color: "#ef4444", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                    onClick={() => handleOpenDisputeModal("RELEASE_TO_SELLER")}
+                  >
+                    <X size={16} />
+                    <span>{isIndo ? "Putuskan: Tolak Retur & Lepas Dana ke Toko" : "Arbitrate: Reject Return & Release Funds"}</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
         {/* 2-Column Responsive Dashboard Layout */}
         <main className="tpsodp2026-grid">
           {/* Left Column: Products, Shipping & Courier, Notes */}
@@ -970,6 +1139,141 @@ export default function AdminOrderDetail2026View({
             )}
           </div>
         </main>
+
+        {/* Admin Dispute Decision Dialog / Modal */}
+        {showAdminDisputeModal && (
+          <div
+            className="tp-cancel-modal-backdrop"
+            onClick={() => setShowAdminDisputeModal(false)}
+            style={{
+              position: "fixed",
+              inset: 0,
+              backgroundColor: "rgba(0, 0, 0, 0.75)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 9999,
+              padding: "16px",
+            }}
+          >
+            <div
+              className="tpsodp2026-card"
+              role="dialog"
+              aria-modal="true"
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                maxWidth: "520px",
+                width: "100%",
+                backgroundColor: "#0d1b2e",
+                border: "1px solid #1e293b",
+                borderRadius: "12px",
+                boxShadow: "0 20px 40px rgba(0,0,0,0.5)",
+                color: "#f8fafc",
+                padding: "20px",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  {adminDecisionType === "REFUND_BUYER" ? (
+                    <CheckCircle2 size={22} style={{ color: "#22c55e" }} />
+                  ) : (
+                    <AlertTriangle size={22} style={{ color: "#ef4444" }} />
+                  )}
+                  <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700, color: "#f8fafc" }}>
+                    {adminDecisionType === "REFUND_BUYER"
+                      ? (isIndo ? "Putusan Mediasi: Setujui Refund Pembeli" : "Approve Refund to Buyer")
+                      : (isIndo ? "Putusan Mediasi: Tolak & Lepas Saldo ke Penjual" : "Reject Return & Release Funds")}
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAdminDisputeModal(false)}
+                  style={{ background: "none", border: "none", color: "#94a3b8", cursor: "pointer" }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div style={{ fontSize: "0.88rem", lineHeight: 1.5, color: "#cbd5e1", marginBottom: "16px" }}>
+                {adminDecisionType === "REFUND_BUYER" ? (
+                  <div style={{ padding: "10px 14px", backgroundColor: "rgba(34, 197, 94, 0.1)", border: "1px solid rgba(34, 197, 94, 0.3)", borderRadius: "8px", color: "#86efac" }}>
+                    {isIndo
+                      ? "Sebagai Admin, Anda memutuskan untuk menyetujui pengembalian dana (refund) kepada pembeli. Saldo penjual tidak akan dicairkan dan dana akan ditransfer ke rekening pembeli."
+                      : "As Admin, you approve the refund to the buyer. Funds will not be credited to seller."}
+                  </div>
+                ) : (
+                  <div style={{ padding: "10px 14px", backgroundColor: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.3)", borderRadius: "8px", color: "#fca5a5" }}>
+                    {isIndo
+                      ? "Sebagai Admin, Anda menolak klaim pengembalian pembeli. Komplain akan ditutup dan saldo pesanan ini akan dilepaskan ke saldo toko penjual yang dapat ditarik."
+                      : "As Admin, you reject the return claim. Funds will be released to the seller's available balance."}
+                  </div>
+                )}
+              </div>
+
+              {adminDecisionError && (
+                <div style={{ padding: "8px 12px", backgroundColor: "rgba(239, 68, 68, 0.15)", border: "1px solid #ef4444", borderRadius: "6px", color: "#fca5a5", fontSize: "0.82rem", marginBottom: "12px" }}>
+                  {adminDecisionError}
+                </div>
+              )}
+
+              <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 600, color: "#cbd5e1", marginBottom: "6px" }}>
+                {isIndo ? "Catatan Pertimbangan & Putusan Resmi Admin (Wajib) *:" : "Official Admin Arbitration Reasoning *:"}
+              </label>
+              <textarea
+                value={adminDecisionNotes}
+                onChange={(e) => setAdminDecisionNotes(e.target.value)}
+                rows={4}
+                placeholder={
+                  isIndo
+                    ? "Tuliskan alasan keputusan berdasarkan evaluasi bukti dari pembeli dan penjual..."
+                    : "Explain the arbitration decision rationale..."
+                }
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  borderRadius: "8px",
+                  backgroundColor: "#0b1526",
+                  border: "1px solid #334155",
+                  color: "#f8fafc",
+                  fontSize: "0.85rem",
+                  marginBottom: "18px",
+                  resize: "vertical",
+                  boxSizing: "border-box",
+                }}
+              />
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+                <button
+                  type="button"
+                  className="tpsodp2026-btn-outline"
+                  onClick={() => setShowAdminDisputeModal(false)}
+                  disabled={isSubmittingDecision}
+                >
+                  {isIndo ? "Batal" : "Cancel"}
+                </button>
+                <button
+                  type="button"
+                  className="tpsodp2026-btn-accent"
+                  style={{
+                    backgroundColor: adminDecisionType === "REFUND_BUYER" ? "#16a34a" : "#ef4444",
+                    borderColor: adminDecisionType === "REFUND_BUYER" ? "#16a34a" : "#ef4444",
+                    color: "#ffffff",
+                  }}
+                  onClick={handleAdminDecisionSubmit}
+                  disabled={isSubmittingDecision || !adminDecisionNotes.trim()}
+                >
+                  {isSubmittingDecision ? (
+                    isIndo ? "Menyimpan Putusan..." : "Saving Decision..."
+                  ) : adminDecisionType === "REFUND_BUYER" ? (
+                    isIndo ? "Setujui Refund Pembeli" : "Approve Refund"
+                  ) : (
+                    isIndo ? "Tolak & Lepas Dana ke Toko" : "Reject & Release"
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

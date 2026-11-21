@@ -1329,6 +1329,7 @@ const serializeListItem = (suborder: any, sellerAccess: any = null) => {
     paymentStatus,
     fulfillmentStatus,
     orderStatus,
+    returnStatus: getAttr(suborder, "returnStatus"),
     totalAmount: getAttr(suborder, "totalAmount"),
     serviceFeeAmount: getAttr(suborder, "serviceFeeAmount"),
   });
@@ -1542,6 +1543,7 @@ const serializeDetail = (suborder: any, sellerAccess: any = null) => {
     paymentStatus,
     fulfillmentStatus,
     orderStatus,
+    returnStatus: getAttr(suborder, "returnStatus"),
     totalAmount: getAttr(suborder, "totalAmount"),
     serviceFeeAmount: getAttr(suborder, "serviceFeeAmount"),
   });
@@ -1595,6 +1597,16 @@ const serializeDetail = (suborder: any, sellerAccess: any = null) => {
     suborderId: toNumber(getAttr(suborder, "id")),
     suborderNumber: String(getAttr(suborder, "suborderNumber") || ""),
     storeId: toNumber(getAttr(suborder, "storeId")),
+    returnStatus: String(getAttr(suborder, "returnStatus") || "NONE"),
+    returnReason: getAttr(suborder, "returnReason") || null,
+    returnNotes: getAttr(suborder, "returnNotes") || null,
+    returnSolutionType: getAttr(suborder, "returnSolutionType") || null,
+    returnBankDetails: getAttr(suborder, "returnBankDetails") || null,
+    returnRequestedAt: getAttr(suborder, "returnRequestedAt") || null,
+    returnSellerNotes: getAttr(suborder, "returnSellerNotes") || null,
+    returnSellerRespondedAt: getAttr(suborder, "returnSellerRespondedAt") || null,
+    returnAdminNotes: getAttr(suborder, "returnAdminNotes") || null,
+    returnAdminDecidedAt: getAttr(suborder, "returnAdminDecidedAt") || null,
     order: {
       id: toNumber(getAttr(order, "id")),
       orderNumber: String(getAttr(order, "invoiceNo") || ""),
@@ -2095,6 +2107,16 @@ router.get(
             "totalAmount",
             "paymentStatus",
             "fulfillmentStatus",
+            "returnStatus",
+            "returnReason",
+            "returnNotes",
+            "returnSolutionType",
+            "returnBankDetails",
+            "returnRequestedAt",
+            "returnSellerNotes",
+            "returnSellerRespondedAt",
+            "returnAdminNotes",
+            "returnAdminDecidedAt",
             "paidAt",
             "createdAt",
           ],
@@ -2812,6 +2834,99 @@ router.post(
   "/:storeId/orders/:suborderId/internal-notes",
   requireSellerStoreAccess(["ORDER_VIEW", "ORDER_FULFILLMENT_MANAGE"]),
   handleUpdateInternalNote
+);
+
+const handleReturnResponse = async (req: any, res: any) => {
+  try {
+    const storeId = Number(req.params.storeId);
+    const whereCondition = await buildSuborderLookupWhere(storeId, req.params.suborderId);
+    if (!whereCondition) {
+      return res.status(400).json({ success: false, message: "Invalid suborder id." });
+    }
+
+    const suborder = await Suborder.findOne({ where: whereCondition });
+    if (!suborder) {
+      return res.status(404).json({ success: false, message: "Suborder not found." });
+    }
+
+    const currentReturnStatus = String(suborder.returnStatus || "NONE").toUpperCase();
+    if (currentReturnStatus !== "RETURN_REQUESTED") {
+      return res.status(400).json({
+        success: false,
+        message: `Tidak dapat merespon pengembalian karena status saat ini adalah '${currentReturnStatus}'.`,
+      });
+    }
+
+    const { action, sellerNotes } = req.body || {};
+    const normalizedAction = String(action || "").toUpperCase().trim();
+
+    if (!["APPROVE", "DISPUTE"].includes(normalizedAction)) {
+      return res.status(400).json({
+        success: false,
+        message: "Aksi tidak valid. Pilih 'APPROVE' untuk menyetujui atau 'DISPUTE' untuk banding ke admin.",
+      });
+    }
+
+    const newStatus = normalizedAction === "APPROVE" ? "RETURN_APPROVED" : "RETURN_DISPUTED";
+    const notes = String(sellerNotes || "").trim();
+
+    await suborder.update({
+      returnStatus: newStatus,
+      returnSellerNotes: notes,
+      returnSellerRespondedAt: new Date(),
+    });
+
+    // Record tracking event on shipment if available
+    const shipment = await Shipment.findOne({ where: { suborderId: suborder.id } });
+    if (shipment) {
+      await TrackingEvent.create({
+        shipmentId: shipment.id,
+        eventType: newStatus,
+        eventLabel:
+          normalizedAction === "APPROVE"
+            ? "Pengembalian Disetujui Penjual"
+            : "Penjual Mengajukan Banding ke Admin Platform",
+        eventDescription:
+          normalizedAction === "APPROVE"
+            ? `Penjual menyetujui pengembalian barang & dana. Catatan: ${notes || "-"}`
+            : `Penjual menyanggah pengembalian dan meneruskan kasus ke Mediasi Admin TP Preneurs. Alasan sanggahan: ${notes || "-"}`,
+        source: "SELLER",
+        occurredAt: new Date(),
+      }).catch(() => {});
+    }
+
+    return res.json({
+      success: true,
+      message:
+        normalizedAction === "APPROVE"
+          ? "Pengembalian barang & dana berhasil disetujui. Dana pembeli akan diselesaikan sistem."
+          : "Sanggahan/banding berhasil diajukan ke Admin Platform TP Preneurs untuk proses mediasi.",
+      data: {
+        suborderId: suborder.id,
+        returnStatus: newStatus,
+        returnSellerNotes: notes,
+        returnSellerRespondedAt: suborder.returnSellerRespondedAt,
+      },
+    });
+  } catch (error) {
+    console.error("[seller/orders:return-response] error", error);
+    return res.status(500).json({
+      success: false,
+      message: "Gagal memproses tanggapan pengembalian barang & dana.",
+    });
+  }
+};
+
+router.post(
+  "/stores/:storeId/suborders/:suborderId/return-response",
+  requireSellerStoreAccess(["ORDER_VIEW", "ORDER_FULFILLMENT_MANAGE"]),
+  handleReturnResponse
+);
+
+router.post(
+  "/stores/:storeId/orders/:suborderId/return-response",
+  requireSellerStoreAccess(["ORDER_VIEW", "ORDER_FULFILLMENT_MANAGE"]),
+  handleReturnResponse
 );
 
 export default router;

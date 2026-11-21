@@ -766,6 +766,16 @@ const orderDetailInclude = [
             "paymentMethod",
             "paymentStatus",
             "fulfillmentStatus",
+            "returnStatus",
+            "returnReason",
+            "returnNotes",
+            "returnSolutionType",
+            "returnBankDetails",
+            "returnRequestedAt",
+            "returnSellerNotes",
+            "returnSellerRespondedAt",
+            "returnAdminNotes",
+            "returnAdminDecidedAt",
         ],
         required: false,
         include: [
@@ -906,6 +916,7 @@ const toOrderDetailPayload = (orderItem, paymentCode = null) => {
             paymentStatus,
             fulfillmentStatus,
             orderStatus: getAttr(orderItem, "status"),
+            returnStatus: getAttr(suborder, "returnStatus"),
             totalAmount: getAttr(suborder, "totalAmount"),
             serviceFeeAmount: getAttr(suborder, "serviceFeeAmount"),
         });
@@ -921,6 +932,16 @@ const toOrderDetailPayload = (orderItem, paymentCode = null) => {
             storeId: Number(getAttr(suborder, "storeId") || getAttr(suborder?.store, "id") || 0) || null,
             storeName: String(getAttr(suborder?.store, "name") || `Store #${getAttr(suborder, "storeId")}`),
             storeSlug: String(getAttr(suborder?.store, "slug") || "").trim() || null,
+            returnStatus: String(getAttr(suborder, "returnStatus") || "NONE"),
+            returnReason: getAttr(suborder, "returnReason") || null,
+            returnNotes: getAttr(suborder, "returnNotes") || null,
+            returnSolutionType: getAttr(suborder, "returnSolutionType") || null,
+            returnBankDetails: getAttr(suborder, "returnBankDetails") || null,
+            returnRequestedAt: getAttr(suborder, "returnRequestedAt") || null,
+            returnSellerNotes: getAttr(suborder, "returnSellerNotes") || null,
+            returnSellerRespondedAt: getAttr(suborder, "returnSellerRespondedAt") || null,
+            returnAdminNotes: getAttr(suborder, "returnAdminNotes") || null,
+            returnAdminDecidedAt: getAttr(suborder, "returnAdminDecidedAt") || null,
             subtotalAmount: Number(getAttr(suborder, "subtotalAmount") || 0),
             shippingAmount: Number(getAttr(suborder, "shippingAmount") || 0),
             serviceFeeAmount: Number(getAttr(suborder, "serviceFeeAmount") || 0),
@@ -1611,6 +1632,99 @@ router.patch("/:id/suborders/:suborderId/shipment-correction", requireAdmin, asy
         return res.status(500).json({
             success: false,
             message: "Failed to apply admin shipment correction.",
+        });
+    }
+});
+router.post("/:id/suborders/:suborderId/return-decision", requireStaffOrAdmin, async (req, res) => {
+    const idStr = String(asSingle(req.params.id) ?? "").trim();
+    const suborderId = Number(asSingle(req.params.suborderId));
+    if (!idStr || !Number.isFinite(suborderId) || suborderId <= 0) {
+        return res.status(400).json({
+            success: false,
+            message: "Invalid order or suborder target.",
+        });
+    }
+    const { decision, adminNotes } = req.body || {};
+    const normalizedDecision = String(decision || "").toUpperCase().trim();
+    if (!["REFUND_BUYER", "RELEASE_TO_SELLER"].includes(normalizedDecision)) {
+        return res.status(400).json({
+            success: false,
+            message: "Keputusan tidak valid. Pilih 'REFUND_BUYER' atau 'RELEASE_TO_SELLER'.",
+        });
+    }
+    const tx = await sequelize.transaction();
+    try {
+        const order = await Order.findOne({
+            where: resolveOrderWhere(idStr),
+            attributes: ["id", "invoiceNo", "status"],
+            transaction: tx,
+            lock: tx.LOCK.UPDATE,
+        });
+        if (!order) {
+            await tx.rollback();
+            return res.status(404).json({
+                success: false,
+                message: "Order was not found.",
+            });
+        }
+        const orderId = Number(getAttr(order, "id") || 0);
+        const suborder = await Suborder.findOne({
+            where: { id: suborderId, orderId },
+            transaction: tx,
+            lock: tx.LOCK.UPDATE,
+        });
+        if (!suborder) {
+            await tx.rollback();
+            return res.status(404).json({
+                success: false,
+                message: "Suborder was not found.",
+            });
+        }
+        const newStatus = normalizedDecision === "REFUND_BUYER" ? "REFUNDED" : "RETURN_REJECTED";
+        const notes = String(adminNotes || "").trim();
+        await suborder.update({
+            returnStatus: newStatus,
+            returnAdminNotes: notes,
+            returnAdminDecidedAt: new Date(),
+        }, { transaction: tx });
+        const shipment = await Shipment.findOne({
+            where: { suborderId: suborder.id },
+            transaction: tx,
+        });
+        if (shipment) {
+            await TrackingEvent.create({
+                shipmentId: shipment.id,
+                eventType: newStatus,
+                eventLabel: normalizedDecision === "REFUND_BUYER"
+                    ? "Admin Platform Menyetujui Refund Pembeli"
+                    : "Admin Platform Menolak Komplain / Melepas Dana ke Penjual",
+                eventDescription: `Keputusan Mediasi Admin TP Preneurs: ${normalizedDecision === "REFUND_BUYER"
+                    ? "Pengembalian dana (refund) disetujui untuk pembeli."
+                    : "Pengembalian ditolak. Dana transaksi dilepaskan ke penjual."} Catatan Admin: ${notes || "-"}`,
+                source: "ADMIN",
+                occurredAt: new Date(),
+            }, { transaction: tx }).catch(() => { });
+        }
+        await tx.commit();
+        return res.json({
+            success: true,
+            message: normalizedDecision === "REFUND_BUYER"
+                ? "Keputusan mediasi berhasil disimpan: Pengembalian dana disetujui untuk pembeli."
+                : "Keputusan mediasi berhasil disimpan: Pengembalian ditolak dan dana dilepaskan ke saldo penjual.",
+            data: {
+                suborderId: suborder.id,
+                returnStatus: newStatus,
+                returnAdminNotes: notes,
+                returnAdminDecidedAt: suborder.returnAdminDecidedAt,
+            },
+        });
+    }
+    catch (error) {
+        await tx.rollback().catch(() => { });
+        console.error("[admin/orders:return-decision] error", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to record return decision.",
         });
     }
 });

@@ -238,6 +238,8 @@ const mapSuborderSnapshotItemsForBuyerDetail = (suborders) => suborders.flatMap(
         const isSuborderPaid = suborderPaymentStatus === "PAID" || suborderPaymentStatus === "SETTLED";
         return {
             id: Number(getAttr(item, "id") || 0) || null,
+            suborderId: Number(getAttr(suborder, "id") || 0) || null,
+            returnStatus: String(getAttr(suborder, "returnStatus") || "NONE"),
             productId,
             storeId: Number(getAttr(item, "storeId") || getAttr(suborder, "storeId") || 0) || null,
             storeName,
@@ -2193,6 +2195,16 @@ router.get("/orders/my/:id", protect, async (req, res, next) => {
                 "suborderNumber",
                 "paymentStatus",
                 "fulfillmentStatus",
+                "returnStatus",
+                "returnReason",
+                "returnNotes",
+                "returnSolutionType",
+                "returnBankDetails",
+                "returnRequestedAt",
+                "returnSellerNotes",
+                "returnSellerRespondedAt",
+                "returnAdminNotes",
+                "returnAdminDecidedAt",
                 "expiresAt",
                 "paidAt",
                 "createdAt",
@@ -2458,6 +2470,16 @@ router.get("/orders/my/:id", protect, async (req, res, next) => {
                     storeWhatsapp: sub.store?.whatsapp || null,
                     fulfillmentStatus: sub.fulfillmentStatus,
                     paymentStatus: sub.paymentStatus,
+                    returnStatus: sub.returnStatus || "NONE",
+                    returnReason: sub.returnReason || null,
+                    returnNotes: sub.returnNotes || null,
+                    returnSolutionType: sub.returnSolutionType || null,
+                    returnBankDetails: sub.returnBankDetails || null,
+                    returnRequestedAt: sub.returnRequestedAt || null,
+                    returnSellerNotes: sub.returnSellerNotes || null,
+                    returnSellerRespondedAt: sub.returnSellerRespondedAt || null,
+                    returnAdminNotes: sub.returnAdminNotes || null,
+                    returnAdminDecidedAt: sub.returnAdminDecidedAt || null,
                     paidAt: sub.paidAt || (Array.isArray(sub.payments) && sub.payments[0]?.status === "PAID" ? sub.payments[0].updatedAt : null),
                     createdAt: sub.createdAt,
                     updatedAt: sub.updatedAt,
@@ -2552,6 +2574,19 @@ router.post("/orders/my/:id/confirm-receipt", protect, async (req, res, next) =>
                 message: "Pesanan yang dibatalkan tidak dapat dikonfirmasi diterima.",
             });
         }
+        // Check if any suborder has an active return request
+        const activeReturnsCount = await Suborder.count({
+            where: {
+                orderId,
+                returnStatus: { [Op.in]: ["RETURN_REQUESTED", "RETURN_DISPUTED"] },
+            },
+        });
+        if (activeReturnsCount > 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Tidak dapat mengonfirmasi pesanan saat ada pengajuan pengembalian barang/dana yang masih aktif. Selesaikan komplain terlebih dahulu.",
+            });
+        }
         // 1. Update Order status to completed
         await order.update({
             status: "completed",
@@ -2601,6 +2636,111 @@ router.post("/orders/my/:id/confirm-receipt", protect, async (req, res, next) =>
         return res.status(500).json({
             success: false,
             message: error?.message || "Gagal mengonfirmasi penerimaan pesanan.",
+        });
+    }
+});
+// POST /api/store/orders/my/:id/return-request (auth)
+router.post("/orders/my/:id/return-request", protect, async (req, res, next) => {
+    try {
+        const userId = getAuthUserId(req, res);
+        if (!userId)
+            return;
+        const orderId = await resolveMyOrderId(req.params.id, userId);
+        if (!orderId) {
+            return res.status(400).json({ success: false, message: "Invalid order id." });
+        }
+        const { suborderId, reasonCode, reason, solutionType, notes, bankDetails } = req.body || {};
+        const order = await Order.findOne({
+            where: { id: orderId, userId },
+        });
+        if (!order) {
+            return res.status(404).json({ success: false, message: "Pesanan tidak ditemukan." });
+        }
+        // Find the suborder
+        let suborder = null;
+        if (suborderId) {
+            suborder = await Suborder.findOne({
+                where: { id: Number(suborderId), orderId },
+            });
+        }
+        else {
+            suborder = await Suborder.findOne({
+                where: { orderId },
+            });
+        }
+        if (!suborder) {
+            return res.status(404).json({ success: false, message: "Suborder toko tidak ditemukan." });
+        }
+        const currentReturnStatus = String(suborder.returnStatus || "NONE").toUpperCase();
+        if (["RETURN_REQUESTED", "RETURN_DISPUTED"].includes(currentReturnStatus)) {
+            return res.status(400).json({
+                success: false,
+                message: "Pengajuan pengembalian untuk pesanan ini sedang aktif diproses.",
+            });
+        }
+        if (currentReturnStatus === "REFUNDED") {
+            return res.status(400).json({
+                success: false,
+                message: "Pesanan ini sudah selesai dikembalikan dan dana telah direfund.",
+            });
+        }
+        const rawReason = String(reason || reasonCode || "").trim();
+        if (!rawReason) {
+            return res.status(400).json({
+                success: false,
+                message: "Harap pilih alasan pengembalian barang & dana.",
+            });
+        }
+        const rawBankDetails = String(bankDetails || "").trim();
+        if (!rawBankDetails) {
+            return res.status(400).json({
+                success: false,
+                message: "Harap cantumkan informasi rekening bank atau e-wallet untuk pengembalian dana.",
+            });
+        }
+        const resolvedSolutionType = String(solutionType || "REFUND_ONLY").toUpperCase() === "RETURN_AND_REFUND"
+            ? "RETURN_AND_REFUND"
+            : "REFUND_ONLY";
+        await suborder.update({
+            returnStatus: "RETURN_REQUESTED",
+            returnReason: rawReason,
+            returnNotes: String(notes || "").trim(),
+            returnSolutionType: resolvedSolutionType,
+            returnBankDetails: rawBankDetails,
+            returnRequestedAt: new Date(),
+        });
+        // Find shipment to record tracking event
+        const shipment = await Shipment.findOne({
+            where: { suborderId: suborder.id },
+        });
+        if (shipment) {
+            await TrackingEvent.create({
+                shipmentId: shipment.id,
+                eventType: "RETURN_REQUESTED",
+                eventLabel: "Pengajuan Pengembalian Barang & Dana",
+                eventDescription: `Pembeli mengajukan pengembalian dengan alasan: "${rawReason}". Rekening refund: ${rawBankDetails}. Saldo toko ditahan sistem TP Preneurs.`,
+                source: "CLIENT",
+                occurredAt: new Date(),
+            }).catch(() => { });
+        }
+        return res.json({
+            success: true,
+            message: "Pengajuan pengembalian berhasil dikirim ke Penjual. Penjual diberikan waktu untuk meninjau dan merespon dalam batas waktu 3 hari.",
+            data: {
+                suborderId: suborder.id,
+                returnStatus: "RETURN_REQUESTED",
+                returnReason: rawReason,
+                returnSolutionType: resolvedSolutionType,
+                returnBankDetails: rawBankDetails,
+                returnRequestedAt: suborder.returnRequestedAt,
+            },
+        });
+    }
+    catch (error) {
+        console.error("[store/orders/my/:id/return-request] error", error);
+        return res.status(500).json({
+            success: false,
+            message: error?.message || "Gagal mengajukan pengembalian barang & dana.",
         });
     }
 });

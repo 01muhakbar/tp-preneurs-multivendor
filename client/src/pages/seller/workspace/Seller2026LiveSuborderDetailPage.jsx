@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import SellerSuborderDetail2026PageView from "./SellerSuborderDetail2026PageView.jsx";
 import SellerShippingLabelPrint from "../../../features/sellerWorkspace2026/orders/print/SellerShippingLabelPrint.jsx";
-import { getSellerSuborderShippingLabel } from "../../../api/sellerOrders.ts";
+import { getSellerSuborderShippingLabel, respondSellerSuborderReturn } from "../../../api/sellerOrders.ts";
 import { toPreferredWhatsAppLink } from "../../../utils/storePublicIdentity.ts";
 import {
   buildSellerSuborderFulfillmentPayload2026,
@@ -261,6 +261,31 @@ export default function Seller2026LiveSuborderDetailPage() {
     }
   };
 
+  const handleRespondReturn = async ({ action, sellerNotes }) => {
+    try {
+      const storeId = sellerContext?.store?.id;
+      const suborderId = orderDetail2026?.id;
+      await respondSellerSuborderReturn(storeId, suborderId, { action, sellerNotes });
+      setNotice({
+        type: "success",
+        text:
+          action === "APPROVE"
+            ? (isIndo ? "Pengembalian barang & dana berhasil disetujui." : "Return request approved.")
+            : (isIndo ? "Sanggahan/banding pengembalian berhasil diajukan ke admin platform." : "Dispute submitted to admin."),
+      });
+      await detailQuery.refetch();
+    } catch (error) {
+      setNotice({
+        type: "error",
+        text: getErrorMessage(
+          error,
+          isIndo ? "Gagal memproses tanggapan pengembalian." : "Failed to respond to return request."
+        ),
+      });
+      throw error;
+    }
+  };
+
   return (
     <>
       <SellerSuborderDetail2026PageView
@@ -273,6 +298,7 @@ export default function Seller2026LiveSuborderDetailPage() {
         fulfillmentDraft={fulfillmentDraft}
         notice={notice}
         isIndo={isIndo}
+        onRespondReturn={handleRespondReturn}
         onCopyText={handleCopyText}
         onBack={handleBack}
         onPrintLabel={handlePrintLabel}

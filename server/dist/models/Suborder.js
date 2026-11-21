@@ -129,6 +129,58 @@ export class Suborder extends Model {
                 defaultValue: "UNFULFILLED",
                 field: "fulfillment_status",
             },
+            returnStatus: {
+                type: DataTypes.STRING(40),
+                allowNull: false,
+                defaultValue: "NONE",
+                field: "return_status",
+            },
+            returnReason: {
+                type: DataTypes.STRING(255),
+                allowNull: true,
+                field: "return_reason",
+            },
+            returnNotes: {
+                type: DataTypes.TEXT,
+                allowNull: true,
+                field: "return_notes",
+            },
+            returnSolutionType: {
+                type: DataTypes.STRING(40),
+                allowNull: true,
+                defaultValue: "REFUND_ONLY",
+                field: "return_solution_type",
+            },
+            returnBankDetails: {
+                type: DataTypes.STRING(255),
+                allowNull: true,
+                field: "return_bank_details",
+            },
+            returnRequestedAt: {
+                type: DataTypes.DATE,
+                allowNull: true,
+                field: "return_requested_at",
+            },
+            returnSellerNotes: {
+                type: DataTypes.TEXT,
+                allowNull: true,
+                field: "return_seller_notes",
+            },
+            returnSellerRespondedAt: {
+                type: DataTypes.DATE,
+                allowNull: true,
+                field: "return_seller_responded_at",
+            },
+            returnAdminNotes: {
+                type: DataTypes.TEXT,
+                allowNull: true,
+                field: "return_admin_notes",
+            },
+            returnAdminDecidedAt: {
+                type: DataTypes.DATE,
+                allowNull: true,
+                field: "return_admin_decided_at",
+            },
             expiresAt: {
                 type: DataTypes.DATE,
                 allowNull: true,

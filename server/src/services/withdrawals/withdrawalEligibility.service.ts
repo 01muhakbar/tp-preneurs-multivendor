@@ -13,6 +13,7 @@ type BuildWithdrawalEligibilityInput = {
   serviceFeeAmount?: unknown;
   deliveredAt?: unknown;
   customerConfirmed?: boolean;
+  returnStatus?: unknown;
 };
 
 const toUpper = (value: unknown, fallback = "") =>
@@ -58,6 +59,38 @@ export const buildWithdrawalEligibilityMeta = (input: BuildWithdrawalEligibility
   const paymentStatus = toUpper(input.paymentStatus, "UNPAID");
   const fulfillmentStatus = toUpper(input.fulfillmentStatus, "UNFULFILLED");
   const orderStatus = toLower(input.orderStatus, "pending");
+  const returnStatus = toUpper(input.returnStatus, "NONE");
+
+  // Check active return / refund requests first
+  if (["RETURN_REQUESTED", "RETURN_DISPUTED"].includes(returnStatus)) {
+    return buildMeta(
+      "BLOCKED",
+      "Komplain Pengembalian Aktif",
+      "Suborder ini sedang dalam proses sengketa pengembalian barang/dana. Saldo ditahan sementara hingga sengketa selesai.",
+      "red",
+      input
+    );
+  }
+
+  if (returnStatus === "RETURN_APPROVED") {
+    return buildMeta(
+      "BLOCKED",
+      "Pengembalian Disetujui",
+      "Pengembalian telah disetujui. Saldo ditahan untuk penyelesaian pengembalian dana pembeli.",
+      "amber",
+      input
+    );
+  }
+
+  if (returnStatus === "REFUNDED") {
+    return buildMeta(
+      "BLOCKED",
+      "Pesanan Dikembalikan / Refund",
+      "Dana pesanan ini telah dikembalikan (refund) kepada pembeli sehingga tidak dapat dicairkan oleh penjual.",
+      "red",
+      input
+    );
+  }
 
   if (
     orderStatus === "cancelled" ||
