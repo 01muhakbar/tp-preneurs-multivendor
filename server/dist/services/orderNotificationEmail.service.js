@@ -1,16 +1,19 @@
 import sendEmail from "../utils/email.js";
+import { formatCompactOrderNumber } from "./notification.service.js";
 const formatRupiah = (val) => val && Number.isFinite(val)
     ? `Rp ${Math.round(val).toLocaleString("id-ID")}`
     : "";
 export const sendOrderDeliveredEmail = async (payload) => {
-    const { recipientEmail, recipientName, orderNumber, storeName = "TP Preneurs Store", totalAmount, deliveryDate = new Date(), courierName = "Kurir Pengiriman", trackingNumber = "-", returnWindowDays = 7, storeReturnDays = 2, } = payload;
+    const { recipientEmail, recipientName, orderNumber, orderId, createdAt, rawInvoiceNo, storeName = "TP Preneurs Store", totalAmount, deliveryDate = new Date(), courierName = "Kurir Pengiriman", trackingNumber = "-", returnWindowDays = 7, storeReturnDays = 2, } = payload;
+    const canonicalOrderNumber = formatCompactOrderNumber(orderNumber || rawInvoiceNo, orderId, createdAt || deliveryDate);
+    const cleanStoreName = String(storeName || "").trim() || "TP Preneurs Store";
     if (!recipientEmail || !recipientEmail.includes("@")) {
-        console.warn(`[orderDeliveredEmail] Skipping email: invalid recipient "${recipientEmail}" for order ${orderNumber}`);
+        console.warn(`[orderDeliveredEmail] Skipping email: invalid recipient "${recipientEmail}" for order ${canonicalOrderNumber}`);
         return false;
     }
-    const orderUrl = `https://tppreneurs.com/user/my-orders/${encodeURIComponent(orderNumber)}`;
-    const returnUrl = `https://tppreneurs.com/user/my-orders/${encodeURIComponent(orderNumber)}?action=return`;
-    const trackingUrl = `https://tppreneurs.com/order/tracking/${encodeURIComponent(orderNumber)}`;
+    const orderUrl = `https://tppreneurs.com/user/my-orders/${encodeURIComponent(canonicalOrderNumber)}`;
+    const returnUrl = `https://tppreneurs.com/user/my-orders/${encodeURIComponent(canonicalOrderNumber)}?action=return`;
+    const trackingUrl = `https://tppreneurs.com/order/tracking/${encodeURIComponent(canonicalOrderNumber)}`;
     const formattedDate = new Intl.DateTimeFormat("id-ID", {
         day: "numeric",
         month: "long",
@@ -19,10 +22,10 @@ export const sendOrderDeliveredEmail = async (payload) => {
         minute: "2-digit",
     }).format(new Date(deliveryDate));
     const totalDisplay = formatRupiah(totalAmount);
-    const subject = `[TP Preneurs] Pesanan Anda Telah Tiba! - ${orderNumber}`;
+    const subject = `[TP Preneurs] Pesanan Anda Telah Tiba! - ${canonicalOrderNumber}`;
     const textBody = `Halo ${recipientName},
 
-Pesanan Anda dengan nomor ${orderNumber} dari toko ${storeName} telah berhasil tiba di alamat tujuan pada ${formattedDate}.
+Pesanan Anda dengan nomor ${canonicalOrderNumber} dari toko ${cleanStoreName} telah berhasil tiba di alamat tujuan pada ${formattedDate}.
 
 Detail Pengiriman:
 - Kurir: ${courierName}
@@ -82,7 +85,7 @@ Tim TP Preneurs`;
     <div class="email-body">
       <div class="greeting">Halo, ${recipientName}! 👋</div>
       <p style="font-size: 14px; line-height: 1.6; color: #334155; margin-top: 0;">
-        Kabar gembira! Pesanan Anda dari toko <strong>${storeName}</strong> telah berhasil tiba di alamat tujuan Anda.
+        Kabar gembira! Pesanan Anda dari toko <strong>${cleanStoreName}</strong> telah berhasil tiba di alamat tujuan Anda.
       </p>
 
       <div class="hero-card">
@@ -90,11 +93,11 @@ Tim TP Preneurs`;
         <table class="order-meta-table">
           <tr>
             <td class="meta-label">Nomor Pesanan</td>
-            <td class="meta-val">${orderNumber}</td>
+            <td class="meta-val">${canonicalOrderNumber}</td>
           </tr>
           <tr>
             <td class="meta-label">Toko Penjual</td>
-            <td class="meta-val">${storeName}</td>
+            <td class="meta-val">${cleanStoreName}</td>
           </tr>
           <tr>
             <td class="meta-label">Kurir & Layanan</td>

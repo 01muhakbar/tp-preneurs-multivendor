@@ -11,7 +11,10 @@ import { Store } from "../models/Store.js";
 import { Suborder } from "../models/Suborder.js";
 import { SuborderItem } from "../models/SuborderItem.js";
 import { TrackingEvent } from "../models/TrackingEvent.js";
-import { createUserOrderStatusUpdatedNotification } from "../services/notification.service.js";
+import {
+  createUserOrderStatusUpdatedNotification,
+  formatCompactOrderNumber,
+} from "../services/notification.service.js";
 import { sendOrderDeliveredEmail } from "../services/orderNotificationEmail.service.js";
 import {
   inspectParentOrderFinalizationEligibility,
@@ -64,6 +67,7 @@ const getAttr = (row: any, key: string) =>
   row?.getDataValue?.(key) ??
   row?.get?.(key) ??
   row?.dataValues?.[key] ??
+  row?.[key] ??
   undefined;
 const csvEscape = (value: unknown) => {
   const text = String(value ?? "");
@@ -2001,14 +2005,45 @@ router.patch("/:id/status", requireStaffOrAdmin, async (req, res) => {
           });
           const recipientEmail = String(getAttr(customerUser, "email") || "").trim();
           if (recipientEmail) {
+            const suborders = await Suborder.findAll({
+              where: { orderId: orderTargetId },
+              include: [{ model: Store, as: "store", attributes: ["id", "name"], required: false }],
+            });
+            const storeNames = Array.from(
+              new Set(
+                suborders
+                  .map((s: any) => String(s?.store?.name || getAttr(s?.store, "name") || "").trim())
+                  .filter(Boolean)
+              )
+            ).join(", ");
+
+            const latestShipment = await Shipment.findOne({
+              where: { orderId: orderTargetId },
+              order: [["id", "DESC"]],
+              attributes: ["courierCode", "courierService", "trackingNumber"],
+            });
+            const courierCode = String(getAttr(latestShipment, "courierCode") || "").trim();
+            const courierService = String(getAttr(latestShipment, "courierService") || "").trim();
+            const trackingNumber = String(getAttr(latestShipment, "trackingNumber") || "").trim();
+
+            const rawInvoice = String(getAttr(existingOrder, "invoiceNo") || "").trim();
+            const canonicalOrderNumber = formatCompactOrderNumber(
+              rawInvoice,
+              orderTargetId,
+              getAttr(existingOrder, "createdAt")
+            );
+
             void sendOrderDeliveredEmail({
               recipientEmail,
               recipientName: String(getAttr(customerUser, "name") || getAttr(existingOrder, "customerName") || "Pelanggan").trim(),
-              orderNumber: String(getAttr(existingOrder, "invoiceNo") || "").trim(),
+              orderNumber: canonicalOrderNumber,
+              orderId: orderTargetId,
+              createdAt: getAttr(existingOrder, "createdAt"),
+              storeName: storeNames || "TP Preneurs Store",
               totalAmount: Number(getAttr(existingOrder, "totalAmount") || 0),
               deliveryDate: new Date(),
-              courierName: "Kurir Pengiriman",
-              trackingNumber: "-",
+              courierName: [courierCode, courierService].filter(Boolean).join(" - ") || "Kurir Pengiriman",
+              trackingNumber: trackingNumber || "-",
               returnWindowDays: 7,
               storeReturnDays: 2,
             });

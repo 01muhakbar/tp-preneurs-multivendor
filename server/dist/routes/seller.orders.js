@@ -2,7 +2,7 @@ import { Op, col, where as sqlWhere } from "sequelize";
 import { Router } from "express";
 import requireSellerStoreAccess from "../middleware/requireSellerStoreAccess.js";
 import { sellerHasPermission } from "../services/seller/resolveSellerAccess.js";
-import { createUserOrderStatusUpdatedNotification } from "../services/notification.service.js";
+import { createUserOrderStatusUpdatedNotification, formatCompactOrderNumber, } from "../services/notification.service.js";
 import { sendOrderDeliveredEmail } from "../services/orderNotificationEmail.service.js";
 import { recalculateParentOrderFulfillmentStatus } from "../services/orderPaymentAggregation.service.js";
 import { expireOverduePaymentsForOrder } from "../services/paymentExpiry.service.js";
@@ -123,7 +123,7 @@ const FULFILLMENT_ACTIONS = {
         auditAction: SELLER_FULFILLMENT_AUDIT_ACTIONS.CANCEL_SHIPMENT,
     },
 };
-const getAttr = (row, key) => row?.getDataValue?.(key) ?? row?.get?.(key) ?? row?.dataValues?.[key];
+const getAttr = (row, key) => row?.getDataValue?.(key) ?? row?.get?.(key) ?? row?.dataValues?.[key] ?? row?.[key];
 const toNumber = (value, fallback = 0) => {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : fallback;
@@ -2258,10 +2258,32 @@ router.patch("/stores/:storeId/suborders/:suborderId/fulfillment", requireSeller
                 const buyer = refreshedOrder?.customer ?? refreshedOrder?.get?.("customer") ?? null;
                 const buyerEmail = String(getAttr(buyer, "email") || "").trim();
                 const buyerName = String(getAttr(buyer, "name") || getAttr(refreshedOrder, "customerName") || "Pelanggan").trim();
-                const invoiceNo = String(getAttr(refreshedOrder, "invoiceNo") || "").trim() ||
+                const parentOrderId = toNumber(getAttr(refreshedOrder, "id"), 0);
+                const rawInvoice = String(getAttr(refreshedOrder, "invoiceNo") || "").trim() ||
                     String(getAttr(refreshed, "suborderNumber") || "").trim();
-                const storeRecord = req.sellerAccess?.store ?? (await Store.findByPk(storeId, { attributes: ["name"] }));
-                const storeName = String(getAttr(storeRecord, "name") || "TP Preneurs Store").trim();
+                const canonicalOrderNumber = formatCompactOrderNumber(rawInvoice, parentOrderId, getAttr(refreshedOrder, "createdAt"));
+                // Resolve store name accurately for this suborder:
+                // 1. Check req.sellerAccess?.store (object or model)
+                // 2. Check hydrated suborder store (from listInclude)
+                // 3. Fallback to Store query by suborder.storeId
+                const accessStoreName = String(req.sellerAccess?.store?.name ||
+                    getAttr(req.sellerAccess?.store, "name") ||
+                    "").trim();
+                const suborderStoreObj = refreshed?.store;
+                const suborderStoreName = String(suborderStoreObj?.name ||
+                    getAttr(suborderStoreObj, "name") ||
+                    "").trim();
+                let finalStoreName = accessStoreName || suborderStoreName;
+                if (!finalStoreName) {
+                    const suborderStoreId = toNumber(getAttr(refreshed, "storeId"), storeId);
+                    if (suborderStoreId) {
+                        const storeRecord = await Store.findByPk(suborderStoreId, { attributes: ["id", "name"] });
+                        finalStoreName = String(storeRecord?.name || getAttr(storeRecord, "name") || "").trim();
+                    }
+                }
+                if (!finalStoreName) {
+                    finalStoreName = "TP Preneurs Store";
+                }
                 const courierCode = String(getAttr(shipmentSync?.shipment, "courierCode") || "").trim();
                 const courierService = String(getAttr(shipmentSync?.shipment, "courierService") || "").trim();
                 const trackingNumber = String(getAttr(shipmentSync?.shipment, "trackingNumber") || "").trim();
@@ -2269,8 +2291,10 @@ router.patch("/stores/:storeId/suborders/:suborderId/fulfillment", requireSeller
                     void sendOrderDeliveredEmail({
                         recipientEmail: buyerEmail,
                         recipientName: buyerName,
-                        orderNumber: invoiceNo,
-                        storeName,
+                        orderNumber: canonicalOrderNumber,
+                        orderId: parentOrderId,
+                        createdAt: getAttr(refreshedOrder, "createdAt"),
+                        storeName: finalStoreName,
                         totalAmount: toNumber(getAttr(refreshed, "totalAmount"), 0),
                         deliveryDate: new Date(),
                         courierName: [courierCode, courierService].filter(Boolean).join(" - ") || "Kurir Pengiriman",

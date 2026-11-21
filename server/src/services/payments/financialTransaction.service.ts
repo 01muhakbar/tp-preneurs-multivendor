@@ -15,6 +15,7 @@ import {
   createNotification,
   createSellerNotificationsForStoreRecipients,
   createUserOrderStatusUpdatedNotification,
+  formatCompactOrderNumber,
 } from "../notification.service.js";
 import { appendPaymentStatusLog } from "../paymentStatusLog.service.js";
 import { appendAuditNote } from "../operationalAudit.service.js";
@@ -337,6 +338,11 @@ const dispatchDuitkuSettlementNotifications = async (orderId: number) => {
     const storeMap = new Map(stores.map((st: any) => [toNumber(getAttr(st, "id"), 0), st]));
 
     const invoiceNo = String(getAttr(order, "invoiceNo") || `#${orderId}`);
+    const canonicalOrderNo = formatCompactOrderNumber(
+      invoiceNo,
+      orderId,
+      getAttr(order, "createdAt")
+    );
     const customerName = String(getAttr(order, "customerName") || "Pembeli");
     const orderTotal = toNumber(getAttr(order, "totalAmount"), 0);
     const formattedTotal = idrCurrencyFormatter.format(orderTotal);
@@ -354,14 +360,15 @@ const dispatchDuitkuSettlementNotifications = async (orderId: number) => {
       await createSellerNotificationsForStoreRecipients({
         storeId,
         type: "SELLER_PAYMENT_SETTLED",
-        title: `Pembayaran Lunas (Duitku): Pesanan ${invoiceNo} siap diproses`,
+        title: `Pembayaran Lunas (Duitku): Pesanan ${canonicalOrderNo} siap diproses`,
         actionCode: "SELLER_PAYMENT_SETTLED",
         orderId,
         suborderId,
         route: storeSlug && suborderId ? `/seller/stores/${encodeURIComponent(storeSlug)}/orders/${suborderId}` : null,
-        message: `${storeName} menerima pelunasan ${formattedSubAmount} via Duitku Gateway untuk pesanan ${invoiceNo}. Silakan siapkan pesanan pembeli.`,
+        message: `${storeName} menerima pelunasan ${formattedSubAmount} via Duitku Gateway untuk pesanan ${canonicalOrderNo}. Silakan siapkan pesanan pembeli.`,
         meta: {
           invoiceNo,
+          orderNumber: canonicalOrderNo,
           amount: subAmount,
           suborderId,
           paymentStatus: "PAID",
@@ -387,10 +394,11 @@ const dispatchDuitkuSettlementNotifications = async (orderId: number) => {
     // 3. Notify Admin
     await createNotification({
       type: "PAYMENT_SETTLED",
-      title: `Pembayaran Lunas (Duitku): Pesanan ${invoiceNo} (${formattedTotal})`,
+      title: `Pembayaran Lunas (Duitku): Pesanan ${canonicalOrderNo} (${formattedTotal})`,
       meta: {
         orderId,
         invoiceNo,
+        orderNumber: canonicalOrderNo,
         amount: orderTotal,
         customerName,
         gateway: "DUITKU",
