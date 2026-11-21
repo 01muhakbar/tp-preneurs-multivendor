@@ -354,7 +354,7 @@ export default function Checkout2026View({
     );
   }
 
-  if (!status?.hasItems) {
+  if (!status?.hasItems && !status?.submitting && !status?.redirectUrl) {
     return (
       <main className="co26-page">
         <div className="co26-empty">
@@ -372,6 +372,41 @@ export default function Checkout2026View({
 
   return (
     <main className="co26-shopee-page">
+      {/* Instant Processing Overlay during order creation */}
+      {status?.submitting && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="co26-processing-overlay"
+        >
+          <div className="co26-processing-card">
+            {/* Spinning Brand Badge */}
+            <div className="co26-processing-spinner-box">
+              <div className="co26-processing-spinner" />
+              <LockKeyhole className="co26-processing-icon" />
+            </div>
+
+            <h2 className="text-xl font-black text-white tracking-tight mb-2">
+              {isIndo ? "Menyiapkan Pesanan Anda..." : "Preparing Your Order..."}
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-400 mb-5 leading-relaxed">
+              {isIndo
+                ? "Sistem sedang menghubungkan ke gateway pembayaran resmi Duitku..."
+                : "Securely connecting you to the official Duitku payment gateway..."}
+            </p>
+
+            {/* Security Badge */}
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800/80 border border-slate-700/60 text-[11px] font-semibold text-emerald-400">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              <span>
+                {isIndo
+                  ? "Enkripsi SSL 256-Bit • Transaksi Aman"
+                  : "256-Bit SSL Encryption • Secure Checkout"}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Top Header */}
       <header className="co26-shopee-top-header">
         <button

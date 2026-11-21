@@ -2140,9 +2140,13 @@ const serializeSplitOrder = (order) => {
                 shipments: [],
             },
         });
+        const compactOrderNo = formatCompactOrderNumber(getAttr(order, "invoiceNo"), toNumber(getAttr(order, "id")), getAttr(order, "createdAt"));
         return {
             orderId: toNumber(getAttr(order, "id")),
-            ref: String(getAttr(order, "invoiceNo") || getAttr(order, "id") || ""),
+            ref: compactOrderNo || String(getAttr(order, "invoiceNo") || getAttr(order, "id") || ""),
+            orderNumber: compactOrderNo,
+            orderRef: compactOrderNo,
+            compactOrderNo,
             invoiceNo: String(getAttr(order, "invoiceNo") || ""),
             checkoutMode: checkoutMode === "LEGACY" ? "LEGACY" : "SINGLE_STORE",
             paymentStatus,
@@ -2412,9 +2416,13 @@ const serializeSplitOrder = (order) => {
         ...paymentEntryBase,
         targetPath: paymentEntryBase.visible ? `/user/my-orders/${orderId}/payment` : null,
     };
+    const compactOrderNo = formatCompactOrderNumber(getAttr(order, "invoiceNo"), orderId, getAttr(order, "createdAt"));
     return {
         orderId,
-        ref: String(getAttr(order, "invoiceNo") || getAttr(order, "id") || ""),
+        ref: compactOrderNo || String(getAttr(order, "invoiceNo") || getAttr(order, "id") || ""),
+        orderNumber: compactOrderNo,
+        orderRef: compactOrderNo,
+        compactOrderNo,
         invoiceNo: String(getAttr(order, "invoiceNo") || ""),
         checkoutMode,
         paymentStatus,
@@ -3109,11 +3117,12 @@ router.post("/create-multi-store", checkoutSubmitRateLimit, async (req, res) => 
             }
             await recalculateParentOrderPaymentStatus(Number(parentOrder.id), tx);
             await tx.commit();
+            const canonicalOrderNo = formatCompactOrderNumber(invoiceNo, Number(parentOrder.id), parentOrder.createdAt);
             let paymentUrl = null;
             if (isDuitkuRequested && duitkuConfig) {
                 try {
                     const orderExpiryMinutes = resolveOrderExpiryMinutes();
-                    const compactOrderRef = formatCompactOrderNumber(invoiceNo, Number(parentOrder.id), parentOrder.createdAt);
+                    const compactOrderRef = canonicalOrderNo;
                     const duitkuMerchantOrderId = compactOrderRef;
                     const returnUrlWithOrderId = (() => {
                         try {
@@ -3288,7 +3297,10 @@ router.post("/create-multi-store", checkoutSubmitRateLimit, async (req, res) => 
                     }
                     : {
                         orderId: parentOrder.id,
-                        ref: invoiceNo,
+                        ref: canonicalOrderNo || invoiceNo,
+                        orderNumber: canonicalOrderNo,
+                        orderRef: canonicalOrderNo,
+                        compactOrderNo: canonicalOrderNo,
                         invoiceNo,
                         checkoutMode: prepared.checkoutMode,
                         paymentStatus: "UNPAID",

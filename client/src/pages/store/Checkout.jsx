@@ -34,6 +34,7 @@ import {
   toUserAddressPayload,
 } from "../../utils/userAddress.ts";
 import { resolvePublicOrderReference } from "../../utils/publicOrderReference.js";
+import { formatCompactOrderNumber } from "../account/accountOrderDetail2026Adapter.js";
 import {
   buildLoginRedirectState,
   CHECKOUT_LOGIN_REQUIRED_NOTICE,
@@ -3015,12 +3016,6 @@ export default function CheckoutPage() {
         checkoutRequestKey,
       });
       const result = resolveOrderPayload(response);
-      const resolvedOrderRef = resolvePublicOrderReference(
-        result?.invoiceNo,
-        result?.ref,
-        result?.invoice,
-        result?.orderRef
-      );
       const resolvedOrderId =
         result?.orderId != null
           ? String(result.orderId)
@@ -3030,6 +3025,26 @@ export default function CheckoutPage() {
       if (!resolvedOrderId) {
         throw new Error("Checkout completed without an order id.");
       }
+      const rawOrderNo =
+        result?.orderNumber ||
+        result?.compactOrderNo ||
+        result?.orderRef ||
+        result?.ref ||
+        result?.invoiceNo;
+      const canonicalOrderNumber = formatCompactOrderNumber(
+        rawOrderNo,
+        resolvedOrderId,
+        result?.createdAt || new Date()
+      );
+      const resolvedOrderRef =
+        canonicalOrderNumber ||
+        resolvePublicOrderReference(
+          result?.invoiceNo,
+          result?.ref,
+          result?.invoice,
+          result?.orderRef
+        ) ||
+        resolvedOrderId;
       const paymentParams = new URLSearchParams();
       paymentParams.set("checkoutCreated", "true");
       if (resolvedOrderRef) {
@@ -3039,10 +3054,13 @@ export default function CheckoutPage() {
       const nextPaymentUrl = result?.paymentUrl ? result.paymentUrl : fallbackPaymentUrl;
       const orderInfo = {
         orderId: resolvedOrderId,
-        orderRef: resolvedOrderRef || resolvedOrderId,
+        orderRef: canonicalOrderNumber || resolvedOrderRef,
+        orderNumber: canonicalOrderNumber,
+        compactOrderNo: canonicalOrderNumber,
         amount: Number(result?.amount || result?.total || total || 0),
         paymentMethod: duitkuPaymentMethod,
         paymentUrl: nextPaymentUrl,
+        createdAt: result?.createdAt || new Date(),
       };
       setCreatedOrderInfo(orderInfo);
       setPaymentRedirectUrl(nextPaymentUrl);

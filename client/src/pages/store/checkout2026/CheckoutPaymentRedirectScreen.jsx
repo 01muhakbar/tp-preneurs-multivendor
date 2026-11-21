@@ -23,12 +23,19 @@ export default function CheckoutPaymentRedirectScreen({
   duitkuMethod = "SP",
   duitkuMethods = [],
 }) {
-  const [countdown, setCountdown] = useState(3);
+  const [countdown, setCountdown] = useState(1);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [copied, setCopied] = useState(false);
 
   // Determine order reference & total
-  const orderRef = orderInfo?.orderRef || orderInfo?.orderId || "";
+  const rawRef =
+    orderInfo?.orderNumber ||
+    orderInfo?.compactOrderNo ||
+    orderInfo?.orderRef ||
+    orderInfo?.orderId ||
+    "";
+  const cleanOrderRef = String(rawRef || "").trim();
+  const displayOrderRef = cleanOrderRef.startsWith("#") ? cleanOrderRef.slice(1) : cleanOrderRef;
   const displayTotal = Number(orderInfo?.amount || grandTotal || 0);
 
   // Resolve payment channel name & category
@@ -86,9 +93,9 @@ export default function CheckoutPaymentRedirectScreen({
 
   // Copy invoice reference
   const handleCopy = () => {
-    if (!orderRef) return;
+    if (!displayOrderRef) return;
     try {
-      navigator.clipboard.writeText(orderRef);
+      navigator.clipboard.writeText(displayOrderRef);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {}
@@ -101,11 +108,14 @@ export default function CheckoutPaymentRedirectScreen({
         title: "Pesanan Berhasil Dibuat!",
         subtitle:
           "Sistem sedang menghubungkan Anda ke gateway pembayaran resmi Duitku...",
-        orderNo: "Nomor Pesanan",
+        orderNo: "No. Pesanan",
         copied: "Disalin!",
         paymentMethod: "Metode Pembayaran",
         totalAmount: "Total Pembayaran",
-        autoRedirect: (sec) => `Mengalihkan otomatis dalam ${sec} detik...`,
+        autoRedirect: (sec) =>
+          sec <= 0
+            ? "Mengalihkan ke gateway Duitku..."
+            : "Mengalihkan otomatis dalam 1 detik...",
         btnContinue: "Lanjutkan ke Pembayaran",
         btnConnecting: "Menghubungkan ke Duitku...",
         fallbackHint:
@@ -122,11 +132,14 @@ export default function CheckoutPaymentRedirectScreen({
         title: "Order Created Successfully!",
         subtitle:
           "Connecting you securely to the official Duitku payment gateway...",
-        orderNo: "Order Reference",
+        orderNo: "Order No.",
         copied: "Copied!",
         paymentMethod: "Payment Method",
         totalAmount: "Total Amount",
-        autoRedirect: (sec) => `Redirecting automatically in ${sec}s...`,
+        autoRedirect: (sec) =>
+          sec <= 0
+            ? "Connecting to Duitku gateway..."
+            : "Redirecting automatically in 1s...",
         btnContinue: "Continue to Payment",
         btnConnecting: "Connecting to Duitku...",
         fallbackHint:
@@ -177,11 +190,11 @@ export default function CheckoutPaymentRedirectScreen({
           {/* Order Details Card */}
           <div className="w-full bg-slate-950/70 border border-slate-800/80 rounded-2xl p-4 sm:p-5 mb-6 text-left space-y-3">
             {/* Order Ref */}
-            {orderRef ? (
+            {displayOrderRef ? (
               <div className="flex items-center justify-between text-xs sm:text-sm">
                 <span className="text-slate-400">{T.orderNo}</span>
                 <div className="flex items-center gap-1.5 font-mono font-bold text-slate-200">
-                  <span>#{orderRef}</span>
+                  <span>{displayOrderRef}</span>
                   <button
                     type="button"
                     onClick={handleCopy}
@@ -226,13 +239,13 @@ export default function CheckoutPaymentRedirectScreen({
                 <span>{T.autoRedirect(countdown)}</span>
               </span>
               <span className="font-semibold text-slate-300">
-                {Math.round(((3 - countdown) / 3) * 100)}%
+                {countdown <= 0 ? "100%" : "65%"}
               </span>
             </div>
             <div className="w-full bg-slate-800/80 rounded-full h-1.5 overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-[#034c85] via-blue-500 to-[#fe6f05] rounded-full transition-all duration-1000 ease-linear"
-                style={{ width: `${Math.min(100, Math.max(10, ((3 - countdown) / 3) * 100))}%` }}
+                className="h-full bg-gradient-to-r from-[#034c85] via-blue-500 to-[#fe6f05] rounded-full transition-all duration-700 ease-out"
+                style={{ width: countdown <= 0 ? "100%" : "65%" }}
               />
             </div>
           </div>

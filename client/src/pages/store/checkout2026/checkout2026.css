@@ -2611,3 +2611,78 @@
   color: #94a3b8;
   text-align: center;
 }
+
+/* Checkout Instant Processing Overlay */
+.co26-processing-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(2, 6, 23, 0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 16px;
+  text-align: center;
+  user-select: none;
+  animation: co26FadeIn 0.18s ease-out;
+}
+
+@keyframes co26FadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.co26-processing-card {
+  width: 100%;
+  max-width: 380px;
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 24px;
+  padding: 32px 24px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.co26-processing-spinner-box {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.co26-processing-spinner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 4px solid #1e293b;
+  border-top-color: #fe6f05;
+  border-right-color: #034c85;
+  animation: co26Spin 0.9s linear infinite;
+}
+
+@keyframes co26Spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.co26-processing-icon {
+  position: absolute;
+  color: #fe6f05;
+  width: 24px;
+  height: 24px;
+}
