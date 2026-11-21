@@ -504,6 +504,11 @@ export default function AccountOrderDetail2026View({
     /delivered|tiba/i.test(
       String(orderDetail?.status?.code || rawOrder?.status || banner?.title || "")
     );
+  const isCancelled =
+    Boolean(banner?.isCancelled) ||
+    /cancel|batal|fail|kadaluarsa|expired/i.test(
+      String(orderDetail?.status?.code || rawOrder?.status || banner?.title || "")
+    );
 
   const returnPolicy = shopee?.returnPolicy || null;
   const isReturnExpired = Boolean(returnPolicy?.isReturnExpired);
@@ -1206,7 +1211,7 @@ export default function AccountOrderDetail2026View({
 
         {/* 8. Bottom Sticky Action Bar */}
         <div className="tp-shopee-detail__bottom-bar">
-          {!banner.isUnpaid && !isCompleted && (() => {
+          {Boolean(isCancelled) && (() => {
             const handleBuyAgain = async () => {
               if (isBuyingAgain) return;
               setIsBuyingAgain(true);
