@@ -231,6 +231,18 @@ export const formatItemsForWhatsApp = (items = [], totalAmount = 0, isIndo = tru
     .join("\n");
 };
 
+export const normalizeWhatsAppOrderStatusKey = (statusValue = "") => {
+  const s = String(statusValue || "").trim().toLowerCase();
+  if (!s) return "to_pack";
+  if (/cancel|batal|fail|expire|void/.test(s)) return "cancelled";
+  if (/return|refund|kembali/.test(s)) return "returns";
+  if (/unpaid|pending|belum.*bayar|menunggu.*bayar/.test(s)) return "unpaid";
+  if (/complete|selesai|delivered|tiba/.test(s)) return "completed";
+  if (/ship|kirim|in_transit|transit/.test(s)) return "shipping";
+  if (/pack|kemas|processing|ready/.test(s)) return "to_pack";
+  return "to_pack";
+};
+
 export const buildSellerWhatsAppOrderMessage = ({
   storeName = "",
   orderNo = "",
@@ -239,6 +251,12 @@ export const buildSellerWhatsAppOrderMessage = ({
   totalAmount = 0,
   items = [],
   isIndo = true,
+  orderStatus = "",
+  status = "",
+  courier = "",
+  trackingNumber = "",
+  returnReason = "",
+  returnNotes = "",
 }) => {
   const storeDisplay = storeName ? `*${storeName}*` : (isIndo ? "Penjual" : "Seller");
   const formattedDate = formatOrderDateForWhatsApp(orderDate, isIndo);
@@ -247,41 +265,251 @@ export const buildSellerWhatsAppOrderMessage = ({
   const methodDisplay =
     paymentMethod && paymentMethod !== "-" ? paymentMethod : isIndo ? "Transfer / Online" : "Online Payment";
   const orderRefDisplay = orderNo || "-";
+  const statusKey = normalizeWhatsAppOrderStatusKey(orderStatus || status);
 
   if (isIndo) {
-    return (
+    if (statusKey === "unpaid") {
+      return (
 `Halo Admin ${storeDisplay} 👋,
 
-Saya pembeli di TP Preneurs ingin mengonfirmasi pesanan saya yang telah *BERHASIL DIBAYAR*:
+Saya pembeli di TP Preneurs ingin menanyakan pesanan saya yang *BELUM DIBAYAR* (Menunggu Pembayaran):
+
+📦 *No. Pesanan:* ${orderRefDisplay}
+📅 *Tanggal Pesanan:* ${formattedDate}
+💳 *Metode Pembayaran:* ${methodDisplay}
+💵 *Total Tagihan:* ${formattedTotal} *(Menunggu Pembayaran)*
+🚚 *Status:* Belum Bayar
+
+🛍️ *Detail Produk:*
+${formattedItems}
+
+Halo Kak, saya ingin konfirmasi terkait pembayaran pesanan ini. Mohon infonya ya Kak jika ada panduan pembayaran atau kendala sebelum batas waktu berakhir. Terima kasih banyak! 🙏`
+      );
+    }
+
+    if (statusKey === "shipping") {
+      const trackingExtra = (courier || trackingNumber)
+        ? `\n🏷️ *Kurir / No. Resi:* ${[courier, trackingNumber].filter(Boolean).join(" - ")}`
+        : "";
+      return (
+`Halo Admin ${storeDisplay} 👋,
+
+Saya pembeli di TP Preneurs ingin menanyakan pesanan saya yang sedang *DIKIRIM*:
 
 📦 *No. Pesanan:* ${orderRefDisplay}
 📅 *Tanggal Pesanan:* ${formattedDate}
 💳 *Metode Pembayaran:* ${methodDisplay}
 💵 *Total Pembayaran:* ${formattedTotal} *(Lunas)*
-🚚 *Status:* Sudah Terbayar (Siap Dikemas)
+🚚 *Status:* Sedang Dikirim (Dalam Perjalanan)${trackingExtra}
 
 🛍️ *Detail Produk:*
 ${formattedItems}
 
-Mohon bantuannya untuk memproses dan menyiapkan pengiriman pesanan ini ya Kak. Terima kasih banyak! 🙏`
+Halo Kak, saya ingin menanyakan informasi pengiriman paket pesanan ini. Mohon bantuannya untuk update posisi kurir atau estimasi tiba paket ya Kak. Terima kasih banyak! 🙏`
+      );
+    }
+
+    if (statusKey === "completed") {
+      return (
+`Halo Admin ${storeDisplay} 👋,
+
+Saya pembeli di TP Preneurs ingin mengonfirmasi pesanan saya yang telah *SELESAI*:
+
+📦 *No. Pesanan:* ${orderRefDisplay}
+📅 *Tanggal Pesanan:* ${formattedDate}
+💳 *Metode Pembayaran:* ${methodDisplay}
+💵 *Total Pembayaran:* ${formattedTotal} *(Lunas)*
+🚚 *Status:* Pesanan Selesai (Diterima)
+
+🛍️ *Detail Produk:*
+${formattedItems}
+
+Halo Kak, paket pesanan telah saya terima dengan baik. Terima kasih banyak atas pelayanan yang memuaskan dan produk yang berkualitas! 🙏✨`
+      );
+    }
+
+    if (statusKey === "returns") {
+      const returnDetails = [
+        returnReason ? `⚠️ *Alasan Pengembalian:* ${returnReason}` : "",
+        returnNotes && returnNotes !== "-" ? `📝 *Catatan:* ${returnNotes}` : "",
+      ].filter(Boolean).join("\n");
+      const returnExtra = returnDetails ? `\n${returnDetails}\n` : "";
+      return (
+`Halo Admin ${storeDisplay} 👋,
+
+Saya pembeli di TP Preneurs ingin berkonsultasi mengenai *PENGEMBALIAN BARANG / DANA* untuk pesanan berikut:
+
+📦 *No. Pesanan:* ${orderRefDisplay}
+📅 *Tanggal Pesanan:* ${formattedDate}
+💳 *Metode Pembayaran:* ${methodDisplay}
+💵 *Total Pembayaran:* ${formattedTotal}
+🚚 *Status:* Pengajuan Pengembalian (Return / Refund)${returnExtra}
+
+🛍️ *Detail Produk:*
+${formattedItems}
+
+Halo Kak, saya ingin berkonsultasi mengenai prosedur pengembalian untuk pesanan ini. Mohon bantuannya untuk arahan solusi dan proses verifikasinya ya Kak. Terima kasih banyak! 🙏`
+      );
+    }
+
+    if (statusKey === "cancelled") {
+      return (
+`Halo Admin ${storeDisplay} 👋,
+
+Saya pembeli di TP Preneurs ingin menanyakan pesanan saya yang *DIBATALKAN*:
+
+📦 *No. Pesanan:* ${orderRefDisplay}
+📅 *Tanggal Pesanan:* ${formattedDate}
+💳 *Metode Pembayaran:* ${methodDisplay}
+💵 *Total Tagihan:* ${formattedTotal}
+🚚 *Status:* Pesanan Dibatalkan
+
+🛍️ *Detail Produk:*
+${formattedItems}
+
+Halo Kak, pesanan saya tercatat dibatalkan. Saya ingin menanyakan informasi terkait status pembatalan ini (atau pemesanan ulang produk). Mohon bantuannya ya Kak. Terima kasih banyak! 🙏`
+      );
+    }
+
+    // Default: "to_pack" (Dikemas)
+    return (
+`Halo Admin ${storeDisplay} 👋,
+
+Saya pembeli di TP Preneurs ingin menanyakan pesanan saya yang sedang *DIKEMAS*:
+
+📦 *No. Pesanan:* ${orderRefDisplay}
+📅 *Tanggal Pesanan:* ${formattedDate}
+💳 *Metode Pembayaran:* ${methodDisplay}
+💵 *Total Pembayaran:* ${formattedTotal} *(Lunas)*
+🚚 *Status:* Sedang Dikemas (Diproses Penjual)
+
+🛍️ *Detail Produk:*
+${formattedItems}
+
+Halo Kak, pembayaran pesanan saya sudah berhasil. Mohon bantuannya untuk memproses pesanan dan mengabari perkiraan waktu penyerahan ke kurir ya Kak. Terima kasih banyak! 🙏`
     );
   }
 
-  return (
+  // English templates
+  if (statusKey === "unpaid") {
+    return (
 `Hello Admin ${storeDisplay} 👋,
 
-I am a buyer on TP Preneurs and would like to confirm my *PAID ORDER*:
+I am a buyer on TP Preneurs inquiring about my *UNPAID ORDER* (Awaiting Payment):
+
+📦 *Order No:* ${orderRefDisplay}
+📅 *Order Date:* ${formattedDate}
+💳 *Payment Method:* ${methodDisplay}
+💵 *Total Due:* ${formattedTotal} *(Awaiting Payment)*
+🚚 *Status:* Unpaid
+
+🛍️ *Product Details:*
+${formattedItems}
+
+Hello, I would like to confirm payment details for this order. Please let me know if there are any instructions before the payment timeout. Thank you very much! 🙏`
+    );
+  }
+
+  if (statusKey === "shipping") {
+    const trackingExtraEn = (courier || trackingNumber)
+      ? `\n🏷️ *Courier / Tracking No:* ${[courier, trackingNumber].filter(Boolean).join(" - ")}`
+      : "";
+    return (
+`Hello Admin ${storeDisplay} 👋,
+
+I am a buyer on TP Preneurs inquiring about my order *IN TRANSIT*:
 
 📦 *Order No:* ${orderRefDisplay}
 📅 *Order Date:* ${formattedDate}
 💳 *Payment Method:* ${methodDisplay}
 💵 *Total Payment:* ${formattedTotal} *(Paid)*
-🚚 *Status:* Payment Received (Ready to Pack)
+🚚 *Status:* In Transit (Shipped)${trackingExtraEn}
 
 🛍️ *Product Details:*
 ${formattedItems}
 
-Please help to process and prepare the shipment for this order. Thank you very much! 🙏`
+Hello, I would like to check on the delivery progress of this order. Please assist me with any tracking updates or estimated delivery time. Thank you very much! 🙏`
+    );
+  }
+
+  if (statusKey === "completed") {
+    return (
+`Hello Admin ${storeDisplay} 👋,
+
+I am a buyer on TP Preneurs regarding my *COMPLETED ORDER*:
+
+📦 *Order No:* ${orderRefDisplay}
+📅 *Order Date:* ${formattedDate}
+💳 *Payment Method:* ${methodDisplay}
+💵 *Total Payment:* ${formattedTotal} *(Paid)*
+🚚 *Status:* Order Completed (Received)
+
+🛍️ *Product Details:*
+${formattedItems}
+
+Hello, I have safely received my ordered package. Thank you very much for the great service and quality products! 🙏✨`
+    );
+  }
+
+  if (statusKey === "returns") {
+    const returnDetailsEn = [
+      returnReason ? `⚠️ *Return Reason:* ${returnReason}` : "",
+      returnNotes && returnNotes !== "-" ? `📝 *Notes:* ${returnNotes}` : "",
+    ].filter(Boolean).join("\n");
+    const returnExtraEn = returnDetailsEn ? `\n${returnDetailsEn}\n` : "";
+    return (
+`Hello Admin ${storeDisplay} 👋,
+
+I am a buyer on TP Preneurs regarding a *RETURN / REFUND REQUEST* for the following order:
+
+📦 *Order No:* ${orderRefDisplay}
+📅 *Order Date:* ${formattedDate}
+💳 *Payment Method:* ${methodDisplay}
+💵 *Total Payment:* ${formattedTotal}
+🚚 *Status:* Return / Refund Request${returnExtraEn}
+
+🛍️ *Product Details:*
+${formattedItems}
+
+Hello, I would like to consult regarding the return/refund procedure for this order. Please guide me through the resolution and verification steps. Thank you very much! 🙏`
+    );
+  }
+
+  if (statusKey === "cancelled") {
+    return (
+`Hello Admin ${storeDisplay} 👋,
+
+I am a buyer on TP Preneurs inquiring about my *CANCELLED ORDER*:
+
+📦 *Order No:* ${orderRefDisplay}
+📅 *Order Date:* ${formattedDate}
+💳 *Payment Method:* ${methodDisplay}
+💵 *Total Due:* ${formattedTotal}
+🚚 *Status:* Order Cancelled
+
+🛍️ *Product Details:*
+${formattedItems}
+
+Hello, my order was marked as cancelled. I would like to ask regarding this cancellation (or how to place a new order). Please assist me with this. Thank you very much! 🙏`
+    );
+  }
+
+  // Default: "to_pack" (Being Packed)
+  return (
+`Hello Admin ${storeDisplay} 👋,
+
+I am a buyer on TP Preneurs inquiring about my order that is *BEING PACKED*:
+
+📦 *Order No:* ${orderRefDisplay}
+📅 *Order Date:* ${formattedDate}
+💳 *Payment Method:* ${methodDisplay}
+💵 *Total Payment:* ${formattedTotal} *(Paid)*
+🚚 *Status:* Being Packed (Processing)
+
+🛍️ *Product Details:*
+${formattedItems}
+
+Hello, my payment has been completed. Please help to pack and let me know the estimated dispatch schedule. Thank you very much! 🙏`
   );
 };
 
@@ -296,6 +524,12 @@ export const buildStoreWhatsAppUrl = ({
   items = [],
   isIndo = true,
   fallbackPhone = "08218866824",
+  orderStatus = "",
+  status = "",
+  courier = "",
+  trackingNumber = "",
+  returnReason = "",
+  returnNotes = "",
 }) => {
   const targetPhone =
     extractWhatsAppDigitsFromUrlOrPhone(whatsappNumber) ||
@@ -311,6 +545,11 @@ export const buildStoreWhatsAppUrl = ({
     totalAmount,
     items,
     isIndo,
+    orderStatus: orderStatus || status,
+    courier,
+    trackingNumber,
+    returnReason,
+    returnNotes,
   });
 
   return `https://wa.me/${targetPhone}?text=${encodeURIComponent(message)}`;
@@ -1009,6 +1248,23 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false, is
         orderStatus.code === "DELIVERED" ||
         orderStatus.code === "COMPLETED"));
 
+  const isReturn =
+    /RETURN|REFUND|KEMBALI/i.test(
+      String(orderStatus.code || shipmentStatus.code || source.status || "")
+    );
+
+  const canonicalStatus = isReturn
+    ? "returns"
+    : isCancelled
+      ? "cancelled"
+      : isUnpaid
+        ? "unpaid"
+        : (isCompleted || isDelivered)
+          ? "completed"
+          : isShipping
+            ? "shipping"
+            : "to_pack";
+
   const bannerTone = (isCompleted || isDelivered)
     ? "success"
     : isShipping || isPacking
@@ -1328,6 +1584,9 @@ export const normalizeOrderDetailFor2026 = ({ order, payment, isIndo = false, is
           totalAmount: total,
           items,
           isIndo,
+          orderStatus: canonicalStatus,
+          courier: resolvedCourier,
+          trackingNumber: resolvedTrackingNumber,
         }) || `/contact-us?topic=seller&ref=${encodeURIComponent(compactOrderNo)}`,
       supportUrl: `/contact-us?topic=order&ref=${encodeURIComponent(compactOrderNo)}`,
     },

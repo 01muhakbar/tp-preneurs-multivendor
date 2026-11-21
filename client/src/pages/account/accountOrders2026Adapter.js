@@ -383,6 +383,7 @@ const normalizeOrder = (value, options = {}) => {
     totalAmount,
     items: effectiveItems,
     isIndo,
+    orderStatus: bucket,
   });
 
   return {

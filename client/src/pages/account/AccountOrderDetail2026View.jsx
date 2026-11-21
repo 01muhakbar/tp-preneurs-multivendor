@@ -562,6 +562,25 @@ export default function AccountOrderDetail2026View({
     orderDetail?.order?.createdAt ||
     null;
 
+  const canonicalOrderStatus = (() => {
+    if (fromTab === "returns" || /return|refund|kembali/i.test(String(rawOrder?.status || orderDetail?.status?.code || ""))) {
+      return "returns";
+    }
+    if (banner.isCancelled || fromTab === "cancelled" || /cancel|batal/i.test(String(rawOrder?.status || orderDetail?.status?.code || ""))) {
+      return "cancelled";
+    }
+    if (banner.isUnpaid || fromTab === "unpaid" || /unpaid|pending|belum.*bayar/i.test(String(rawOrder?.status || orderDetail?.status?.code || ""))) {
+      return "unpaid";
+    }
+    if (isCompleted || isDelivered || fromTab === "completed" || /complete|selesai|delivered|tiba/i.test(String(rawOrder?.status || orderDetail?.status?.code || ""))) {
+      return "completed";
+    }
+    if (banner.isShipping || fromTab === "shipping" || /shipped|in_transit|dikirim/i.test(String(rawOrder?.status || orderDetail?.status?.code || ""))) {
+      return "shipping";
+    }
+    return "to_pack";
+  })();
+
   const sellerChatUrl =
     buildStoreWhatsAppUrl({
       whatsappNumber: effectiveWhatsapp,
@@ -572,6 +591,9 @@ export default function AccountOrderDetail2026View({
       totalAmount: totalOrderAmount,
       items: storeProducts?.items || orderDetail?.items || [],
       isIndo,
+      orderStatus: canonicalOrderStatus,
+      courier: shippingInfo?.courier || shippingInfo?.courierName,
+      trackingNumber: shippingInfo?.trackingNumber,
     }) || shopee?.helpActions?.chatUrl || "https://wa.me/62895800536593";
 
   const fullShippingAddress = String(shippingAddress?.address || "-");
@@ -1659,16 +1681,18 @@ export default function AccountOrderDetail2026View({
               <a
                 href={
                   buildStoreWhatsAppUrl({
-                    whatsappNumber: storeProducts.storeWhatsapp,
+                    whatsappNumber: storeProducts.storeWhatsapp || effectiveWhatsapp,
                     orderRef: orderMeta.orderNo,
                     storeName: storeProducts.storeName,
-                    orderDate: orderDetail?.order?.placedAt,
+                    orderDate: orderPlacedDate || orderDetail?.order?.placedAt,
                     paymentMethod: orderMeta.paymentMethod,
-                    totalAmount: storeProducts.summary?.total,
+                    totalAmount: totalOrderAmount || storeProducts.summary?.total,
                     items: storeProducts.items,
                     isIndo,
-                  }) +
-                  `%0A%0A*Pengajuan%20Pengembalian*%3A%20${encodeURIComponent(returnReason)}%0A*Catatan*%3A%20${encodeURIComponent(returnNotes || "-")}`
+                    orderStatus: "returns",
+                    returnReason,
+                    returnNotes,
+                  })
                 }
                 target="_blank"
                 rel="noopener noreferrer"
