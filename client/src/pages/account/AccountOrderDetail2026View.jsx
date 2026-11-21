@@ -1263,7 +1263,7 @@ export default function AccountOrderDetail2026View({
               type="button"
               onClick={() => setShowConfirmReceiptModal(true)}
               disabled={isConfirmingReceipt}
-              className="tp-shopee-detail__btn-orange"
+              className="tp-shopee-detail__btn-orange inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0"
               style={{ backgroundColor: "#034c85", borderColor: "#034c85" }}
             >
               {isConfirmingReceipt ? (
@@ -1285,7 +1285,7 @@ export default function AccountOrderDetail2026View({
             <button
               type="button"
               onClick={() => setShowReturnModal(true)}
-              className="tp-shopee-detail__btn-outline"
+              className="tp-shopee-detail__btn-outline inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0"
               style={{ borderColor: "#fe6f05", color: "#fe6f05", fontWeight: 600 }}
             >
               <RotateCcw size={14} />
@@ -1361,7 +1361,7 @@ export default function AccountOrderDetail2026View({
                 return (
                   <LinkComponent
                     to={`/user/my-reviews?tab=reviewed${targetPid ? `&productId=${targetPid}` : ""}`}
-                    className="tp-shopee-detail__btn-outline"
+                    className="tp-shopee-detail__btn-outline inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0"
                   >
                     {t.viewReview}
                   </LinkComponent>
@@ -1371,7 +1371,7 @@ export default function AccountOrderDetail2026View({
               return (
                 <LinkComponent
                   to={`/user/my-reviews${targetPid ? `?productId=${targetPid}` : ""}`}
-                  className="tp-shopee-detail__btn-orange"
+                  className="tp-shopee-detail__btn-orange inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0"
                 >
                   {t.review}
                 </LinkComponent>

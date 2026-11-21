@@ -184,6 +184,10 @@ const isScriptInjectionBlocked = () =>
 export default function StoreLayout() {
   const location = useLocation();
   const isCheckoutRoute = location.pathname.startsWith("/checkout");
+  const isOrderDetailRoute = /^\/user\/my-orders\/[^/]+(?:\/payment)?$/.test(
+    location.pathname
+  );
+  const showMobileBottomNav = !isCheckoutRoute && !isOrderDetailRoute;
   const isShopRoute =
     location.pathname === "/shop" ||
     location.pathname === "/search" ||
@@ -379,54 +383,56 @@ gtag('config', '${key}');`;
       {showFloatingCartWidget ? (
         <FloatingCartWidget />
       ) : null}
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--tp-primary)]/70 bg-[var(--tp-primary)] px-2 pt-1 pb-[max(0.45rem,env(safe-area-inset-bottom,0.45rem))] text-white shadow-[0_-8px_24px_rgba(3,76,133,0.4)] sm:hidden">
-        <div className="mx-auto grid max-w-7xl grid-cols-4 gap-1">
-          <Link
-            to="/"
-            className="flex flex-col items-center justify-center py-0.5 text-[11px] tracking-[0.01em] text-white transition-colors min-w-0"
-          >
-            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full mb-0.5 transition-colors ${isHomeActive ? "bg-[var(--tp-accent)]" : "bg-transparent"}`}>
-              <Home className="h-[18px] w-[18px]" />
-            </div>
-            <span className={`text-[10px] w-full text-center truncate leading-tight ${isHomeActive ? "font-bold" : "font-medium"}`}>
-              {isIndo ? "Beranda" : "Home"}
-            </span>
-          </Link>
-          <Link
-            to="/shop"
-            className="flex flex-col items-center justify-center py-0.5 text-[11px] tracking-[0.01em] text-white transition-colors min-w-0"
-          >
-            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full mb-0.5 transition-colors ${isShopNavActive ? "bg-[var(--tp-accent)]" : "bg-transparent"}`}>
-              <Store className="h-[18px] w-[18px]" />
-            </div>
-            <span className={`text-[10px] w-full text-center truncate leading-tight ${isShopNavActive ? "font-bold" : "font-medium"}`}>
-              {isIndo ? "Belanja" : "Shop"}
-            </span>
-          </Link>
-          <Link
-            to="/user/notifications"
-            className="relative flex flex-col items-center justify-center py-0.5 text-[11px] tracking-[0.01em] text-white transition-colors min-w-0"
-          >
-            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full mb-0.5 transition-colors ${isNotificationsActive ? "bg-[var(--tp-accent)]" : "bg-transparent"}`}>
-              <Bell className="h-[18px] w-[18px]" />
-            </div>
-            <span className={`text-[10px] w-full text-center truncate leading-tight ${isNotificationsActive ? "font-bold" : "font-medium"}`}>
-              {isIndo ? "Notifikasi" : "Notifications"}
-            </span>
-          </Link>
-          <Link
-            to="/user/my-account"
-            className="flex flex-col items-center justify-center py-0.5 text-[11px] tracking-[0.01em] text-white transition-colors min-w-0"
-          >
-            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full mb-0.5 transition-colors ${isProfileActive ? "bg-[var(--tp-accent)]" : "bg-transparent"}`}>
-              <UserRound className="h-[18px] w-[18px]" />
-            </div>
-            <span className={`text-[10px] w-full text-center truncate leading-tight ${isProfileActive ? "font-bold" : "font-medium"}`}>
-              {isIndo ? "Akun" : "Profile"}
-            </span>
-          </Link>
-        </div>
-      </nav>
+      {showMobileBottomNav ? (
+        <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--tp-primary)]/70 bg-[var(--tp-primary)] px-2 pt-1 pb-[max(0.45rem,env(safe-area-inset-bottom,0.45rem))] text-white shadow-[0_-8px_24px_rgba(3,76,133,0.4)] sm:hidden">
+          <div className="mx-auto grid max-w-7xl grid-cols-4 gap-1">
+            <Link
+              to="/"
+              className="flex flex-col items-center justify-center py-0.5 text-[11px] tracking-[0.01em] text-white transition-colors min-w-0"
+            >
+              <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full mb-0.5 transition-colors ${isHomeActive ? "bg-[var(--tp-accent)]" : "bg-transparent"}`}>
+                <Home className="h-[18px] w-[18px]" />
+              </div>
+              <span className={`text-[10px] w-full text-center truncate leading-tight ${isHomeActive ? "font-bold" : "font-medium"}`}>
+                {isIndo ? "Beranda" : "Home"}
+              </span>
+            </Link>
+            <Link
+              to="/shop"
+              className="flex flex-col items-center justify-center py-0.5 text-[11px] tracking-[0.01em] text-white transition-colors min-w-0"
+            >
+              <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full mb-0.5 transition-colors ${isShopNavActive ? "bg-[var(--tp-accent)]" : "bg-transparent"}`}>
+                <Store className="h-[18px] w-[18px]" />
+              </div>
+              <span className={`text-[10px] w-full text-center truncate leading-tight ${isShopNavActive ? "font-bold" : "font-medium"}`}>
+                {isIndo ? "Belanja" : "Shop"}
+              </span>
+            </Link>
+            <Link
+              to="/user/notifications"
+              className="relative flex flex-col items-center justify-center py-0.5 text-[11px] tracking-[0.01em] text-white transition-colors min-w-0"
+            >
+              <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full mb-0.5 transition-colors ${isNotificationsActive ? "bg-[var(--tp-accent)]" : "bg-transparent"}`}>
+                <Bell className="h-[18px] w-[18px]" />
+              </div>
+              <span className={`text-[10px] w-full text-center truncate leading-tight ${isNotificationsActive ? "font-bold" : "font-medium"}`}>
+                {isIndo ? "Notifikasi" : "Notifications"}
+              </span>
+            </Link>
+            <Link
+              to="/user/my-account"
+              className="flex flex-col items-center justify-center py-0.5 text-[11px] tracking-[0.01em] text-white transition-colors min-w-0"
+            >
+              <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full mb-0.5 transition-colors ${isProfileActive ? "bg-[var(--tp-accent)]" : "bg-transparent"}`}>
+                <UserRound className="h-[18px] w-[18px]" />
+              </div>
+              <span className={`text-[10px] w-full text-center truncate leading-tight ${isProfileActive ? "font-bold" : "font-medium"}`}>
+                {isIndo ? "Akun" : "Profile"}
+              </span>
+            </Link>
+          </div>
+        </nav>
+      ) : null}
       <MobileMenuDrawer isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
       {!isCartRoute ? (
         <StoreCartDrawer
